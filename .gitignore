@@ -1,0 +1,12 @@
+node_modules
+.next
+out
+.env
+.env.local
+.tools
+*.log
+orbit 2
+_copy_assets.py
+Thumbs.db
+.DS_Store
+
