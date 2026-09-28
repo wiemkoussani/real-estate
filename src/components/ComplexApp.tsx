@@ -174,6 +174,10 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
     return () => engine.dispose();
   }, [tour]);
 
+  useEffect(() => {
+    engineRef.current?.setStatusFilter(status);
+  }, [status, ready]);
+
   const filtered = useMemo(() => {
     return units
       .filter((u) => u.surface <= areaMax && u.floor <= floorMax && u.rooms <= roomsMax)

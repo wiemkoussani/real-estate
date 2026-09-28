@@ -47,6 +47,7 @@ export class OrbitEngine {
   private panY = 0;
   private panMode = false;
   private overlayVisible = false;
+  private statusFilter: "all" | UnitStatus = "all";
   private focusedId: string | null = null;
   private hoveredId: string | null = null;
   private approaching = false;
@@ -109,7 +110,8 @@ export class OrbitEngine {
   async start() {
     this.bind();
     this.resize();
-    await Promise.all([this.preloadLow(), this.loadGlb(), this.loadUnits()]);
+    await Promise.all([this.preloadLow(), this.loadGlb()]);
+    await this.loadUnits();
     this.syncCamera();
     this.draw("low");
     this.loop();
@@ -135,6 +137,11 @@ export class OrbitEngine {
 
   setOverlayVisible(v: boolean) {
     this.overlayVisible = v;
+    this.syncMeshVisibility();
+  }
+
+  setStatusFilter(v: "all" | UnitStatus) {
+    this.statusFilter = v;
     this.syncMeshVisibility();
   }
 
@@ -343,6 +350,7 @@ export class OrbitEngine {
       }
       const mat = mesh.material as THREE.MeshBasicMaterial;
       mat.color.setHex(STATUS_COLOR[unit.status as UnitStatus] ?? 0x94a3b0);
+      mat.needsUpdate = true;
     });
     this.syncMeshVisibility();
     this.events.onLoadProgress?.(100);
@@ -426,6 +434,12 @@ export class OrbitEngine {
     this.settle();
   }
 
+  private paintUnitColor(mesh: THREE.Mesh, unit: Unit) {
+    const mat = mesh.material as THREE.MeshBasicMaterial;
+    mat.color.setHex(STATUS_COLOR[unit.status as UnitStatus] ?? 0x94a3b0);
+    mat.needsUpdate = true;
+  }
+
   private syncMeshVisibility() {
     Object.entries(this.unitMeshes).forEach(([name, mesh]) => {
       const unit = this.units[name];
@@ -434,7 +448,9 @@ export class OrbitEngine {
         mesh.visible = false;
         return;
       }
-      mesh.visible = true;
+      const inFilter = this.statusFilter === "all" || unit.status === this.statusFilter;
+      mesh.visible = inFilter;
+      this.paintUnitColor(mesh, unit);
       const focused = this.focusedId === name || this.hoveredId === name;
       if (this.overlayVisible) {
         mat.opacity = focused ? COMPLEX.hoverOverlayOpacity : COMPLEX.overlayOpacity;
