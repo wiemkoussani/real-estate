@@ -375,7 +375,7 @@ function Modal({ title, children, onClose }: { title: string; children: React.Re
   return (
     <div className="modal" onClick={onClose}>
       <div className="sheet" onClick={(e) => e.stopPropagation()}>
-        <header><h2>{title}</h2><button type="button" onClick={onClose}>×</button></header>
+        <header><span /><h2>{title}</h2><button type="button" onClick={onClose}>×</button></header>
         {children}
       </div>
     </div>
