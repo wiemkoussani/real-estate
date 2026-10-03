@@ -5,6 +5,9 @@ import { COMPLEX, type Unit, type UnitStatus } from "@/lib/complex";
 import { buildTour, emptyTour, tourPlanUrl, tourVillaUrl, type TourMedia } from "@/lib/tour";
 import { OrbitEngine } from "@/viewer/OrbitEngine";
 import {
+  IconApps,
+  IconArrowL,
+  IconArrowR,
   IconCards,
   IconEye,
   IconFilters,
@@ -15,11 +18,10 @@ import {
   IconMail,
   IconPan,
   IconPin,
-  IconRotateL,
-  IconRotateR,
   IconZoomIn,
   IconZoomOut,
 } from "@/components/Icons";
+import { GalleryPage, HelpPage, LocationPage } from "@/components/TourPages";
 
 const STATUS_LABEL: Record<UnitStatus, string> = {
   available: "Available",
@@ -77,6 +79,15 @@ export default function ComplexApp({ slug }: { slug: string }) {
   );
 }
 
+function cardPhoto(tour: TourMedia, unit: Unit) {
+  const plan = tourPlanUrl(tour, unit);
+  if (plan) return plan;
+  const byType = Object.entries(tour.plans).find(([k]) => k.includes(`type-${unit.type}`));
+  if (byType) return byType[1];
+  const plans = Object.values(tour.plans).filter(Boolean);
+  return plans[0] || "";
+}
+
 function ComplexStage({ tour }: { tour: TourMedia }) {
   const stageRef = useRef<HTMLDivElement>(null);
   const bgRef = useRef<HTMLCanvasElement>(null);
@@ -94,13 +105,17 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
   const [hoverPos, setHoverPos] = useState<{ x: number; y: number } | null>(null);
   const [selected, setSelected] = useState<Unit | null>(null);
   const [listOpen, setListOpen] = useState(true);
-  const [cards, setCards] = useState(true);
+  const [cards, setCards] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(true);
+  const [favOnly, setFavOnly] = useState(false);
   const [overlayOn, setOverlayOn] = useState(false);
   const [panMode, setPanMode] = useState(false);
+  const [headingDir, setHeadingDir] = useState("N");
+  const [headingDeg, setHeadingDeg] = useState(0);
   const [helpOpen, setHelpOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [galleryOpen, setGalleryOpen] = useState(false);
+  const [locationOpen, setLocationOpen] = useState(false);
   const [tourUnit, setTourUnit] = useState<Unit | null>(null);
   const [favs, setFavs] = useState<string[]>([]);
   const [status, setStatus] = useState<"all" | UnitStatus>("all");
@@ -141,7 +156,11 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
     if (!stage || !bg || !bgNext || !three) return;
     const engine = new OrbitEngine(stage, { bg, bgNext, three }, {
       onLoadProgress: setLoadPct,
-      onFrame: setFrame,
+      onFrame: (i) => {
+        setFrame(i);
+        setHeadingDir(engine.getHeadingDir());
+        setHeadingDeg(engine.getHeading());
+      },
       onHover: (u, pos) => {
         setHover(u);
         setHoverPos(pos ?? null);
@@ -163,6 +182,8 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
           setRoomsMax(Math.max(...list.map((u) => u.rooms)));
         }
         setReady(true);
+        setHeadingDir(engine.getHeadingDir());
+        setHeadingDeg(engine.getHeading());
       },
     }, tour);
     engineRef.current = engine;
@@ -178,13 +199,22 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
     engineRef.current?.setStatusFilter(status);
   }, [status, ready]);
 
+  useEffect(() => {
+    engineRef.current?.setPanMode(panMode);
+  }, [panMode, ready]);
+
+  useEffect(() => {
+    engineRef.current?.setOverlayVisible(overlayOn);
+  }, [overlayOn, ready]);
+
   const filtered = useMemo(() => {
     return units
       .filter((u) => u.surface <= areaMax && u.floor <= floorMax && u.rooms <= roomsMax)
       .filter((u) => status === "all" || u.status === status)
       .filter((u) => type === "all" || String(u.type) === type)
+      .filter((u) => !favOnly || favs.includes(u.id))
       .sort((a, b) => a.displayId.localeCompare(b.displayId, undefined, { numeric: true }));
-  }, [units, areaMax, floorMax, roomsMax, status, type]);
+  }, [units, areaMax, floorMax, roomsMax, status, type, favOnly, favs]);
 
   const toggleFav = (id: string) => {
     setFavs((prev) => {
@@ -214,6 +244,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
     setRoomsMax(bounds.roomsMax);
     setStatus("all");
     setType("all");
+    setFavOnly(false);
   };
 
   const openUnit = (u: Unit) => {
@@ -233,64 +264,92 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
         <button className="peek" type="button" onClick={() => setListOpen((v) => !v)} aria-label="Toggle list">
           {listOpen ? "‹" : "›"}
         </button>
-        <div className="panel-inner">
+        <div className={`panel-inner ${formOpen ? "form-mode" : ""}`}>
+          {formOpen ? (
+            <ContactSidebar unit={selected} onBack={() => setFormOpen(false)} />
+          ) : (
+            <>
           <header className="panel-head">
-            <div>
-              <h1>{tour.name}</h1>
-              <p>{filtered.length} / {units.length} units</p>
-            </div>
+            <span className="unit-count">{filtered.length} units</span>
             <div className="pills">
-              <span className="pill heart-pill"><IconHeart size={14} filled={favs.length > 0} /> {favs.length}</span>
-              <button className={`pill ${filtersOpen ? "on" : ""}`} type="button" onClick={() => setFiltersOpen((v) => !v)}>
-                <IconFilters size={14} /> Filters
+              <button type="button" className={`pill ${favOnly ? "on" : ""}`} onClick={() => setFavOnly((v) => !v)} title="Favorites">
+                <IconHeart size={14} filled={favOnly || favs.length > 0} /> {favs.length}
               </button>
-              <button className={`pill ${cards ? "on" : ""}`} type="button" onClick={() => setCards((v) => !v)}>
-                {cards ? <IconList size={14} /> : <IconCards size={14} />} {cards ? "List" : "Cards"}
+              <button className={`pill ${filtersOpen ? "on" : ""}`} type="button" onClick={() => setFiltersOpen((v) => !v)} title="Filters">
+                <IconFilters size={14} />
+              </button>
+              <button className={`pill ${cards ? "on" : ""}`} type="button" onClick={() => setCards((v) => !v)} title={cards ? "List" : "Cards"}>
+                {cards ? <IconList size={14} /> : <IconCards size={14} />}
               </button>
             </div>
           </header>
           {filtersOpen && (
             <div className="filters">
-              <label>Area <input type="range" min={bounds.areaMin} max={bounds.areaMax} value={areaMax} onChange={(e) => setAreaMax(+e.target.value)} style={{ backgroundSize: `${((areaMax - bounds.areaMin) / Math.max(1, bounds.areaMax - bounds.areaMin)) * 100}% 100%` }} /> {areaMax} m²</label>
-              <label>Floor <input type="range" min={bounds.floorMin} max={bounds.floorMax} value={floorMax} onChange={(e) => setFloorMax(+e.target.value)} style={{ backgroundSize: `${((floorMax - bounds.floorMin) / Math.max(1, bounds.floorMax - bounds.floorMin)) * 100}% 100%` }} /> {floorMax}</label>
-              <label>Rooms <input type="range" min={bounds.roomsMin} max={bounds.roomsMax} value={roomsMax} onChange={(e) => setRoomsMax(+e.target.value)} style={{ backgroundSize: `${((roomsMax - bounds.roomsMin) / Math.max(1, bounds.roomsMax - bounds.roomsMin)) * 100}% 100%` }} /> {roomsMax}</label>
-              <div className="row">
-                <select value={status} onChange={(e) => setStatus(e.target.value as typeof status)}>
-                  <option value="all">Status · All</option>
-                  <option value="available">Available</option>
-                  <option value="reserved">Reserved</option>
-                  <option value="sold">Sold</option>
-                </select>
-                <select value={type} onChange={(e) => setType(e.target.value as typeof type)}>
-                  <option value="all">Types · All</option>
-                  <option value="1">Type 1</option>
-                  <option value="2">Type 2</option>
-                  <option value="3">Type 3</option>
-                </select>
+              <div className="slider-row">
+                <label>
+                  <span>Area</span>
+                  <input type="range" min={bounds.areaMin} max={bounds.areaMax} value={areaMax} onChange={(e) => setAreaMax(+e.target.value)} style={{ backgroundSize: `${((areaMax - bounds.areaMin) / Math.max(1, bounds.areaMax - bounds.areaMin)) * 100}% 100%` }} />
+                  <em>{bounds.areaMin}–{areaMax}</em>
+                </label>
+                <label>
+                  <span>Rooms</span>
+                  <input type="range" min={bounds.roomsMin} max={bounds.roomsMax} value={roomsMax} onChange={(e) => setRoomsMax(+e.target.value)} style={{ backgroundSize: `${((roomsMax - bounds.roomsMin) / Math.max(1, bounds.roomsMax - bounds.roomsMin)) * 100}% 100%` }} />
+                  <em>{bounds.roomsMin}–{roomsMax}</em>
+                </label>
               </div>
-              <button type="button" className="reset" onClick={resetFilters}>Reset filters</button>
+              <button type="button" className="reset" onClick={resetFilters}>Reset</button>
+              <div className="row">
+                <label className="select-field">
+                  <span>Status</span>
+                  <select value={status} onChange={(e) => setStatus(e.target.value as typeof status)}>
+                    <option value="all">All</option>
+                    <option value="available">Available</option>
+                    <option value="reserved">Reserved</option>
+                    <option value="sold">Sold</option>
+                  </select>
+                </label>
+                <label className="select-field">
+                  <span>Types</span>
+                  <select value={type} onChange={(e) => setType(e.target.value as typeof type)}>
+                    <option value="all">All</option>
+                    <option value="1">Type 1</option>
+                    <option value="2">Type 2</option>
+                    <option value="3">Type 3</option>
+                  </select>
+                </label>
+              </div>
             </div>
           )}
           <div className={`units ${cards ? "cards" : "table"}`}>
             {!cards && (
-              <div className="thead"><span>ID</span><span>Area</span><span>Type</span><span>Floor</span><span>Rooms</span></div>
+              <div className="thead"><span /><span /><span>ID</span><span>Area</span><span>Floor</span><span>Rooms</span></div>
             )}
-            {filtered.map((u) => (
-              <button key={u.id} type="button" className={`unit ${selected?.id === u.id ? "sel" : ""}`} onClick={() => openUnit(u)}>
-                <span className={`dot ${u.status}`} />
-                {cards && mediaSrc(tourPlanUrl(tour, u)) ? <img src={tourPlanUrl(tour, u)} alt="" /> : null}
-                <strong>{u.displayId}</strong>
-                <span>{u.surface} m²</span>
-                <span>T{u.type}</span>
-                <span>{u.floor}</span>
-                <span>{u.rooms}</span>
+            {filtered.map((u) => {
+              const photo = cardPhoto(tour, u);
+              return (
+              <button
+                key={u.id}
+                type="button"
+                className={`unit ${selected?.id === u.id ? "sel" : ""}`}
+                onClick={() => openUnit(u)}
+                onMouseEnter={() => engineRef.current?.setPreview(u.id)}
+                onMouseLeave={() => engineRef.current?.setPreview(null)}
+              >
                 <span className={favs.includes(u.id) ? "heart on" : "heart"} onClick={(e) => { e.stopPropagation(); toggleFav(u.id); }}>
                   <IconHeart size={14} filled={favs.includes(u.id)} />
                 </span>
-                {cards && <em className={`badge ${u.status}`}>{STATUS_LABEL[u.status]}</em>}
+                {photo ? <img src={photo} alt="" /> : <span className={`dot ${u.status}`} />}
+                <strong>{u.displayId}</strong>
+                <span className="meta-area">{u.surface} m²{cards ? <small>Area</small> : null}</span>
+                <span className="meta-floor">{u.floor}{cards ? <small>Floor</small> : null}</span>
+                <span className="meta-rooms">{u.rooms}{cards ? <small>Rooms</small> : null}</span>
+                <em className={`badge ${u.status}`}>{STATUS_LABEL[u.status]}</em>
               </button>
-            ))}
+              );
+            })}
           </div>
+            </>
+          )}
         </div>
       </aside>
 
@@ -324,38 +383,51 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
           </div>
         )}
 
-        <nav className="rail" aria-label="Tools" onPointerDown={(e) => e.stopPropagation()}>
-          <span className="rail-chip">مشروع</span>
-          <button type="button" title="Form" className="mail" onClick={() => setFormOpen(true)}><IconMail /></button>
-          <button type="button" title="How to use" className="help" onClick={() => setHelpOpen(true)}><IconHelp /></button>
-          <button type="button" title="Location" onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(tour.locationQuery)}`, "_blank")}><IconPin /></button>
-          <button type="button" title="Gallery" onClick={() => setGalleryOpen(true)}><IconGallery /></button>
+        <nav className="rail" aria-label="Tools" onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
+          <span className="rail-fab open">
+            <span className="rail-name">مشروع</span>
+            <span className="rail-ico project"><IconApps size={20} /></span>
+          </span>
+          <button type="button" className="rail-fab" onClick={() => { setFormOpen(true); setListOpen(true); }}>
+            <span className="rail-name">تواصل</span>
+            <span className="rail-ico glass"><IconMail size={16} /></span>
+          </button>
+          <button type="button" className="rail-fab" onClick={() => setHelpOpen(true)}>
+            <span className="rail-name">مساعدة</span>
+            <span className="rail-ico glass"><IconHelp size={16} /></span>
+          </button>
+          <button type="button" className="rail-fab" onClick={() => setLocationOpen(true)}>
+            <span className="rail-name">الموقع</span>
+            <span className="rail-ico glass"><IconPin size={16} /></span>
+          </button>
+          <button type="button" className="rail-fab" onClick={() => setGalleryOpen(true)}>
+            <span className="rail-name">المعرض</span>
+            <span className="rail-ico glass"><IconGallery size={16} /></span>
+          </button>
         </nav>
 
-        <div className="hud" onPointerDown={(e) => e.stopPropagation()}>
-          <button type="button" className={panMode ? "on" : ""} onClick={() => { const v = !panMode; setPanMode(v); engineRef.current?.setPanMode(v); }}><IconPan size={16} /></button>
-          <button type="button" onClick={() => engineRef.current?.zoomBy(-COMPLEX.zoomStep)}><IconZoomOut size={16} /></button>
-          <button type="button" onClick={() => engineRef.current?.zoomBy(COMPLEX.zoomStep)}><IconZoomIn size={16} /></button>
-          <button type="button" onClick={() => engineRef.current?.rotateBy(-1)}><IconRotateL size={16} /></button>
-          <button type="button" onClick={() => engineRef.current?.rotateBy(1)}><IconRotateR size={16} /></button>
-          <button type="button" className={overlayOn ? "on" : ""} onClick={() => { const v = !overlayOn; setOverlayOn(v); engineRef.current?.setOverlayVisible(v); }}><IconEye size={16} /></button>
+        <div className="hud" onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
+          <button type="button" className={panMode ? "on" : ""} title="Pan" onClick={() => { const v = !panMode; setPanMode(v); engineRef.current?.setPanMode(v); }}><IconPan size={16} /></button>
+          <button type="button" title="Zoom out" onClick={() => engineRef.current?.zoomBy(-COMPLEX.zoomStep)}><IconZoomOut size={16} /></button>
+          <button type="button" title="Zoom in" onClick={() => engineRef.current?.zoomBy(COMPLEX.zoomStep)}><IconZoomIn size={16} /></button>
+          <button type="button" className="nav-btn" title="Rotate left" onClick={() => engineRef.current?.rotateBy(-1)}><IconArrowL size={16} /></button>
+          <button
+            type="button"
+            className="compass"
+            title="Compass"
+            onClick={() => engineRef.current?.rotateToNextCardinal()}
+          >
+            <span className="compass-needle" style={{ transform: `rotate(${headingDeg}deg)` }} />
+            <b>{headingDir}</b>
+          </button>
+          <button type="button" className="nav-btn" title="Rotate right" onClick={() => engineRef.current?.rotateBy(1)}><IconArrowR size={16} /></button>
+          <button type="button" className={overlayOn ? "on" : ""} title="Show units" onClick={() => { const v = !overlayOn; setOverlayOn(v); engineRef.current?.setOverlayVisible(v); }}><IconEye size={16} /></button>
         </div>
       </div>
 
-      {helpOpen && (
-        <Modal onClose={() => setHelpOpen(false)} title="كيفية الاستخدام">
-          <ul className="help-list" dir="rtl">
-            <li>اسحب يمينًا أو يسارًا لتدوير المجمع.</li>
-            <li>قرّب الإصبعين أو استخدم العجلة للتكبير.</li>
-            <li>مرّر المؤشر فوق فيلا ليظهر لونها: أخضر متاحة، أصفر محجوزة، أحمر مباعة.</li>
-            <li>انقر مرة للاقتراب من الخارج، ثم انقر مرة ثانية للدخول.</li>
-            <li>زر الرسالة لطلب اهتمام (الاسم، اللقب، البريد، الهاتف).</li>
-          </ul>
-        </Modal>
-      )}
-
-      {formOpen && <LeadForm unit={selected} onClose={() => setFormOpen(false)} />}
-      {galleryOpen && <Gallery onClose={() => setGalleryOpen(false)} />}
+      {helpOpen && <HelpPage tour={tour} onClose={() => setHelpOpen(false)} />}
+      {locationOpen && <LocationPage tour={tour} onClose={() => setLocationOpen(false)} />}
+      {galleryOpen && <GalleryPage tour={tour} onClose={() => setGalleryOpen(false)} />}
       {tourUnit && (
         <VillaTour
           unit={tourUnit}
@@ -371,18 +443,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
   );
 }
 
-function Modal({ title, children, onClose }: { title: string; children: React.ReactNode; onClose: () => void }) {
-  return (
-    <div className="modal" onClick={onClose}>
-      <div className="sheet" onClick={(e) => e.stopPropagation()}>
-        <header><span /><h2>{title}</h2><button type="button" onClick={onClose}>×</button></header>
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function LeadForm({ unit, onClose }: { unit: Unit | null; onClose: () => void }) {
+function ContactSidebar({ unit, onBack }: { unit: Unit | null; onBack: () => void }) {
   const tour = useTour();
   const [busy, setBusy] = useState(false);
   const [ok, setOk] = useState(false);
@@ -414,41 +475,27 @@ function LeadForm({ unit, onClose }: { unit: Unit | null; onClose: () => void })
     }
   };
 
+  const hero = tour.gallery[2] || tour.gallery[1] || tour.gallery[0] || tour.framesLow[0];
   return (
-    <Modal onClose={onClose} title="طلب اهتمام">
-      <form className="lead" dir="rtl" onSubmit={submit}>
-        {unit && <p className="lead-unit">Unit {unit.displayId}</p>}
+    <div className="contact-side" dir="rtl">
+      <header className="contact-head">
+        <h2>تواصل</h2>
+        <button type="button" className="back" onClick={onBack}>الوحدات ‹</button>
+      </header>
+      {hero ? <img className="contact-hero" src={hero} alt="" /> : null}
+      <div className="contact-copy">
+        <h3>طلب زيارة</h3>
+        <p>يردّ عليك مستشار بالمتاح وبوقت مناسب لزيارة الفيلا.</p>
+      </div>
+      {unit && <span className="contact-chip">وحدة {unit.displayId}</span>}
+      <form className="lead side" onSubmit={submit}>
         <label>الاسم <input name="nom" required autoComplete="family-name" /></label>
         <label>اللقب <input name="prenom" required autoComplete="given-name" /></label>
         <label>البريد الإلكتروني <input name="email" type="email" required autoComplete="email" /></label>
-        <label>رقم الهاتف <input name="tel" type="tel" required autoComplete="tel" /></label>
+        <label>الهاتف <input name="tel" type="tel" required autoComplete="tel" /></label>
         {err && <p className="err">{err}</p>}
-        {ok ? <p className="ok">تم الإرسال</p> : <button type="submit" disabled={busy}>{busy ? "..." : "إرسال"}</button>}
+        {ok ? <p className="ok">تم الإرسال. سنتواصل معك قريباً.</p> : <button type="submit" disabled={busy}>{busy ? "…" : "إرسال الطلب"}</button>}
       </form>
-    </Modal>
-  );
-}
-
-function Gallery({ onClose }: { onClose: () => void }) {
-  const tour = useTour();
-  const gallery = tour.gallery;
-  const [i, setI] = useState(0);
-  if (!gallery.length) return null;
-  return (
-    <div className="lightbox" onClick={onClose}>
-      <div className="lightbox-inner" onClick={(e) => e.stopPropagation()}>
-        <button className="lightbox-close" type="button" onClick={onClose}>×</button>
-        {mediaSrc(gallery[i]) ? <img src={gallery[i]} alt={`${tour.name} ${i + 1}`} /> : null}
-        <button className="lightbox-prev" type="button" onClick={() => setI((v) => (v + gallery.length - 1) % gallery.length)}>‹</button>
-        <button className="lightbox-next" type="button" onClick={() => setI((v) => (v + 1) % gallery.length)}>›</button>
-        <div className="thumbs">
-          {gallery.map((src, n) => (
-            <button key={src} type="button" className={n === i ? "on" : ""} onClick={() => setI(n)}>
-              {mediaSrc(src) ? <img src={src} alt="" /> : null}
-            </button>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }

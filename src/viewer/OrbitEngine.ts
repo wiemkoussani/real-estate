@@ -50,6 +50,8 @@ export class OrbitEngine {
   private statusFilter: "all" | UnitStatus = "all";
   private focusedId: string | null = null;
   private hoveredId: string | null = null;
+  private previewId: string | null = null;
+  private frameHeadings: number[] = [];
   private approaching = false;
   private zoomOx = 0;
   private zoomOy = 0;
@@ -135,6 +137,46 @@ export class OrbitEngine {
     return this.currentFrame;
   }
 
+  getHeading() {
+    return this.frameHeadings[this.currentFrame] ?? 0;
+  }
+
+  getHeadingDir() {
+    const dirs = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"] as const;
+    return dirs[Math.round(this.getHeading() / 45) % 8];
+  }
+
+  rotateToNextCardinal() {
+    const h = this.getHeading();
+    const dirIndex = Math.round(h / 45) % 8;
+    this.rotateToHeading((dirIndex + 1) * 45);
+  }
+
+  rotateToHeading(targetHeading: number) {
+    if (!this.frameHeadings.length) return;
+    let best = this.currentFrame;
+    let bestDist = Infinity;
+    this.frameHeadings.forEach((heading, i) => {
+      const d = Math.min(Math.abs(heading - targetHeading), 360 - Math.abs(heading - targetHeading));
+      if (d < bestDist) {
+        bestDist = d;
+        best = i;
+      }
+    });
+    if (best === this.currentFrame) return;
+    const n = this.tour.totalFrames;
+    const dir = best > this.currentFrame ? 1 : -1;
+    this.clearCrossfade();
+    this.isNavigating = true;
+    this.currentFrame = best;
+    this.warmAround(this.currentFrame, dir);
+    this.draw("low");
+    this.syncCamera();
+    this.events.onFrame?.(this.currentFrame);
+    this.scheduleUpgrade();
+    void n;
+  }
+
   setOverlayVisible(v: boolean) {
     this.overlayVisible = v;
     this.syncMeshVisibility();
@@ -150,11 +192,17 @@ export class OrbitEngine {
     this.syncMeshVisibility();
   }
 
+  setPreview(id: string | null) {
+    this.previewId = id;
+    this.syncMeshVisibility();
+  }
+
   resetView() {
     this.clearCrossfade();
     this.bgNext.width = 1;
     this.bgNext.height = 1;
     this.focusedId = null;
+    this.previewId = null;
     this.zoom = 1;
     this.panX = 0;
     this.panY = 0;
@@ -171,10 +219,15 @@ export class OrbitEngine {
 
   setPanMode(v: boolean) {
     this.panMode = v;
+    this.container.classList.toggle("hand-mode", v);
+    this.container.style.cursor = v ? "grab" : "";
+    if (v && this.zoom < 2) this.zoom = 2;
+    this.applyTransform();
   }
 
   zoomBy(delta: number) {
-    const next = Math.min(COMPLEX.zoomMax, Math.max(COMPLEX.zoomMin, this.zoom + delta));
+    const min = this.panMode ? 1.25 : COMPLEX.zoomMin;
+    const next = Math.min(COMPLEX.zoomMax, Math.max(min, this.zoom + delta));
     if (next === this.zoom) return false;
     this.zoom = next;
     this.applyTransform();
@@ -205,22 +258,28 @@ export class OrbitEngine {
   }
 
   private bind() {
-    this.container.addEventListener("pointerdown", this.onDown);
-    this.container.addEventListener("pointermove", this.onMove);
-    this.container.addEventListener("pointerup", this.onUp);
-    this.container.addEventListener("pointercancel", this.onUp);
-    this.container.addEventListener("pointerleave", this.onLeave);
+    this.container.addEventListener("pointerdown", this.onPointerDown);
+    window.addEventListener("pointermove", this.onPointerMove);
+    window.addEventListener("pointerup", this.onPointerUp);
+    window.addEventListener("pointercancel", this.onPointerUp);
+    this.container.addEventListener("touchstart", this.onTouchStart, { passive: true });
+    window.addEventListener("touchmove", this.onTouchMove, { passive: false });
+    window.addEventListener("touchend", this.onPointerUp);
+    this.container.addEventListener("mouseleave", this.onLeave);
     this.container.addEventListener("wheel", this.onWheel, { passive: false });
     this.container.addEventListener("click", this.onClick);
     window.addEventListener("resize", this.onResize);
   }
 
   private unbind() {
-    this.container.removeEventListener("pointerdown", this.onDown);
-    this.container.removeEventListener("pointermove", this.onMove);
-    this.container.removeEventListener("pointerup", this.onUp);
-    this.container.removeEventListener("pointercancel", this.onUp);
-    this.container.removeEventListener("pointerleave", this.onLeave);
+    this.container.removeEventListener("pointerdown", this.onPointerDown);
+    window.removeEventListener("pointermove", this.onPointerMove);
+    window.removeEventListener("pointerup", this.onPointerUp);
+    window.removeEventListener("pointercancel", this.onPointerUp);
+    this.container.removeEventListener("touchstart", this.onTouchStart);
+    window.removeEventListener("touchmove", this.onTouchMove);
+    window.removeEventListener("touchend", this.onPointerUp);
+    this.container.removeEventListener("mouseleave", this.onLeave);
     this.container.removeEventListener("wheel", this.onWheel);
     this.container.removeEventListener("click", this.onClick);
     window.removeEventListener("resize", this.onResize);
@@ -306,22 +365,59 @@ export class OrbitEngine {
         obj.visible = false;
         return;
       }
-            obj.material = new THREE.MeshBasicMaterial({
+      obj.material = new THREE.MeshBasicMaterial({
         color: STATUS_COLOR.available,
         transparent: true,
-        opacity: 0,
+        opacity: COMPLEX.overlayOpacity,
         depthWrite: false,
         depthTest: true,
-        side: THREE.DoubleSide,
-        polygonOffset: true,
-        polygonOffsetFactor: -2,
-        polygonOffsetUnits: -2,
+        side: THREE.FrontSide,
       });
-      obj.renderOrder = 2;
-      obj.visible = true;
+      obj.userData.targetOpacity = COMPLEX.overlayOpacity;
+      obj.renderOrder = 1;
+      obj.visible = false;
       this.unitMeshes[obj.name] = obj;
       this.clickable.push(obj);
     });
+
+    const mask =
+      gltf.scene.getObjectByName("jijijijijiji") ??
+      gltf.scene.getObjectByName(COMPLEX.maskNames[0]);
+    if (mask instanceof THREE.Mesh) {
+      mask.material = new THREE.MeshBasicMaterial({
+        colorWrite: false,
+        depthWrite: true,
+        side: THREE.FrontSide,
+      });
+      mask.renderOrder = 0;
+      mask.visible = true;
+    }
+    this.computeHeadings();
+  }
+
+  private computeHeadings() {
+    this.frameHeadings = [];
+    const v = new THREE.Vector3();
+    let prev: number | null = null;
+    let accum = 0;
+    const n = Math.max(this.tour.totalFrames, this.glbCameras.length);
+    for (let i = 0; i < n; i++) {
+      const cam = this.glbCameras[i];
+      if (!cam) {
+        this.frameHeadings[i] = i > 0 ? this.frameHeadings[i - 1] : 0;
+        continue;
+      }
+      cam.getWorldDirection(v);
+      const yaw = Math.atan2(v.x, v.z);
+      if (prev !== null) {
+        let d = yaw - prev;
+        while (d > Math.PI) d -= 2 * Math.PI;
+        while (d < -Math.PI) d += 2 * Math.PI;
+        accum += d;
+      }
+      prev = yaw;
+      this.frameHeadings[i] = ((accum * 180) / Math.PI % 360 + 360) % 360;
+    }
   }
 
   private async loadUnits() {
@@ -449,14 +545,19 @@ export class OrbitEngine {
         return;
       }
       const inFilter = this.statusFilter === "all" || unit.status === this.statusFilter;
-      mesh.visible = inFilter;
+      const highlighted = this.focusedId === name || this.hoveredId === name || this.previewId === name;
       this.paintUnitColor(mesh, unit);
-      const focused = this.focusedId === name || this.hoveredId === name;
-      if (this.overlayVisible) {
-        mat.opacity = focused ? COMPLEX.hoverOverlayOpacity : COMPLEX.overlayOpacity;
-      } else {
-        mat.opacity = focused ? COMPLEX.hoverOverlayOpacity : 0;
+      if (!inFilter && !highlighted) {
+        mesh.visible = false;
+        mesh.userData.targetOpacity = 0;
+        mat.opacity = 0;
+        return;
       }
+      mesh.visible = this.overlayVisible || highlighted;
+      if (highlighted) mesh.userData.targetOpacity = COMPLEX.hoverOverlayOpacity;
+      else if (this.overlayVisible) mesh.userData.targetOpacity = COMPLEX.showAllOpacity;
+      else mesh.userData.targetOpacity = 0;
+      if (!mesh.visible) mat.opacity = 0;
     });
   }
 
@@ -692,79 +793,149 @@ export class OrbitEngine {
   }
 
   private applyTransform() {
-    this.zoomOx = this.container.clientWidth / 2;
-    this.zoomOy = this.container.clientHeight / 2;
-    const t = `translate(${this.panX}px, ${this.panY}px) scale(${this.zoom})`;
+    const w = this.container.clientWidth;
+    const h = this.container.clientHeight;
+    this.zoomOx = w / 2;
+    this.zoomOy = h / 2;
+    const maxX = Math.max(0, (w * (this.zoom - 1)) / 2);
+    const maxY = Math.max(0, (h * (this.zoom - 1)) / 2);
+    this.panX = Math.min(maxX, Math.max(-maxX, this.panX));
+    this.panY = Math.min(maxY, Math.max(-maxY, this.panY));
+    const t = `translate3d(${this.zoomOx + this.panX}px, ${this.zoomOy + this.panY}px, 0) scale(${this.zoom}) translate3d(${-this.zoomOx}px, ${-this.zoomOy}px, 0)`;
     [this.bg, this.bgNext, this.threeCanvas].forEach((el) => {
-      el.style.transformOrigin = "50% 50%";
+      el.style.transformOrigin = "0 0";
+      el.style.willChange = "transform";
       el.style.transform = t;
     });
   }
 
-  private loop = () => {
-    if (this.disposed) return;
-    this.rafLoop = requestAnimationFrame(this.loop);
-    this.renderer.render(this.scene, this.activeCamera);
+  private uiBlock(t: EventTarget | null) {
+    return (t as HTMLElement | null)?.closest("button, a, input, select, nav, .hud, .panel, .modal, .tour, .detail, .bottom-controls, .rail");
+  }
+
+  private beginDrag(x: number, y: number) {
+    this.isDragging = true;
+    this.isNavigating = !this.panMode;
+    this.moved = false;
+    this.dragStartX = x;
+    this.panStartX = x;
+    this.panStartY = y;
+    if (this.panMode) {
+      if (this.zoom < 2) {
+        this.zoom = 2;
+        this.applyTransform();
+      }
+      this.container.style.cursor = "grabbing";
+    }
+  }
+
+  private dragTo(x: number, y: number) {
+    if (this.panMode) {
+      this.moved = true;
+      this.panX += x - this.panStartX;
+      this.panY += y - this.panStartY;
+      this.panStartX = x;
+      this.panStartY = y;
+      this.applyTransform();
+      return;
+    }
+    const delta = x - this.dragStartX;
+    if (Math.abs(delta) < COMPLEX.dragSensitivity) return;
+    const n = this.tour.totalFrames;
+    if (!n) return;
+    const dir = delta > 0 ? -1 : 1;
+    this.moved = true;
+    this.clearCrossfade();
+    this.currentFrame = (this.currentFrame + dir + n) % n;
+    this.warmAround(this.currentFrame, dir);
+    this.requestDraw();
+    this.events.onFrame?.(this.currentFrame);
+    this.dragStartX = x;
+  }
+
+  private endDrag = () => {
+    this.isDragging = false;
+    this.pointers.clear();
+    this.pinchStartDist = 0;
+    if (this.panMode) this.container.style.cursor = "grab";
+    this.scheduleUpgrade();
   };
 
-  private onDown = (e: PointerEvent) => {
+  private onPointerDown = (e: PointerEvent) => {
+    if (this.approaching || e.button !== 0) return;
+    if (this.uiBlock(e.target)) return;
+    e.preventDefault();
+    try {
+      this.container.setPointerCapture(e.pointerId);
+    } catch {
+      /* ignore */
+    }
+    this.beginDrag(e.clientX, e.clientY);
+  };
+
+  private onPointerMove = (e: PointerEvent) => {
+    if (!this.isDragging) {
+      if (!this.panMode && e.pointerType === "mouse") this.hover(e);
+      return;
+    }
+    this.dragTo(e.clientX, e.clientY);
+  };
+
+  private onPointerUp = (e?: PointerEvent) => {
+    if (e) {
+      try {
+        if (this.container.hasPointerCapture(e.pointerId)) this.container.releasePointerCapture(e.pointerId);
+      } catch {
+        /* ignore */
+      }
+    }
+    this.endDrag();
+  };
+
+  private onTouchStart = (e: TouchEvent) => {
     if (this.approaching) return;
-    const t = e.target as HTMLElement | null;
-    if (t?.closest("button, a, input, select, nav, .hud, .panel, .modal, .tour, .detail")) return;
-    this.container.setPointerCapture(e.pointerId);
-    this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    if (this.pointers.size === 2) {
-      const [a, b] = [...this.pointers.values()];
-      this.pinchStartDist = Math.hypot(a.x - b.x, a.y - b.y);
+    if (this.uiBlock(e.target)) return;
+    const t = e.touches[0];
+    if (!t) return;
+    if (e.touches.length === 2) {
+      const a = e.touches[0];
+      const b = e.touches[1];
+      this.pinchStartDist = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
       this.pinchStartZoom = this.zoom;
       return;
     }
-    this.isDragging = true;
-    this.isNavigating = true;
-    this.moved = false;
-    this.dragStartX = e.clientX;
-    this.panStartX = e.clientX;
-    this.panStartY = e.clientY;
+    this.beginDrag(t.clientX, t.clientY);
   };
 
-  private onMove = (e: PointerEvent) => {
-    if (this.pointers.has(e.pointerId)) this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    if (this.pointers.size === 2) {
-      const [a, b] = [...this.pointers.values()];
-      const dist = Math.hypot(a.x - b.x, a.y - b.y);
+  private onTouchMove = (e: TouchEvent) => {
+    if (e.touches.length === 2) {
+      e.preventDefault();
+      const a = e.touches[0];
+      const b = e.touches[1];
+      const dist = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
       if (this.pinchStartDist > 0) {
-        const factor = dist / this.pinchStartDist;
-        const next = Math.min(COMPLEX.zoomMax, Math.max(COMPLEX.zoomMin, this.pinchStartZoom * factor));
-        this.zoom = next;
+        this.zoom = Math.min(COMPLEX.zoomMax, Math.max(COMPLEX.zoomMin, this.pinchStartZoom * (dist / this.pinchStartDist)));
         this.applyTransform();
       }
       return;
     }
-    if (!this.isDragging) {
-      this.hover(e);
-      return;
-    }
-    if (this.panMode || (e.shiftKey && e.buttons === 1) || e.buttons === 2) {
-      this.panX += e.clientX - this.panStartX;
-      this.panY += e.clientY - this.panStartY;
-      this.panStartX = e.clientX;
-      this.panStartY = e.clientY;
-      this.applyTransform();
-      return;
-    }
-    const delta = e.clientX - this.dragStartX;
-    if (Math.abs(delta) >= COMPLEX.dragSensitivity) {
-      const n = this.tour.totalFrames;
-      if (!n) return;
-      const dir = delta > 0 ? -1 : 1;
-      this.moved = true;
-      this.clearCrossfade();
-      this.currentFrame = (this.currentFrame + dir + n) % n;
-      this.warmAround(this.currentFrame, dir);
-      this.requestDraw();
-      this.events.onFrame?.(this.currentFrame);
-      this.dragStartX = e.clientX;
-    }
+    if (!this.isDragging) return;
+    e.preventDefault();
+    const t = e.touches[0];
+    if (t) this.dragTo(t.clientX, t.clientY);
+  };
+
+  private loop = () => {
+    if (this.disposed) return;
+    this.rafLoop = requestAnimationFrame(this.loop);
+    Object.values(this.unitMeshes).forEach((m) => {
+      const mat = m.material as THREE.MeshBasicMaterial;
+      const target = m.userData.targetOpacity;
+      if (typeof target !== "number") return;
+      if (Math.abs(mat.opacity - target) > 0.002) mat.opacity += (target - mat.opacity) * 0.18;
+      else mat.opacity = target;
+    });
+    this.renderer.render(this.scene, this.activeCamera);
   };
 
   private onLeave = () => {
@@ -773,21 +944,12 @@ export class OrbitEngine {
     this.events.onHover?.(null);
   };
 
-  private onUp = (e: PointerEvent) => {
-    this.pointers.delete(e.pointerId);
-    if (this.pointers.size < 2) this.pinchStartDist = 0;
-    if (this.pointers.size === 0) {
-      this.isDragging = false;
-      this.scheduleUpgrade();
-    }
-  };
-
   private onWheel = (e: WheelEvent) => {
     e.preventDefault();
     this.zoomBy(e.deltaY > 0 ? -COMPLEX.zoomStep : COMPLEX.zoomStep);
   };
 
-  private hover(e: PointerEvent) {
+  private hover(e: MouseEvent) {
     const unit = this.hit(e);
     this.hoveredId = unit?.id ?? null;
     this.syncMeshVisibility();
@@ -810,8 +972,8 @@ export class OrbitEngine {
 
   private onClick = (e: MouseEvent) => {
     const t = e.target as HTMLElement | null;
-    if (t?.closest("button, a, input, select, nav, .hud, .panel, .modal, .tour, .detail")) return;
-    if (this.moved || this.approaching) return;
+    if (t?.closest("button, a, input, select, nav, .hud, .panel, .modal, .tour, .detail, .bottom-controls, .rail")) return;
+    if (this.moved || this.approaching || this.panMode) return;
     const unit = this.hit(e);
     if (unit) this.events.onSelect?.(unit);
     else this.events.onEmptyClick?.();

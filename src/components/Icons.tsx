@@ -34,6 +34,11 @@ export const IconFilters = (p: Props) => (
 export const IconCards = (p: Props) => (
   <Svg {...p}><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></Svg>
 );
+export const IconApps = (p: Props) => (
+  <svg className={p.className} width={p.size ?? 18} height={p.size ?? 18} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+    <path fillRule="evenodd" d="M2.4 21V8.1c0-.7.6-1.3 1.3-1.3h7c.7 0 1.3.6 1.3 1.3V21H2.4Zm2.5-10.2h1.5v1.6H4.9Zm2.7 0h1.5v1.6H7.6Zm-2.7 2.8h1.5v1.6H4.9Zm2.7 0h1.5v1.6H7.6Zm-2.7 2.8h1.5v1.6H4.9Zm2.7 0h1.5v1.6H7.6ZM12.8 21V4.2c0-.7.6-1.3 1.3-1.3h6.6c.7 0 1.3.6 1.3 1.3V21h-9.2Zm2.4-14.3h1.5v1.6h-1.5Zm2.7 0h1.5v1.6h-1.5Zm-2.7 2.8h1.5v1.6h-1.5Zm2.7 0h1.5v1.6h-1.5Zm-2.7 2.8h1.5v1.6h-1.5Zm2.7 0h1.5v1.6h-1.5Zm-2.7 2.8h1.5v1.6h-1.5Zm2.7 0h1.5v1.6h-1.5Z" />
+  </svg>
+);
 export const IconZoomIn = (p: Props) => (
   <Svg {...p}><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3M11 8v6M8 11h6" /></Svg>
 );
@@ -45,6 +50,12 @@ export const IconRotateL = (p: Props) => (
 );
 export const IconRotateR = (p: Props) => (
   <Svg {...p}><path d="M21 12a9 9 0 1 1-3-6.7L21 8" /><path d="M21 3v5h-5" /></Svg>
+);
+export const IconArrowL = (p: Props) => (
+  <Svg {...p}><path d="M15 18 9 12l6-6" /></Svg>
+);
+export const IconArrowR = (p: Props) => (
+  <Svg {...p}><path d="M9 18l6-6-6-6" /></Svg>
 );
 export const IconPan = (p: Props) => (
   <Svg {...p}><path d="M18 11V6a2 2 0 0 0-4 0v5M14 10V4a2 2 0 0 0-4 0v6M10 11V6a2 2 0 0 0-4 0v8a8 8 0 0 0 8 8h1a6 6 0 0 0 6-6v-5a2 2 0 0 0-4 0" /></Svg>
