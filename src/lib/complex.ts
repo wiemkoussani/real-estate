@@ -44,7 +44,9 @@ export const COMPLEX = {
   zoomMax: 3,
   zoomStep: 0.1,
   approachFill: 0.9,
-  locationQuery: "Villas Ajyad",
+  locationQuery: "9P2X+QM3, Khamis Mushait 62484, Saudi Arabia",
+  contactEmail: "info@ajyadre.com",
+  contactTel: "+966575555782",
   gallery: Array.from({ length: 10 }, (_, i) => `/complexes/villas-ajyad/gallery/${String(i + 1).padStart(2, "0")}.jpg`),
   villa360: {
     basePath: "/complexes/villas-ajyad/villa-types/",

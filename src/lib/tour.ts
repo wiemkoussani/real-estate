@@ -5,6 +5,8 @@ export type TourMedia = {
   slug: string;
   name: string;
   locationQuery: string;
+  contactEmail: string;
+  contactTel: string;
   logoUrl: string;
   glbUrl: string;
   units: Unit[];
@@ -15,6 +17,9 @@ export type TourMedia = {
   framesLow: string[];
   framesHigh: string[];
   gallery: string[];
+  galleryHero: string;
+  galleryExterior: string[];
+  galleryInterior: string[];
   plans: Record<string, string>;
   villa360: Record<string, string>;
   source: "db" | "file" | "local";
@@ -50,11 +55,29 @@ function relAfterKind(kind: string, path: string) {
   return decodeURIComponent(slice).replace(/\\/g, "/").toLowerCase();
 }
 
-function emptyShell(slug: string, name?: string, location?: string | null): TourMedia {
+function splitGallery(urls: string[]) {
+  const root: string[] = [];
+  const exterior: string[] = [];
+  const interior: string[] = [];
+  for (const u of urls) {
+    const rel = relAfterKind("gallery", u).toLowerCase();
+    if (/(^|\/)exterior(\/|$)/.test(rel)) exterior.push(u);
+    else if (/(^|\/)interior(\/|$)/.test(rel)) interior.push(u);
+    else root.push(u);
+  }
+  if (!exterior.length && !interior.length && root.length) {
+    return { hero: root[0] || "", exterior: root.slice(1), interior: [] as string[] };
+  }
+  return { hero: root[0] || "", exterior: [...root.slice(1), ...exterior], interior };
+}
+
+function emptyShell(slug: string, name?: string): TourMedia {
   return {
     slug,
     name: name || slug,
-    locationQuery: location || slug,
+    locationQuery: COMPLEX.locationQuery,
+    contactEmail: COMPLEX.contactEmail,
+    contactTel: COMPLEX.contactTel,
     logoUrl: "",
     glbUrl: "",
     units: [],
@@ -65,6 +88,9 @@ function emptyShell(slug: string, name?: string, location?: string | null): Tour
     framesLow: [],
     framesHigh: [],
     gallery: [],
+    galleryHero: "",
+    galleryExterior: [],
+    galleryInterior: [],
     plans: {},
     villa360: {},
     source: "db",
@@ -77,6 +103,7 @@ export function buildTour(payload: Payload, slug: string): TourMedia {
   const framesLow = urls(assets, "frame_low");
   const framesHigh = urls(assets, "frame_high");
   const gallery = urls(assets, "gallery");
+  const split = splitGallery(gallery);
   const branding = urls(assets, "branding");
   const glb = urls(assets, "glb");
   const plans: Record<string, string> = {};
@@ -101,7 +128,9 @@ export function buildTour(payload: Payload, slug: string): TourMedia {
   return {
     slug: cx?.slug || slug,
     name: cx?.name || slug,
-    locationQuery: cx?.location_query || slug,
+    locationQuery: COMPLEX.locationQuery,
+    contactEmail: COMPLEX.contactEmail,
+    contactTel: COMPLEX.contactTel,
     logoUrl: logo,
     glbUrl,
     units: payload.units ?? [],
@@ -112,6 +141,9 @@ export function buildTour(payload: Payload, slug: string): TourMedia {
     framesLow,
     framesHigh,
     gallery,
+    galleryHero: split.hero,
+    galleryExterior: split.exterior,
+    galleryInterior: split.interior,
     plans,
     villa360,
     source: payload.source === "file" ? "file" : "db",

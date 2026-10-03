@@ -6,8 +6,6 @@ import { buildTour, emptyTour, tourPlanUrl, tourVillaUrl, type TourMedia } from 
 import { OrbitEngine } from "@/viewer/OrbitEngine";
 import {
   IconApps,
-  IconArrowL,
-  IconArrowR,
   IconCards,
   IconEye,
   IconFilters,
@@ -18,6 +16,8 @@ import {
   IconMail,
   IconPan,
   IconPin,
+  IconTriL,
+  IconTriR,
   IconZoomIn,
   IconZoomOut,
 } from "@/components/Icons";
@@ -33,7 +33,50 @@ function mediaSrc(url: string | undefined | null) {
   return url ? url : undefined;
 }
 
-type DetailTab = "floor3d" | "model360" | "exterior" | "facade";
+const DIAL_CODES = [
+  { d: "+966", n: "Arabie saoudite" },
+  { d: "+971", n: "Dubaï / EAU" },
+  { d: "+974", n: "Qatar" },
+  { d: "+216", n: "Tunisie" },
+  { d: "+965", n: "Koweït" },
+  { d: "+973", n: "Bahreïn" },
+  { d: "+968", n: "Oman" },
+  { d: "+20", n: "Égypte" },
+  { d: "+213", n: "Algérie" },
+  { d: "+212", n: "Maroc" },
+  { d: "+218", n: "Libye" },
+  { d: "+33", n: "France" },
+  { d: "+32", n: "Belgique" },
+  { d: "+49", n: "Allemagne" },
+  { d: "+44", n: "Royaume-Uni" },
+  { d: "+39", n: "Italie" },
+  { d: "+34", n: "Espagne" },
+  { d: "+1", n: "USA / Canada" },
+  { d: "+90", n: "Turquie" },
+];
+
+function telFromForm(fd: FormData) {
+  const dial = String(fd.get("dial") || "+216").trim();
+  let num = String(fd.get("tel") || "").trim().replace(/[\s.-]/g, "");
+  if (!num) return "";
+  if (num.startsWith("+")) return num;
+  return `${dial}${num.replace(/^0+/, "")}`;
+}
+
+function PhoneField({ required }: { required?: boolean }) {
+  return (
+    <span className="phone-row">
+      <select name="dial" defaultValue="+966" aria-label="indicatif pays">
+        {DIAL_CODES.map((c) => (
+          <option key={c.d + c.n} value={c.d}>{c.d}</option>
+        ))}
+      </select>
+      <input name="tel" type="tel" required={required} autoComplete="tel" inputMode="tel" />
+    </span>
+  );
+}
+
+type DetailTab = "floor3d" | "model360" | "facade";
 
 const TourCtx = createContext<TourMedia>(emptyTour(COMPLEX.slug));
 function useTour() {
@@ -118,6 +161,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
   const [locationOpen, setLocationOpen] = useState(false);
   const [tourUnit, setTourUnit] = useState<Unit | null>(null);
   const [favs, setFavs] = useState<string[]>([]);
+  const rotateHoldRef = useRef<number | null>(null);
   const [status, setStatus] = useState<"all" | UnitStatus>("all");
   const [type, setType] = useState<"all" | "1" | "2" | "3">("all");
   const [areaMax, setAreaMax] = useState(300);
@@ -260,7 +304,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
           <p>{loadPct}%</p>
         </div>
       )}
-      <aside className={`panel ${listOpen ? "open" : ""}`}>
+      <aside className={`panel ${listOpen ? "open" : ""} ${formOpen ? "form-wide" : ""}`}>
         <button className="peek" type="button" onClick={() => setListOpen((v) => !v)} aria-label="Toggle list">
           {listOpen ? "‹" : "›"}
         </button>
@@ -322,7 +366,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
           )}
           <div className={`units ${cards ? "cards" : "table"}`}>
             {!cards && (
-              <div className="thead"><span /><span /><span>ID</span><span>Area</span><span>Floor</span><span>Rooms</span></div>
+              <div className="thead"><span /><span>ID</span><span>Area</span><span>Floor</span><span>Rooms</span><span /></div>
             )}
             {filtered.map((u) => {
               const photo = cardPhoto(tour, u);
@@ -335,14 +379,36 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
                 onMouseEnter={() => engineRef.current?.setPreview(u.id)}
                 onMouseLeave={() => engineRef.current?.setPreview(null)}
               >
-                <span className={favs.includes(u.id) ? "heart on" : "heart"} onClick={(e) => { e.stopPropagation(); toggleFav(u.id); }}>
-                  <IconHeart size={14} filled={favs.includes(u.id)} />
-                </span>
-                {photo ? <img src={photo} alt="" /> : <span className={`dot ${u.status}`} />}
-                <strong>{u.displayId}</strong>
-                <span className="meta-area">{u.surface} m²{cards ? <small>Area</small> : null}</span>
-                <span className="meta-floor">{u.floor}{cards ? <small>Floor</small> : null}</span>
-                <span className="meta-rooms">{u.rooms}{cards ? <small>Rooms</small> : null}</span>
+                {cards ? (
+                  <>
+                    <div className="card-copy">
+                      <strong>
+                        {u.displayId}
+                        <span className={`status-dot ${u.status} dot ${u.status}`} />
+                      </strong>
+                      <span className="meta-area"><small>Area</small><b>{u.surface} m²</b></span>
+                      <span className="meta-floor"><small>Floor</small><b>{u.floor}</b></span>
+                      <span className="meta-rooms"><small>Rooms</small><b>{u.rooms}</b></span>
+                      <span className={favs.includes(u.id) ? "heart on" : "heart"} onClick={(e) => { e.stopPropagation(); toggleFav(u.id); }}>
+                        <IconHeart size={14} filled={favs.includes(u.id)} />
+                      </span>
+                    </div>
+                    <div className="card-side">
+                      {photo ? <img src={photo} alt="" /> : <span className="card-img-fallback" />}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <span className={`dot ${u.status}`} />
+                    <strong>{u.displayId}</strong>
+                    <span className="meta-area"><b>{u.surface} m²</b></span>
+                    <span className="meta-floor"><b>{u.floor}</b></span>
+                    <span className="meta-rooms"><b>{u.rooms}</b></span>
+                    <span className={favs.includes(u.id) ? "heart on" : "heart"} onClick={(e) => { e.stopPropagation(); toggleFav(u.id); }}>
+                      <IconHeart size={14} filled={favs.includes(u.id)} />
+                    </span>
+                  </>
+                )}
                 <em className={`badge ${u.status}`}>{STATUS_LABEL[u.status]}</em>
               </button>
               );
@@ -407,21 +473,51 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
         </nav>
 
         <div className="hud" onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
-          <button type="button" className={panMode ? "on" : ""} title="Pan" onClick={() => { const v = !panMode; setPanMode(v); engineRef.current?.setPanMode(v); }}><IconPan size={16} /></button>
-          <button type="button" title="Zoom out" onClick={() => engineRef.current?.zoomBy(-COMPLEX.zoomStep)}><IconZoomOut size={16} /></button>
-          <button type="button" title="Zoom in" onClick={() => engineRef.current?.zoomBy(COMPLEX.zoomStep)}><IconZoomIn size={16} /></button>
-          <button type="button" className="nav-btn" title="Rotate left" onClick={() => engineRef.current?.rotateBy(-1)}><IconArrowL size={16} /></button>
-          <button
-            type="button"
-            className="compass"
-            title="Compass"
-            onClick={() => engineRef.current?.rotateToNextCardinal()}
-          >
-            <span className="compass-needle" style={{ transform: `rotate(${headingDeg}deg)` }} />
-            <b>{headingDir}</b>
-          </button>
-          <button type="button" className="nav-btn" title="Rotate right" onClick={() => engineRef.current?.rotateBy(1)}><IconArrowR size={16} /></button>
-          <button type="button" className={overlayOn ? "on" : ""} title="Show units" onClick={() => { const v = !overlayOn; setOverlayOn(v); engineRef.current?.setOverlayVisible(v); }}><IconEye size={16} /></button>
+          <div className="hud-tools">
+            <button type="button" className={panMode ? "on" : ""} title="Pan" onClick={() => { const v = !panMode; setPanMode(v); engineRef.current?.setPanMode(v); }}><IconPan size={16} /></button>
+            <button type="button" title="Zoom out" onClick={() => engineRef.current?.zoomBy(-COMPLEX.zoomStep)}><IconZoomOut size={16} /></button>
+            <button type="button" title="Zoom in" onClick={() => engineRef.current?.zoomBy(COMPLEX.zoomStep)}><IconZoomIn size={16} /></button>
+          </div>
+          <div className="hud-nav">
+            <button
+              type="button"
+              className="nav-btn"
+              title="Rotate left"
+              onPointerDown={(e) => {
+                e.preventDefault();
+                (e.currentTarget as HTMLButtonElement).setPointerCapture(e.pointerId);
+                engineRef.current?.rotateBy(-1);
+                if (rotateHoldRef.current) window.clearInterval(rotateHoldRef.current);
+                rotateHoldRef.current = window.setInterval(() => engineRef.current?.rotateBy(-1), 70);
+              }}
+              onPointerUp={() => { if (rotateHoldRef.current) { window.clearInterval(rotateHoldRef.current); rotateHoldRef.current = null; } }}
+              onPointerCancel={() => { if (rotateHoldRef.current) { window.clearInterval(rotateHoldRef.current); rotateHoldRef.current = null; } }}
+            ><IconTriL size={15} /></button>
+            <div className="compass-wrap">
+              <button type="button" className="compass-ring" aria-label="Compass" onClick={() => engineRef.current?.rotateToNextCardinal()} />
+              <button type="button" className="nav-compass" title="Compass" onClick={() => engineRef.current?.rotateToNextCardinal()}>
+                <span className="compass-needle" style={{ transform: `rotate(${headingDeg}deg)` }} />
+                <b>{headingDir}</b>
+              </button>
+            </div>
+            <button
+              type="button"
+              className="nav-btn"
+              title="Rotate right"
+              onPointerDown={(e) => {
+                e.preventDefault();
+                (e.currentTarget as HTMLButtonElement).setPointerCapture(e.pointerId);
+                engineRef.current?.rotateBy(1);
+                if (rotateHoldRef.current) window.clearInterval(rotateHoldRef.current);
+                rotateHoldRef.current = window.setInterval(() => engineRef.current?.rotateBy(1), 70);
+              }}
+              onPointerUp={() => { if (rotateHoldRef.current) { window.clearInterval(rotateHoldRef.current); rotateHoldRef.current = null; } }}
+              onPointerCancel={() => { if (rotateHoldRef.current) { window.clearInterval(rotateHoldRef.current); rotateHoldRef.current = null; } }}
+            ><IconTriR size={15} /></button>
+          </div>
+          <div className="hud-tools">
+            <button type="button" className={overlayOn ? "on" : ""} title="Show units" onClick={() => { const v = !overlayOn; setOverlayOn(v); engineRef.current?.setOverlayVisible(v); }}><IconEye size={16} /></button>
+          </div>
         </div>
       </div>
 
@@ -448,6 +544,7 @@ function ContactSidebar({ unit, onBack }: { unit: Unit | null; onBack: () => voi
   const [busy, setBusy] = useState(false);
   const [ok, setOk] = useState(false);
   const [err, setErr] = useState("");
+  const [gender, setGender] = useState("امرأة");
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -458,7 +555,11 @@ function ContactSidebar({ unit, onBack }: { unit: Unit | null; onBack: () => voi
       nom: String(fd.get("nom") || "").trim(),
       prenom: String(fd.get("prenom") || "").trim(),
       email: String(fd.get("email") || "").trim(),
-      tel: String(fd.get("tel") || "").trim(),
+      tel: telFromForm(fd),
+      gender,
+      subject: String(fd.get("subject") || "").trim(),
+      message: String(fd.get("message") || "").trim(),
+      toFavorites: fd.get("favorites") === "on",
       unitId: unit?.id ?? null,
       unitDisplayId: unit?.displayId ?? null,
       complex: tour.slug,
@@ -475,26 +576,54 @@ function ContactSidebar({ unit, onBack }: { unit: Unit | null; onBack: () => voi
     }
   };
 
-  const hero = tour.gallery[2] || tour.gallery[1] || tour.gallery[0] || tour.framesLow[0];
   return (
     <div className="contact-side" dir="rtl">
       <header className="contact-head">
-        <h2>تواصل</h2>
-        <button type="button" className="back" onClick={onBack}>الوحدات ‹</button>
+        <h2>تواصل معنا</h2>
+        <button type="button" className="back" onClick={onBack}>‹ الوحدات</button>
       </header>
-      {hero ? <img className="contact-hero" src={hero} alt="" /> : null}
-      <div className="contact-copy">
-        <h3>طلب زيارة</h3>
-        <p>يردّ عليك مستشار بالمتاح وبوقت مناسب لزيارة الفيلا.</p>
+      <div className="agency-card">
+        {tour.logoUrl ? (
+          <span className="agency-logo"><img src={tour.logoUrl} alt="" /></span>
+        ) : (
+          <span className="agency-mark">A</span>
+        )}
+        <div className="agency-meta">
+          <b>{tour.name}</b>
+          <p>
+            <a href={`mailto:${COMPLEX.contactEmail}`}>{COMPLEX.contactEmail}</a>
+          </p>
+          <p>
+            <a href={`tel:${COMPLEX.contactTel}`}>+966 57 555 5782</a>
+          </p>
+        </div>
       </div>
       {unit && <span className="contact-chip">وحدة {unit.displayId}</span>}
       <form className="lead side" onSubmit={submit}>
-        <label>الاسم <input name="nom" required autoComplete="family-name" /></label>
-        <label>اللقب <input name="prenom" required autoComplete="given-name" /></label>
-        <label>البريد الإلكتروني <input name="email" type="email" required autoComplete="email" /></label>
-        <label>الهاتف <input name="tel" type="tel" required autoComplete="tel" /></label>
+        <p>تحية</p>
+        <div className="seg">
+          {["امرأة", "السيد", "لا"].map((g) => (
+            <button key={g} type="button" className={gender === g ? "on" : ""} onClick={() => setGender(g)}>{g}</button>
+          ))}
+        </div>
+        <label>اسم العائلة * <input name="nom" required autoComplete="family-name" /></label>
+        <label>الاسم الأول * <input name="prenom" required autoComplete="given-name" /></label>
+        <label>البريد الإلكتروني <input name="email" type="email" autoComplete="email" /></label>
+        <label>رقم الهاتف
+          <PhoneField />
+        </label>
+        <label>هل لديك رسالة لنا؟ <input name="subject" placeholder="طلبك" /></label>
+        <textarea name="message" rows={4} placeholder="رسالتك" aria-label="رسالتك" />
+        <label className="lead-check">
+          <span>إرسال إلى المفضلة</span>
+          <input type="checkbox" name="favorites" />
+        </label>
+        <label className="lead-check">
+          <span>وافقت عليها. سياسة الخصوصية لقد قرأت</span>
+          <input type="checkbox" name="privacy" required />
+        </label>
         {err && <p className="err">{err}</p>}
-        {ok ? <p className="ok">تم الإرسال. سنتواصل معك قريباً.</p> : <button type="submit" disabled={busy}>{busy ? "…" : "إرسال الطلب"}</button>}
+        {ok ? <p className="ok">تم الإرسال. سنتواصل معك قريباً.</p> : <button type="submit" disabled={busy}>{busy ? "…" : "إرسال طلب اتصال"}</button>}
       </form>
     </div>
   );
@@ -612,11 +741,9 @@ function VillaTour({ unit, onClose }: { unit: Unit; onClose: () => void }) {
   const tour = useTour();
   const [tab, setTab] = useState<DetailTab>("model360");
   const [floor, setFloor] = useState(COMPLEX.villa360.floors[0].subfolder);
-  const [gal, setGal] = useState(0);
   const [facade, setFacade] = useState(0);
   const spinFolder = tab === "floor3d" ? floor : COMPLEX.villa360.whole;
   const show360 = tab === "floor3d" || tab === "model360";
-  const gallery = tour.gallery;
   const facades = COMPLEX.villa360.facadeFrames;
 
   return (
@@ -630,7 +757,6 @@ function VillaTour({ unit, onClose }: { unit: Unit; onClose: () => void }) {
           <nav className="tabs">
             <button type="button" className={tab === "floor3d" ? "on" : ""} onClick={() => setTab("floor3d")}>Floorplan 3D</button>
             <button type="button" className={tab === "model360" ? "on" : ""} onClick={() => setTab("model360")}>Model 360</button>
-            <button type="button" className={tab === "exterior" ? "on" : ""} onClick={() => setTab("exterior")}>Exterior</button>
             <button type="button" className={tab === "facade" ? "on" : ""} onClick={() => setTab("facade")}>Facade</button>
           </nav>
         </div>
@@ -639,7 +765,6 @@ function VillaTour({ unit, onClose }: { unit: Unit; onClose: () => void }) {
       <div className="detail-body">
         <div className="detail-stage">
           {show360 && <Spin360 type={unit.type} folder={spinFolder} />}
-          {tab === "exterior" && mediaSrc(gallery[gal]) ? <img className="still" src={gallery[gal]} alt="" /> : null}
           {tab === "facade" && mediaSrc(tourVillaUrl(tour, unit.type, COMPLEX.villa360.whole, facades[facade].index)) ? (
             <img className="still" src={tourVillaUrl(tour, unit.type, COMPLEX.villa360.whole, facades[facade].index)} alt={facades[facade].label} />
           ) : null}
@@ -648,22 +773,6 @@ function VillaTour({ unit, onClose }: { unit: Unit; onClose: () => void }) {
               {COMPLEX.villa360.floors.map((f) => (
                 <button key={f.id} type="button" className={floor === f.subfolder ? "on" : ""} onClick={() => setFloor(f.subfolder)}>{f.label}</button>
               ))}
-            </div>
-          )}
-          {tab === "exterior" && (
-            <div className="still-nav">
-              <div className="spin">
-                <button type="button" onClick={() => setGal((v) => (v + gallery.length - 1) % gallery.length)}>‹</button>
-                <span>{gal + 1}/{gallery.length}</span>
-                <button type="button" onClick={() => setGal((v) => (v + 1) % gallery.length)}>›</button>
-              </div>
-              <div className="thumbs stage-thumbs">
-                {gallery.map((src, n) => (
-                  <button key={src} type="button" className={n === gal ? "on" : ""} onClick={() => setGal(n)}>
-                    {mediaSrc(src) ? <img src={src} alt="" /> : null}
-                  </button>
-                ))}
-              </div>
             </div>
           )}
           {tab === "facade" && (
@@ -707,6 +816,7 @@ function DetailLead({ unit }: { unit: Unit }) {
   const [busy, setBusy] = useState(false);
   const [ok, setOk] = useState(false);
   const [err, setErr] = useState("");
+  const [gender, setGender] = useState("امرأة");
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setBusy(true);
@@ -716,7 +826,11 @@ function DetailLead({ unit }: { unit: Unit }) {
       nom: String(fd.get("nom") || "").trim(),
       prenom: String(fd.get("prenom") || "").trim(),
       email: String(fd.get("email") || "").trim(),
-      tel: String(fd.get("tel") || "").trim(),
+      tel: telFromForm(fd),
+      gender,
+      subject: String(fd.get("subject") || "").trim(),
+      message: String(fd.get("message") || "").trim(),
+      toFavorites: fd.get("favorites") === "on",
       unitId: unit.id,
       unitDisplayId: unit.displayId,
       complex: tour.slug,
@@ -735,12 +849,24 @@ function DetailLead({ unit }: { unit: Unit }) {
   return (
     <form className="lead" dir="rtl" onSubmit={submit}>
       <p className="lead-title">طلب اهتمام</p>
-      <label>الاسم <input name="nom" required autoComplete="family-name" /></label>
-      <label>اللقب <input name="prenom" required autoComplete="given-name" /></label>
+      <p>تحية</p>
+      <div className="seg">
+        {["امرأة", "السيد", "لا"].map((g) => (
+          <button key={g} type="button" className={gender === g ? "on" : ""} onClick={() => setGender(g)}>{g}</button>
+        ))}
+      </div>
+      <label>اسم العائلة <input name="nom" required autoComplete="family-name" /></label>
+      <label>الاسم الأول <input name="prenom" required autoComplete="given-name" /></label>
       <label>البريد الإلكتروني <input name="email" type="email" required autoComplete="email" /></label>
-      <label>رقم الهاتف <input name="tel" type="tel" required autoComplete="tel" /></label>
+      <label>رقم الهاتف <PhoneField required /></label>
+      <label>هل لديك رسالة لنا؟ <input name="subject" placeholder="طلبك" /></label>
+      <textarea name="message" rows={3} placeholder="رسالتك" aria-label="رسالتك" />
+      <label className="lead-check">
+        <span>إرسال إلى المفضلة</span>
+        <input type="checkbox" name="favorites" />
+      </label>
       {err && <p className="err">{err}</p>}
-      {ok ? <p className="ok">تم الإرسال</p> : <button type="submit" disabled={busy}>{busy ? "..." : "إرسال"}</button>}
+      {ok ? <p className="ok">تم الإرسال</p> : <button type="submit" disabled={busy}>{busy ? "..." : "إرسال طلب اتصال"}</button>}
     </form>
   );
 }

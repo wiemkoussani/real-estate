@@ -10,6 +10,7 @@ import { displayPersonName } from "@/lib/person-name";
 import { filesForKind, relativeUploadPath } from "@/lib/upload-files";
 import { assetFileLabel, assetRelSegments } from "@/lib/asset-path";
 import { IconEye, IconFolder, IconTrash } from "@/components/Icons";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 const UPLOAD_STEPS: {
   id: AssetKind;
@@ -22,7 +23,7 @@ const UPLOAD_STEPS: {
   { id: "branding", title: "Logo", why: "Shown when the tour starts.", where: "branding → logo.png", pick: "files", action: "Add logo" },
   { id: "glb", title: "3D model", why: "Lets visitors tap a villa.", where: "models → building.glb", pick: "files", action: "Add model" },
   { id: "frame_low", title: "Orbit photos", why: "The aerial while turning.", where: "panorama → frames_low", pick: "folder", action: "Add folder" },
-  { id: "gallery", title: "Gallery", why: "The 10 exterior photos.", where: "gallery", pick: "folder", action: "Add folder" },
+  { id: "gallery", title: "Gallery", why: "One cover photo at the root, then exterior/ and interior/ folders.", where: "gallery → cover + exterior + interior", pick: "folder", action: "Add folder" },
   { id: "plan", title: "Plans", why: "Types and floors", where: "plans → types , plans → floors", pick: "folder", action: "Add folder" },
   { id: "villa_360", title: "Inside 360", why: "Each type: RDC, floors, whole villa.", where: "villa-types", pick: "folder", action: "Add folder" },
   { id: "frame_high", title: "Sharp aerials", why: "Last step — large files.", where: "panorama → frames", pick: "folder", action: "Add folder" },
@@ -58,6 +59,7 @@ export default function ComplexAdminPage() {
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
   const [tab, setTab] = useState<"units" | "media" | "leads" | "qr">("units");
+  const { confirm, dialog } = useConfirm();
   const qrSrc = useMemo(() => (cx ? `/api/qr?slug=${cx.slug}` : ""), [cx]);
   const filesBrowse = useMemo(() => {
     if (!filesKind) {
@@ -130,7 +132,7 @@ export default function ComplexAdminPage() {
 
   const removeProject = async () => {
     if (!cx) return;
-    if (!window.confirm(`Delete ${cx.name}? Villas, photos, and this tour go with it. Clients stay.`)) return;
+    if (!(await confirm(`Delete ${cx.name}? Villas, photos, and this tour go with it. Clients stay.`, "Delete project"))) return;
     const res = await fetch("/api/admin/complexes", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
@@ -209,6 +211,8 @@ export default function ComplexAdminPage() {
   };
 
   const removeUnit = async (unitId: string) => {
+    const unit = units.find((u) => u.id === unitId);
+    if (!(await confirm(`Remove villa ${unit?.display_id || ""}?`, "Remove villa"))) return;
     const sb = createBrowserSupabase();
     if (!sb) return;
     const { error } = await sb.from("units").delete().eq("id", unitId);
@@ -219,7 +223,7 @@ export default function ComplexAdminPage() {
   const clearUnits = async () => {
     const sb = createBrowserSupabase();
     if (!sb || !cx || !units.length) return;
-    if (!window.confirm(`Delete all ${units.length} units? You can import another units.json after.`)) return;
+    if (!(await confirm(`Delete all ${units.length} units? You can import another units.json after.`, "Remove villas"))) return;
     const { error } = await sb.from("units").delete().eq("complex_id", cx.id);
     if (error) setErr(error.message);
     else {
@@ -237,6 +241,7 @@ export default function ComplexAdminPage() {
   };
 
   const removeAsset = async (row: AssetRow) => {
+    if (!(await confirm(`Delete this file?`, "Delete file"))) return;
     const res = await fetch("/api/admin/assets", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
@@ -251,7 +256,7 @@ export default function ComplexAdminPage() {
     if (!cx) return;
     const rows = assets.filter((a) => a.kind === target || (target === "document" && a.kind === "other"));
     if (!rows.length) return;
-    if (!window.confirm(`Remove all ${rows.length} file(s) from this card?`)) return;
+    if (!(await confirm(`Remove all ${rows.length} file(s) from this card?`, "Remove files"))) return;
     const res = await fetch("/api/admin/assets", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
@@ -600,6 +605,7 @@ export default function ComplexAdminPage() {
           <p><a className="btn" href={qrSrc} download={`${cx.slug}-qr.png`}>Download</a></p>
         </>
       )}
+      {dialog}
     </AdminShell>
   );
 }

@@ -5,6 +5,7 @@ import Link from "next/link";
 import AdminShell from "./AdminShell";
 import type { ComplexRow } from "@/lib/types";
 import { IconTrash } from "@/components/Icons";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 type ClientRow = { id: string; complex_ids?: string[] };
 
@@ -15,6 +16,7 @@ export default function AdminHome() {
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   const [ready, setReady] = useState(false);
+  const { confirm, dialog } = useConfirm();
 
   const load = async () => {
     const [p, c] = await Promise.all([fetch("/api/admin/complexes"), fetch("/api/admin/clients")]);
@@ -50,7 +52,7 @@ export default function AdminHome() {
   };
 
   const removeProject = async (c: ComplexRow) => {
-    if (!window.confirm(`Delete ${c.name}? Villas, photos, and this tour go with it. Clients stay.`)) return;
+    if (!(await confirm(`Delete ${c.name}? Villas, photos, and this tour go with it. Clients stay.`, "Delete project"))) return;
     setBusy(true);
     setErr("");
     const res = await fetch("/api/admin/complexes", {
@@ -104,6 +106,7 @@ export default function AdminHome() {
       </form>
         </>
       )}
+      {dialog}
     </AdminShell>
   );
 }

@@ -112,13 +112,16 @@ export class OrbitEngine {
   async start() {
     this.bind();
     this.resize();
-    await Promise.all([this.preloadLow(), this.loadGlb()]);
+    await this.loadOne(0);
+    this.events.onLoadProgress?.(28);
+    void this.loadGlb();
     await this.loadUnits();
     this.syncCamera();
     this.draw("low");
     this.loop();
     this.scheduleUpgrade();
     this.events.onReady?.();
+    void this.preloadLow();
   }
 
   dispose() {
@@ -300,49 +303,54 @@ export class OrbitEngine {
     if (this.lowImages[this.currentFrame]?.complete) this.draw("high");
   }
 
+  private loadOne(idx: number) {
+    return new Promise<void>((resolve) => {
+      const existing = this.lowImages[idx];
+      if (existing?.complete && existing.naturalWidth) {
+        resolve();
+        return;
+      }
+      const src = tourFrameUrl(this.tour, idx, "low");
+      if (!src) {
+        resolve();
+        return;
+      }
+      const img = existing ?? new Image();
+      img.decoding = "async";
+      this.lowImages[idx] = img;
+      if (img.complete && img.naturalWidth) {
+        void this.warmLow(idx);
+        resolve();
+        return;
+      }
+      const done = () => {
+        void this.warmLow(idx);
+        if (idx === this.currentFrame) this.draw("low");
+        resolve();
+      };
+      img.onload = done;
+      img.onerror = () => resolve();
+      img.src = src;
+    });
+  }
+
   private async preloadLow() {
     const total = this.tour.totalFrames;
     if (!total) {
-      this.events.onLoadProgress?.(96);
+      this.events.onLoadProgress?.(100);
       return;
     }
-    let loaded = 0;
-    const order = [0, 14, ...Array.from({ length: total }, (_, i) => i).filter((i) => i !== 0 && i !== 14)];
-    const batch = 8;
+    let loaded = this.lowImages.filter((img) => img?.complete).length;
+    const order = [0, 1, total - 1, 14, ...Array.from({ length: total }, (_, i) => i).filter((i) => i !== 0 && i !== 1 && i !== 14 && i !== total - 1)];
+    const batch = 6;
     for (let start = 0; start < total; start += batch) {
+      if (this.disposed) return;
       const slice = order.slice(start, start + batch);
-      await Promise.all(
-        slice.map(
-          (idx) =>
-            new Promise<void>((resolve) => {
-              const img = new Image();
-              img.decoding = "async";
-              this.lowImages[idx] = img;
-              img.onload = () => {
-                loaded += 1;
-                this.events.onLoadProgress?.(Math.round((loaded / total) * 92));
-                this.warmLow(idx);
-                resolve();
-              };
-              img.onerror = () => {
-                loaded += 1;
-                this.events.onLoadProgress?.(Math.round((loaded / total) * 92));
-                resolve();
-              };
-              const src = tourFrameUrl(this.tour, idx, "low");
-              if (!src) {
-                loaded += 1;
-                this.events.onLoadProgress?.(Math.round((loaded / total) * 92));
-                resolve();
-                return;
-              }
-              img.src = src;
-            }),
-        ),
-      );
+      await Promise.all(slice.map((idx) => this.loadOne(idx)));
+      loaded = Math.min(total, loaded + slice.length);
+      this.events.onLoadProgress?.(Math.min(99, 28 + Math.round((loaded / total) * 72)));
     }
-    await Promise.all(order.map((i) => this.warmLow(i)));
-    this.events.onLoadProgress?.(96);
+    this.events.onLoadProgress?.(100);
   }
 
   private async loadGlb() {
@@ -393,6 +401,8 @@ export class OrbitEngine {
       mask.visible = true;
     }
     this.computeHeadings();
+    this.syncCamera();
+    this.events.onFrame?.(this.currentFrame);
   }
 
   private computeHeadings() {
@@ -706,6 +716,7 @@ export class OrbitEngine {
       ? high || this.lowBitmaps[this.currentFrame] || this.lowImages[this.currentFrame]
       : this.lowBitmaps[this.currentFrame] || this.lowImages[this.currentFrame];
     if (!img) return;
+    if (img instanceof HTMLImageElement && (!img.complete || !img.naturalWidth)) return;
     this.paint(this.ctx, img as CanvasImageSource, wantHigh && high ? "high" : "low");
     if (!wantHigh) this.scheduleUpgrade();
   }

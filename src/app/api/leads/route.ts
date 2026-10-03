@@ -29,17 +29,28 @@ export async function POST(req: Request) {
     const body = await req.json();
     const nom = String(body?.nom ?? "").trim().slice(0, 80);
     const prenom = String(body?.prenom ?? "").trim().slice(0, 80);
-    const email = String(body?.email ?? "").trim().slice(0, 120);
-    const tel = String(body?.tel ?? "").trim().slice(0, 40);
+    const email = String(body?.email ?? "").trim().slice(0, 120) || "none@lead.local";
+    let tel = String(body?.tel ?? "").trim().slice(0, 40);
+    if (tel && !tel.startsWith("+")) {
+      const dial = String(body?.dial ?? "+").trim();
+      tel = `${dial.startsWith("+") ? dial : "+"}${tel.replace(/^0+/, "")}`;
+    }
+    const gender = String(body?.gender ?? "").trim().slice(0, 20);
+    const subject = String(body?.subject ?? "").trim().slice(0, 120);
+    const message = String(body?.message ?? "").trim().slice(0, 800);
+    const toFavorites = Boolean(body?.toFavorites);
     const unitId = body?.unitId ? String(body.unitId).slice(0, 80) : null;
     const unitDisplayId = body?.unitDisplayId ? String(body.unitDisplayId).slice(0, 40) : null;
     const complex = String(body?.complex ?? "villas-ajyad").slice(0, 80);
 
-    if (!nom || !prenom || !email || !tel) {
+    if (!nom || !prenom) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }
-    if (!emailRe.test(email)) {
+    if (email !== "none@lead.local" && !emailRe.test(email)) {
       return NextResponse.json({ error: "Invalid email" }, { status: 400 });
+    }
+    if (!tel && email === "none@lead.local") {
+      return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }
 
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -51,16 +62,27 @@ export async function POST(req: Request) {
 
     const supabase = createClient(url, key, { auth: { persistSession: false } });
     const { data: cx } = await supabase.from("complexes").select("id").eq("slug", complex).maybeSingle();
-    const { error } = await supabase.from("leads").insert({
-      nom,
+    const base = {
+      nom: gender ? `${gender} ${nom}` : nom,
       prenom,
       email,
-      tel,
+      tel: tel || "-",
       unit_id: unitId,
       unit_display_id: unitDisplayId,
       complex_slug: complex,
       complex_id: cx?.id ?? null,
+    };
+    let { error } = await supabase.from("leads").insert({
+      ...base,
+      gender,
+      subject,
+      message,
+      to_favorites: toFavorites,
     });
+    if (error) {
+      const retry = await supabase.from("leads").insert(base);
+      error = retry.error;
+    }
     if (error) {
       console.error("lead insert failed");
       return NextResponse.json({ error: "Could not save" }, { status: 500 });

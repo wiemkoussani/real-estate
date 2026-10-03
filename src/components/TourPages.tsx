@@ -1,7 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import type { TourMedia } from "@/lib/tour";
+
+const AroundMap = dynamic(() => import("@/components/AroundMap").then((m) => m.AroundMap), {
+  ssr: false,
+  loading: () => <div className="poi-status">Loading map…</div>,
+});
 
 function mediaSrc(url: string | undefined | null) {
   return url ? url : undefined;
@@ -36,15 +42,19 @@ function SiteFrame({
   title,
   onClose,
   children,
+  wide,
+  flush,
 }: {
   kicker: string;
   title: string;
   onClose: () => void;
   children: React.ReactNode;
+  wide?: boolean;
+  flush?: boolean;
 }) {
   return (
     <div className="site-overlay" onClick={onClose}>
-      <article className="site-page" onClick={(e) => e.stopPropagation()}>
+      <article className={`site-page${wide ? " wide" : ""}`} onClick={(e) => e.stopPropagation()}>
         <header className="site-head" dir="rtl">
           <div>
             <p className="site-kicker">{kicker}</p>
@@ -52,7 +62,7 @@ function SiteFrame({
           </div>
           <button type="button" className="site-close" onClick={onClose} aria-label="إغلاق">×</button>
         </header>
-        <div className="site-body" dir="rtl">
+        <div className={`site-body${flush ? " flush" : ""}`} dir={flush ? "ltr" : "rtl"}>
           {children}
         </div>
       </article>
@@ -86,74 +96,83 @@ function Accordion({
   );
 }
 
+function chunk<T>(list: T[], size: number) {
+  const out: T[][] = [];
+  for (let i = 0; i < list.length; i += size) out.push(list.slice(i, i + size));
+  return out;
+}
+
+function GalBoard({
+  title,
+  items,
+  onPick,
+  onFail,
+}: {
+  title?: string;
+  items: string[];
+  onPick: (src: string) => void;
+  onFail: (src: string) => void;
+}) {
+  return (
+    <section className={`gal-board n${items.length}`}>
+      {title ? <p className="gal-board-title">{title}</p> : null}
+      {items.map((src, i) => (
+        <button key={src} type="button" className={`gal-cell c${i}`} onClick={() => onPick(src)}>
+          <img src={src} alt="" onError={() => onFail(src)} />
+        </button>
+      ))}
+    </section>
+  );
+}
+
 export function GalleryPage({ tour, onClose }: { tour: TourMedia; onClose: () => void }) {
-  const photos = tour.gallery.filter(Boolean);
-  const [hero, setHero] = useState(0);
-  const current = photos[hero];
+  const [failed, setFailed] = useState<Record<string, true>>({});
+  const [open, setOpen] = useState<string | null>(null);
+  const live = (list: string[]) => [...new Set(list.filter((src) => src && !failed[src]))];
+  const hero = live([tour.galleryHero])[0];
+  const exteriorBoards = chunk(live(tour.galleryExterior), 6);
+  const interiorBoards = chunk(live(tour.galleryInterior), 6);
+  const fail = (src: string) => setFailed((f) => ({ ...f, [src]: true }));
 
   return (
-    <SiteFrame kicker="المعرض" title="معرض المشروع" onClose={onClose}>
-      <p className="site-lead">
-        المشروع حيّ كامل صُمّم ليُعاش يومياً: شوارع مغروسة، حواف مائية، حدائق عائلية ومسجد في القلب.
-        الصور مأخوذة من اللقطة الجوية نفسها التي تدور عليها في الجولة، حتى تتعرّف على الكتل والطرق
-        والفراغات قبل أن تدخل أي فيلا.
-      </p>
-      <div className="site-view">
-        {current ? <img src={current} alt="" /> : <div className="site-empty">ستظهر الصور هنا بعد رفعها للمشروع.</div>}
-        {photos.length > 1 && (
-          <div className="site-strip">
-            {photos.map((src, i) => (
-              <button key={src} type="button" className={i === hero ? "on" : ""} onClick={() => setHero(i)}>
-                {mediaSrc(src) ? <img src={src} alt="" /> : null}
-              </button>
-            ))}
+    <div className="site-overlay" onClick={onClose}>
+      <article className="gal-stage" onClick={(e) => e.stopPropagation()}>
+        <button type="button" className="gal-close" onClick={onClose} aria-label="إغلاق">×</button>
+        <div className="gal-scroll">
+          <section className="gal-hero">
+            {hero ? (
+              <img src={hero} alt="" onError={() => fail(hero)} />
+            ) : (
+              <div className="site-empty">ستظهر الصور هنا بعد رفعها للمشروع.</div>
+            )}
+            {exteriorBoards.length + interiorBoards.length > 0 && <span className="gal-hint">اسحب للأسفل</span>}
+          </section>
+          {exteriorBoards.map((group, i) => (
+            <GalBoard key={`ex-${group[0]}-${i}`} title="Exterior" items={group} onPick={setOpen} onFail={fail} />
+          ))}
+          {interiorBoards.map((group, i) => (
+            <GalBoard key={`in-${group[0]}-${i}`} title="Interior" items={group} onPick={setOpen} onFail={fail} />
+          ))}
+        </div>
+        {open && (
+          <div className="gal-lite" onClick={() => setOpen(null)}>
+            <img src={open} alt="" onClick={(e) => e.stopPropagation()} />
+            <button type="button" className="gal-close" onClick={() => setOpen(null)}>×</button>
           </div>
         )}
-      </div>
-      <Accordion
-        items={[
-          {
-            id: "streets",
-            title: "الوصول والشوارع",
-            hint: "كيف تدخل الحي",
-            body: "الشوارع الداخلية وُسعت ثم زُرعت حتى تهدأ السيارة قبل باب الفيلا. لكل وحدة عنوان واضح، ومواقف الزوار مفصولة عن الحدائق الخاصة حتى لا يُقطع الهدوء. قارن الصورة مع الجولة ثلاثية الأبعاد: المنحنى نفسه والأشجار نفسها والمدخل نفسه.",
-          },
-          {
-            id: "heart",
-            title: "قلب المجمع",
-            hint: "المسجد والمساحات الخضراء",
-            body: "المسجد والمباني المشتركة وُضعت في المركز الهندسي للمشروع، لا على الهامش. الحياة اليومية — الصلاة، اللقاء، لعب الأطفال — تبقى داخل الأسوار. المساحات الخضراء تربط الكتل السكنية ببعضها بدل أن تفصلها جدران صماء.",
-          },
-          {
-            id: "water",
-            title: "الماء والحدائق",
-            hint: "واجهات هادئة",
-            body: "حيث يلتقي المخطط بالماء أو بالتشجير الكثيف، تنفتح الفلل على واجهة أهدأ. هذه الحافة هي نفسها التي تدور حولها في الجولة: حرّك الصورة يميناً ويساراً حتى تتطابق مع اللقطة، ثم انقر الفيلا التي تهمّك.",
-          },
-          {
-            id: "arch",
-            title: "عمارة واحدة",
-            hint: "أنواع الفلل",
-            body: "تكرار الأنواع يحافظ على خط سماء هادئ. المواد والأسقف والأفنية متناسقة حتى يُقرأ الحيّ مكاناً واحداً. الخامات الفاتحة والظلال المدروسة تخفّف الحرارة وتعطي لكل بيت خصوصية دون عزلة.",
-          },
-        ]}
-      />
-      <p className="site-foot">إذا أعجبتك صورة، عُد إلى الجوية ودوّر حتى تظهر الكتلة نفسها، ثم انقر الفيلا. المعرض يروي القصة، والجولة هي الخريطة.</p>
-    </SiteFrame>
+      </article>
+    </div>
   );
 }
 
 export function LocationPage({ tour, onClose }: { tour: TourMedia; onClose: () => void }) {
-  const q = encodeURIComponent(tour.locationQuery || tour.name);
-  const mapsSrc = `https://maps.google.com/maps?q=${q}&z=15&output=embed`;
-  const mapsLink = `https://www.google.com/maps/search/?api=1&query=${q}`;
-  const [tab, setTab] = useState<"place" | "around" | "map">("place");
-  const name = tour.name;
+  const [tab, setTab] = useState<"place" | "around" | "map">("map");
   const shots = shotsOf(tour);
+  const query = tour.locationQuery || tour.name;
 
   return (
-    <SiteFrame kicker="الموقع" title="موضع مدروس للسكن" onClose={onClose}>
-      <div className="site-tabs">
+    <SiteFrame kicker="الموقع" title="موضع مدروس للسكن" onClose={onClose} wide={tab === "map"} flush={tab === "map"}>
+      <div className={`site-tabs${tab === "map" ? " map-in" : ""}`} dir="rtl">
         <button type="button" className={tab === "place" ? "on" : ""} onClick={() => setTab("place")}>الموضع الاستراتيجي</button>
         <button type="button" className={tab === "around" ? "on" : ""} onClick={() => setTab("around")}>ما حول الحي</button>
         <button type="button" className={tab === "map" ? "on" : ""} onClick={() => setTab("map")}>الخريطة</button>
@@ -193,18 +212,7 @@ export function LocationPage({ tour, onClose }: { tour: TourMedia; onClose: () =
           </p>
         </div>
       )}
-      {tab === "map" && (
-        <div className="site-panel">
-          <p>
-            المستطيل أدناه خريطة حيّة لموقع المشروع. قرّب وحرّك لفهم طرق الاقتراب، ثم ارجع إلى الجولة
-            الجوية: الزاوية نفسها تراها وأنت تدور بالأسهم أو باليد.
-          </p>
-          <div className="site-map">
-            <iframe title={`خريطة ${name}`} src={mapsSrc} loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
-          </div>
-          <a className="site-map-link" href={mapsLink} target="_blank" rel="noreferrer">فتح الموقع في خرائط Google</a>
-        </div>
-      )}
+      {tab === "map" && <AroundMap query={query} title={tour.name} />}
     </SiteFrame>
   );
 }
@@ -279,7 +287,6 @@ export function HelpPage({ tour, onClose }: { tour: TourMedia; onClose: () => vo
                 <p>شريط التبويب أعلى الصورة يغيّر طريقة النظر إلى البيت. كل تبويب عمل واحد:</p>
                 <p><strong>مخطط ثلاثي الأبعاد (Floorplan 3D)</strong> — تجول داخل الطابق كما لو وقفت في الغرفة. اسحب يميناً ويساراً لتدور حول نفسك بزاوية 360. الأزرار العائمة تختار الطابق: الأرضي، الأول، أو الأخير. كل طابق مجموعة صور مختلفة للغرف والمعيشة والسلالم.</p>
                 <p><strong>نموذج 360 (Model 360)</strong> — نظرة شاملة للنموذج الداخلي. اسحب لتدور حول الكتلة من الداخل وترى توزيع الفراغات دفعة واحدة.</p>
-                <p><strong>الخارج (Exterior)</strong> — صور ثابتة لمحيط الفيلا. استخدم الأسهم أو المصغّرات أسفل الصورة للتنقّل بين اللقطات.</p>
                 <p><strong>الواجهة (Facade)</strong> — الواجهات الأربع للبيت. اختر الواجهة من الأزرار العائمة لترى كيف يبدو المنزل من الشارع أو الحديقة.</p>
               </>
             ),

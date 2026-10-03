@@ -61,8 +61,8 @@
   font-weight: 600;
 }
 .portal-side a.on {
-  background: #1eb8b0;
-  color: #062023;
+  background: #3b7dd8;
+  color: #fff;
 }
 .portal-side a:hover:not(.on) {
   background: rgba(255,255,255,0.06);
@@ -104,7 +104,7 @@
   margin-top: 8px;
 }
 .card-actions a {
-  color: #12948e;
+  color: #2b5fad;
   font-size: 13px;
   font-weight: 700;
   text-decoration: none;
@@ -161,7 +161,7 @@
   color: #7a8b98;
   margin-bottom: 10px;
 }
-.crumb a { color: #12948e; text-decoration: none; font-weight: 600; }
+.crumb a { color: #2b5fad; text-decoration: none; font-weight: 600; }
 .assign-box {
   background: #fff;
   border: 1px solid rgba(20, 40, 55, 0.06);
@@ -324,12 +324,12 @@ a.admin-card:hover {
   background: #f7fafb;
 }
 .portal-main input:focus, .portal-main select:focus, .gate-card input:focus {
-  outline: 2px solid rgba(30, 184, 176, 0.35);
+  outline: 2px solid rgba(59, 125, 216, 0.35);
   background: #fff;
 }
 .btn, button.btn, a.btn {
   border: 0;
-  background: #1eb8b0;
+  background: #3b7dd8;
   color: #fff;
   border-radius: 999px;
   padding: 12px 20px;
@@ -375,7 +375,7 @@ a.admin-card:hover {
   flex: none;
   margin-top: auto;
   border-radius: 999px;
-  background: #1eb8b0;
+  background: #3b7dd8;
   color: #fff;
   font-weight: 700;
   font-size: 13px;
@@ -486,7 +486,7 @@ a.admin-card:hover {
 .files-crumb button {
   border: 0;
   background: transparent;
-  color: #12948e;
+  color: #2b5fad;
   font-weight: 650;
   cursor: pointer;
   padding: 0;
@@ -617,14 +617,14 @@ a.admin-card:hover {
   place-items: center;
 }
 .units-panel .file-pick {
-  background: #1eb8b0;
+  background: #3b7dd8;
   color: #fff;
   border-color: transparent;
   height: 34px;
   border-radius: 999px;
   padding: 0 16px;
 }
-.units-panel .file-pick:hover { background: #17a39c; }
+.units-panel .file-pick:hover { background: #2b5fad; }
 .units-panel .icon-btn {
   width: 34px;
   height: 34px;
@@ -774,7 +774,7 @@ a.admin-card:hover {
 }
 .pw-toggle:hover { color: #14202a; }
 .gate-card h2 { font-size: 22px; }
-.gate-card a { color: #12948e; font-size: 13px; font-weight: 600; justify-self: center; }
+.gate-card a { color: #2b5fad; font-size: 13px; font-weight: 600; justify-self: center; }
 .gate-card .muted { color: #667887; font-size: 13px; }
 .btn.wide { width: 100%; justify-content: center; }
 @media (max-width: 800px) {
@@ -861,7 +861,7 @@ a.admin-card:hover {
   font-style: normal;
   font-size: 12px;
   font-weight: 700;
-  color: #0e8a84;
+  color: #2b5fad;
 }
 .hist-grow {
   flex: 1;
@@ -875,7 +875,7 @@ a.admin-card:hover {
   width: 100%;
   max-width: 36px;
   border-radius: 10px 10px 4px 4px;
-  background: linear-gradient(180deg, #3ad0c8, #12948e);
+  background: linear-gradient(180deg, #6aa3e8, #2b5fad);
 }
 .hist-col small {
   font-size: 11px;
@@ -888,6 +888,38 @@ a.admin-card:hover {
   white-space: nowrap;
 }
 .portal-client .project-pick { max-width: 280px; margin-bottom: 16px; }
+.warn-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(8, 16, 28, 0.45);
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+.warn-card {
+  width: min(420px, 100%);
+  background: #fff;
+  border-radius: 22px;
+  padding: 24px 24px 20px;
+  box-shadow: 0 24px 60px rgba(16, 36, 52, 0.18);
+}
+.warn-card h3 {
+  margin: 0 0 8px;
+  font-size: 18px;
+  letter-spacing: -0.03em;
+}
+.warn-card p {
+  margin: 0 0 20px;
+  color: #5d6f7c;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.warn-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
 @media (max-width: 900px) {
   .chart-hero header { flex-direction: column; align-items: stretch; }
 }

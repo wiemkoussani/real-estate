@@ -51,11 +51,15 @@ export const IconRotateL = (p: Props) => (
 export const IconRotateR = (p: Props) => (
   <Svg {...p}><path d="M21 12a9 9 0 1 1-3-6.7L21 8" /><path d="M21 3v5h-5" /></Svg>
 );
-export const IconArrowL = (p: Props) => (
-  <Svg {...p}><path d="M15 18 9 12l6-6" /></Svg>
+export const IconTriL = (p: Props) => (
+  <svg className={p.className} width={p.size ?? 15} height={p.size ?? 15} viewBox="0 0 24 24" aria-hidden>
+    <path d="M16 4v16L6 12l10-8z" fill="currentColor" />
+  </svg>
 );
-export const IconArrowR = (p: Props) => (
-  <Svg {...p}><path d="M9 18l6-6-6-6" /></Svg>
+export const IconTriR = (p: Props) => (
+  <svg className={p.className} width={p.size ?? 15} height={p.size ?? 15} viewBox="0 0 24 24" aria-hidden>
+    <path d="M8 4v16l10-8-10-8z" fill="currentColor" />
+  </svg>
 );
 export const IconPan = (p: Props) => (
   <Svg {...p}><path d="M18 11V6a2 2 0 0 0-4 0v5M14 10V4a2 2 0 0 0-4 0v6M10 11V6a2 2 0 0 0-4 0v8a8 8 0 0 0 8 8h1a6 6 0 0 0 6-6v-5a2 2 0 0 0-4 0" /></Svg>

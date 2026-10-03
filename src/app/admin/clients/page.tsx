@@ -5,6 +5,7 @@ import AdminShell from "../AdminShell";
 import type { ComplexRow } from "@/lib/types";
 import { IconSend, IconTrash } from "@/components/Icons";
 import { displayPersonName } from "@/lib/person-name";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 type ClientRow = { id: string; email: string | null; full_name: string | null; complex_ids?: string[] };
 
@@ -17,6 +18,7 @@ export default function ClientsPage() {
   const [err, setErr] = useState("");
   const [ok, setOk] = useState("");
   const [busy, setBusy] = useState(false);
+  const { confirm, dialog } = useConfirm();
 
   const load = async () => {
     const [c, x] = await Promise.all([fetch("/api/admin/clients"), fetch("/api/admin/complexes")]);
@@ -62,7 +64,7 @@ export default function ClientsPage() {
   };
 
   const removeClient = async (cl: ClientRow) => {
-    if (!window.confirm(`Delete ${displayPersonName(cl.full_name, cl.email) || cl.email}? They will lose access to every project.`)) return;
+    if (!(await confirm(`Delete ${displayPersonName(cl.full_name, cl.email) || cl.email}? They will lose access to every project.`, "Delete client"))) return;
     setBusy(true);
     setErr("");
     setOk("");
@@ -136,6 +138,7 @@ export default function ClientsPage() {
           <button className="btn" type="submit" disabled={busy}>{busy ? "Sending…" : "Send invitation"}</button>
         </form>
       </div>
+      {dialog}
     </AdminShell>
   );
 }

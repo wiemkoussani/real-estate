@@ -14,6 +14,11 @@ export function normalizeRel(kind: AssetKind, rel: string) {
     const hit = clean.match(/type-[123]\/.+$/i);
     if (hit) return hit[0];
   }
+  if (kind === "gallery") {
+    const parts = clean.split("/");
+    const top = parts[0]?.toLowerCase();
+    if ((top === "gallery" || top === "gallerie") && parts.length > 1) return parts.slice(1).join("/");
+  }
   return clean;
 }
 
