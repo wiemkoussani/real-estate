@@ -148,10 +148,10 @@ export function GalleryPage({ tour, onClose }: { tour: TourMedia; onClose: () =>
             {exteriorBoards.length + interiorBoards.length > 0 && <span className="gal-hint">اسحب للأسفل</span>}
           </section>
           {exteriorBoards.map((group, i) => (
-            <GalBoard key={`ex-${group[0]}-${i}`} title="Exterior" items={group} onPick={setOpen} onFail={fail} />
+            <GalBoard key={`ex-${group[0]}-${i}`} title={i === 0 ? "Exterior" : undefined} items={group} onPick={setOpen} onFail={fail} />
           ))}
           {interiorBoards.map((group, i) => (
-            <GalBoard key={`in-${group[0]}-${i}`} title="Interior" items={group} onPick={setOpen} onFail={fail} />
+            <GalBoard key={`in-${group[0]}-${i}`} title={i === 0 ? "Interior" : undefined} items={group} onPick={setOpen} onFail={fail} />
           ))}
         </div>
         {open && (
