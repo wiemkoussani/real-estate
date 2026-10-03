@@ -10,3 +10,5 @@ _copy_assets.py
 Thumbs.db
 .DS_Store
 
+
+.vercel
