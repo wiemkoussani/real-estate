@@ -881,10 +881,11 @@ export class OrbitEngine {
     this.dragTo(e.clientX, e.clientY);
   };
 
-  private onPointerUp = (e?: PointerEvent) => {
-    if (e) {
+  private onPointerUp = (e?: Event) => {
+    if (e && "pointerId" in e) {
       try {
-        if (this.container.hasPointerCapture(e.pointerId)) this.container.releasePointerCapture(e.pointerId);
+        const id = (e as PointerEvent).pointerId;
+        if (this.container.hasPointerCapture(id)) this.container.releasePointerCapture(id);
       } catch {
         /* ignore */
       }
