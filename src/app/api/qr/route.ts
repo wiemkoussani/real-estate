@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Invalid slug" }, { status: 400 });
     }
     const access = await canViewComplex(slug);
-    if (!access.ok && access.reason !== "local") {
+    if (!access.ok) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
     const target = `${req.nextUrl.origin}/c/${slug}`;

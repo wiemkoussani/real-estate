@@ -1,0 +1,9 @@
+.tools
+orbit 2
+.next
+node_modules
+.git
+*.log
+.env
+.env.local
+_copy_assets.py
