@@ -141,7 +141,7 @@ export function GalleryPage({ tour, onClose }: { tour: TourMedia; onClose: () =>
         <div className="gal-scroll">
           <section className="gal-hero">
             {hero ? (
-              <img src={hero} alt="" onError={() => fail(hero)} />
+              <img src={hero} alt="" fetchPriority="high" decoding="async" onError={() => fail(hero)} />
             ) : (
               <div className="site-empty">ستظهر الصور هنا بعد رفعها للمشروع.</div>
             )}

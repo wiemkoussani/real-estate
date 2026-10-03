@@ -379,7 +379,10 @@ export class OrbitEngine {
         opacity: COMPLEX.overlayOpacity,
         depthWrite: false,
         depthTest: true,
-        side: THREE.FrontSide,
+        side: THREE.DoubleSide,
+        polygonOffset: true,
+        polygonOffsetFactor: -2,
+        polygonOffsetUnits: -2,
       });
       obj.userData.targetOpacity = COMPLEX.overlayOpacity;
       obj.renderOrder = 1;
@@ -478,7 +481,7 @@ export class OrbitEngine {
     this.isNavigating = false;
     this.highlight(id);
     this.syncCamera();
-    const { cw, ch, dw, dh, dx, dy } = this.getDrawRect();
+    const { cw, ch } = this.getDrawRect();
     const box = new THREE.Box3().setFromObject(mesh);
     const corners = [
       new THREE.Vector3(box.min.x, box.min.y, box.min.z),
@@ -496,8 +499,8 @@ export class OrbitEngine {
     let maxY = -Infinity;
     corners.forEach((p) => {
       p.project(this.activeCamera);
-      const sx = dx + (p.x * 0.5 + 0.5) * dw;
-      const sy = dy + (-p.y * 0.5 + 0.5) * dh;
+      const sx = (p.x * 0.5 + 0.5) * cw;
+      const sy = (-p.y * 0.5 + 0.5) * ch;
       minX = Math.min(minX, sx);
       maxX = Math.max(maxX, sx);
       minY = Math.min(minY, sy);
@@ -796,11 +799,10 @@ export class OrbitEngine {
     this.activeCamera.far = Math.max(dist * 10, 100000);
     const { cw, ch, dw, dh, dx, dy } = this.getDrawRect();
     this.activeCamera.aspect = dw / dh;
-    this.activeCamera.clearViewOffset();
+    this.activeCamera.setViewOffset(dw, dh, -dx, -dy, cw, ch);
     this.activeCamera.updateProjectionMatrix();
-    this.renderer.setViewport(dx, ch - dy - dh, dw, dh);
-    this.renderer.setScissor(0, 0, cw, ch);
-    this.renderer.setScissorTest(true);
+    this.renderer.setViewport(0, 0, cw, ch);
+    this.renderer.setScissorTest(false);
   }
 
   private applyTransform() {
@@ -975,10 +977,9 @@ export class OrbitEngine {
     const box = new THREE.Box3().setFromObject(mesh);
     const top = new THREE.Vector3((box.min.x + box.max.x) / 2, box.max.y, (box.min.z + box.max.z) / 2);
     top.project(this.activeCamera);
-    const { dw, dh, dx, dy } = this.getDrawRect();
-    const rect = this.container.getBoundingClientRect();
-    const x = rect.left + dx + (top.x * 0.5 + 0.5) * dw;
-    const y = rect.top + dy + (-top.y * 0.5 + 0.5) * dh;
+    const rect = this.threeCanvas.getBoundingClientRect();
+    const x = rect.left + (top.x * 0.5 + 0.5) * rect.width;
+    const y = rect.top + (-top.y * 0.5 + 0.5) * rect.height;
     this.events.onHover?.(unit, { x, y });
   }
 
@@ -992,16 +993,10 @@ export class OrbitEngine {
   };
 
   private hit(e: MouseEvent | PointerEvent): Unit | null {
-    const { cw, ch, dw, dh, dx, dy } = this.getDrawRect();
     const rect = this.threeCanvas.getBoundingClientRect();
-    const scaleX = rect.width / Math.max(1, cw);
-    const scaleY = rect.height / Math.max(1, ch);
-    const vx = rect.left + dx * scaleX;
-    const vy = rect.top + dy * scaleY;
-    const vw = dw * scaleX;
-    const vh = dh * scaleY;
-    this.pointer.x = ((e.clientX - vx) / vw) * 2 - 1;
-    this.pointer.y = -((e.clientY - vy) / vh) * 2 + 1;
+    if (rect.width < 2 || rect.height < 2) return null;
+    this.pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    this.pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
     if (Math.abs(this.pointer.x) > 1.05 || Math.abs(this.pointer.y) > 1.05) return null;
     this.raycaster.setFromCamera(this.pointer, this.activeCamera);
     const hits = this.raycaster.intersectObjects(this.clickable, false);

@@ -50,28 +50,18 @@ export function AroundMap({ query, title }: { query: string; title: string }) {
     }
     (async () => {
       try {
-        const geoRes = await fetch(`/api/maps/around?fast=1&q=${encodeURIComponent(query)}`);
-        const geo = await geoRes.json();
-        if (stop) return;
-        if (!geoRes.ok) {
-          setErr(geo.error || "تعذر تحميل الخريطة");
-          return;
-        }
-        setData({ ...geo, places: [] });
-        const lightRes = await fetch(`/api/maps/around?light=1&lat=${geo.lat}&lng=${geo.lng}&address=${encodeURIComponent(geo.address || "")}`);
-        const light = await lightRes.json();
-        if (stop) return;
-        if (lightRes.ok) setData(light);
-        const poiRes = await fetch(`/api/maps/around?lat=${geo.lat}&lng=${geo.lng}&address=${encodeURIComponent(geo.address || "")}`);
+        const poiRes = await fetch(`/api/maps/around?q=${encodeURIComponent(query)}`);
         const pois = await poiRes.json();
         if (stop) return;
-        if (poiRes.ok && (pois.places?.length || 0) >= (light.places?.length || 0)) {
-          setData(pois);
-          try {
-            sessionStorage.setItem(key, JSON.stringify(pois));
-          } catch {
-            /* ignore */
-          }
+        if (!poiRes.ok) {
+          setErr(pois.error || "تعذر تحميل الخريطة");
+          return;
+        }
+        setData(pois);
+        try {
+          sessionStorage.setItem(key, JSON.stringify(pois));
+        } catch {
+          /* ignore */
         }
       } catch {
         if (!stop) setErr("تعذر تحميل الخريطة");

@@ -131,6 +131,22 @@ function cardPhoto(tour: TourMedia, unit: Unit) {
   return plans[0] || "";
 }
 
+function preloadGallery(tour: TourMedia) {
+  const urls = [...new Set([tour.galleryHero, ...tour.galleryExterior, ...tour.galleryInterior].filter(Boolean))];
+  let i = 0;
+  const next = () => {
+    const src = urls[i];
+    i += 1;
+    if (!src) return;
+    const img = new Image();
+    img.decoding = "async";
+    img.onload = next;
+    img.onerror = next;
+    img.src = src;
+  };
+  for (let n = 0; n < 4; n += 1) next();
+}
+
 function ComplexStage({ tour }: { tour: TourMedia }) {
   const stageRef = useRef<HTMLDivElement>(null);
   const bgRef = useRef<HTMLCanvasElement>(null);
@@ -167,6 +183,10 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
   const [areaMax, setAreaMax] = useState(300);
   const [floorMax, setFloorMax] = useState(5);
   const [roomsMax, setRoomsMax] = useState(6);
+
+  useEffect(() => {
+    preloadGallery(tour);
+  }, [tour]);
 
   useEffect(() => {
     try {
@@ -544,7 +564,7 @@ function ContactSidebar({ unit, onBack }: { unit: Unit | null; onBack: () => voi
   const [busy, setBusy] = useState(false);
   const [ok, setOk] = useState(false);
   const [err, setErr] = useState("");
-  const [gender, setGender] = useState("امرأة");
+  const [gender, setGender] = useState("السيدة");
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -602,7 +622,7 @@ function ContactSidebar({ unit, onBack }: { unit: Unit | null; onBack: () => voi
       <form className="lead side" onSubmit={submit}>
         <p>تحية</p>
         <div className="seg">
-          {["امرأة", "السيد", "لا"].map((g) => (
+          {["السيدة", "السيد", "لا"].map((g) => (
             <button key={g} type="button" className={gender === g ? "on" : ""} onClick={() => setGender(g)}>{g}</button>
           ))}
         </div>
@@ -816,7 +836,7 @@ function DetailLead({ unit }: { unit: Unit }) {
   const [busy, setBusy] = useState(false);
   const [ok, setOk] = useState(false);
   const [err, setErr] = useState("");
-  const [gender, setGender] = useState("امرأة");
+  const [gender, setGender] = useState("السيدة");
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setBusy(true);
@@ -851,7 +871,7 @@ function DetailLead({ unit }: { unit: Unit }) {
       <p className="lead-title">طلب اهتمام</p>
       <p>تحية</p>
       <div className="seg">
-        {["امرأة", "السيد", "لا"].map((g) => (
+        {["السيدة", "السيد", "لا"].map((g) => (
           <button key={g} type="button" className={gender === g ? "on" : ""} onClick={() => setGender(g)}>{g}</button>
         ))}
       </div>
