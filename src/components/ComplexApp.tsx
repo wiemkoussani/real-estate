@@ -406,14 +406,12 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
                         {u.displayId}
                         <span className={`status-dot ${u.status} dot ${u.status}`} />
                       </strong>
-                      <span className="meta-area">
-                        <small>Area</small><b>{u.surface} m²</b>
-                        <span className={favs.includes(u.id) ? "heart on" : "heart"} onClick={(e) => { e.stopPropagation(); toggleFav(u.id); }}>
-                          <IconHeart size={14} filled={favs.includes(u.id)} />
-                        </span>
-                      </span>
+                      <span className="meta-area"><small>Area</small><b>{u.surface} m²</b></span>
                       <span className="meta-floor"><small>Floor</small><b>{u.floor}</b></span>
                       <span className="meta-rooms"><small>Rooms</small><b>{u.rooms}</b></span>
+                      <span className={favs.includes(u.id) ? "heart on" : "heart"} onClick={(e) => { e.stopPropagation(); toggleFav(u.id); }}>
+                        <IconHeart size={14} filled={favs.includes(u.id)} />
+                      </span>
                     </div>
                     <div className="card-side">
                       {photo ? <img src={photo} alt="" /> : <span className="card-img-fallback" />}

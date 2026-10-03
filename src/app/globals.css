@@ -246,26 +246,21 @@ body {
   vertical-align: middle;
 }
 .units.cards .unit .heart {
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   border: 1.5px solid var(--teal);
   border-radius: 50%;
   display: grid;
   place-items: center;
   color: var(--teal);
   background: #fff;
-  margin-inline-start: auto;
-  flex: none;
+  margin-top: 6px;
+  margin-inline-start: 0;
+  align-self: start;
 }
 .units.cards .unit strong { font-size: 16px; display: flex; align-items: center; margin-bottom: 4px; }
 .units.cards .unit .badge { display: none; }
-.units.cards .unit .meta-area {
-  font-size: 13px;
-  color: #5b6773;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
+.units.cards .unit .meta-area,
 .units.cards .unit .meta-floor,
 .units.cards .unit .meta-rooms {
   font-size: 13px;
