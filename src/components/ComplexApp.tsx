@@ -14,12 +14,14 @@ import {
   IconHelp,
   IconList,
   IconMail,
+  IconEyeOff,
+  IconFullscreen,
+  IconMinus,
   IconPan,
   IconPin,
+  IconPlus,
   IconTriL,
   IconTriR,
-  IconZoomIn,
-  IconZoomOut,
 } from "@/components/Icons";
 import { GalleryPage, HelpPage, LocationPage } from "@/components/TourPages";
 
@@ -487,9 +489,47 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
 
         <div className="hud" onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
           <div className="hud-tools">
-            <button type="button" className={panMode ? "on" : ""} title="Pan" onClick={() => { const v = !panMode; setPanMode(v); engineRef.current?.setPanMode(v); }}><IconPan size={16} /></button>
-            <button type="button" title="Zoom out" onClick={() => engineRef.current?.zoomBy(-COMPLEX.zoomStep)}><IconZoomOut size={16} /></button>
-            <button type="button" title="Zoom in" onClick={() => engineRef.current?.zoomBy(COMPLEX.zoomStep)}><IconZoomIn size={16} /></button>
+            <button
+              type="button"
+              title="Fullscreen"
+              onClick={() => {
+                if (document.fullscreenElement) void document.exitFullscreen?.();
+                else void document.documentElement.requestFullscreen?.();
+              }}
+            >
+              <IconFullscreen size={17} />
+            </button>
+            <button
+              type="button"
+              className={overlayOn ? "on" : ""}
+              title="Show units"
+              onClick={() => {
+                const v = !overlayOn;
+                setOverlayOn(v);
+                engineRef.current?.setOverlayVisible(v);
+              }}
+            >
+              {overlayOn ? <IconEye size={17} /> : <IconEyeOff size={17} />}
+            </button>
+            <span className="hud-sep" aria-hidden />
+            <button
+              type="button"
+              className={panMode ? "on" : ""}
+              title="Pan"
+              onClick={() => {
+                const v = !panMode;
+                setPanMode(v);
+                engineRef.current?.setPanMode(v);
+              }}
+            >
+              <IconPan size={17} />
+            </button>
+            <button type="button" title="Zoom out" onClick={() => engineRef.current?.zoomBy(-COMPLEX.zoomStep)}>
+              <IconMinus size={17} />
+            </button>
+            <button type="button" title="Zoom in" onClick={() => engineRef.current?.zoomBy(COMPLEX.zoomStep)}>
+              <IconPlus size={17} />
+            </button>
           </div>
           <div className="hud-nav">
             <button
@@ -505,9 +545,8 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
               }}
               onPointerUp={() => { if (rotateHoldRef.current) { window.clearInterval(rotateHoldRef.current); rotateHoldRef.current = null; } }}
               onPointerCancel={() => { if (rotateHoldRef.current) { window.clearInterval(rotateHoldRef.current); rotateHoldRef.current = null; } }}
-            ><IconTriL size={15} /></button>
+            ><IconTriL size={14} /></button>
             <div className="compass-wrap">
-              <button type="button" className="compass-ring" aria-label="Compass" onClick={() => engineRef.current?.rotateToNextCardinal()} />
               <button type="button" className="nav-compass" title="Compass" onClick={() => engineRef.current?.rotateToNextCardinal()}>
                 <span className="compass-needle" style={{ transform: `rotate(${headingDeg}deg)` }} />
                 <b>{headingDir}</b>
@@ -526,10 +565,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
               }}
               onPointerUp={() => { if (rotateHoldRef.current) { window.clearInterval(rotateHoldRef.current); rotateHoldRef.current = null; } }}
               onPointerCancel={() => { if (rotateHoldRef.current) { window.clearInterval(rotateHoldRef.current); rotateHoldRef.current = null; } }}
-            ><IconTriR size={15} /></button>
-          </div>
-          <div className="hud-tools">
-            <button type="button" className={overlayOn ? "on" : ""} title="Show units" onClick={() => { const v = !overlayOn; setOverlayOn(v); engineRef.current?.setOverlayVisible(v); }}><IconEye size={16} /></button>
+            ><IconTriR size={14} /></button>
           </div>
         </div>
       </div>

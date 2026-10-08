@@ -45,6 +45,20 @@ export const IconZoomIn = (p: Props) => (
 export const IconZoomOut = (p: Props) => (
   <Svg {...p}><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3M8 11h6" /></Svg>
 );
+export const IconPlus = (p: Props) => (
+  <Svg {...p}><path d="M12 5v14M5 12h14" /></Svg>
+);
+export const IconMinus = (p: Props) => (
+  <Svg {...p}><path d="M5 12h14" /></Svg>
+);
+export const IconFullscreen = (p: Props) => (
+  <Svg {...p}>
+    <path d="M8 3H5a2 2 0 0 0-2 2v3" />
+    <path d="M16 3h3a2 2 0 0 1 2 2v3" />
+    <path d="M8 21H5a2 2 0 0 1-2-2v-3" />
+    <path d="M16 21h3a2 2 0 0 0 2-2v-3" />
+  </Svg>
+);
 export const IconRotateL = (p: Props) => (
   <Svg {...p}><path d="M3 12a9 9 0 1 0 3-6.7L3 8" /><path d="M3 3v5h5" /></Svg>
 );

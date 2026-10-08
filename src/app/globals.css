@@ -500,10 +500,12 @@ body {
 }
 .hud {
   position: absolute;
-  right: 16px;
-  bottom: 16px;
+  right: 28px;
+  bottom: 36px;
+  left: auto;
+  transform: none;
   display: flex;
-  gap: 10px;
+  gap: 12px;
   align-items: center;
   z-index: 5;
 }
@@ -511,70 +513,68 @@ body {
 .hud-nav {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 6px 7px;
-  border-radius: 18px;
-  background: rgba(255,255,255,0.35);
-  border: 1px solid rgba(255,255,255,0.5);
-  backdrop-filter: blur(1px) saturate(110%);
-  box-shadow: 0 8px 28px rgba(15,23,42,0.1);
+  gap: 2px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.34);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(12px) saturate(120%);
+  -webkit-backdrop-filter: blur(12px) saturate(120%);
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.08);
+}
+.hud-sep {
+  width: 1px;
+  height: 18px;
+  margin: 0 6px;
+  background: rgba(31, 44, 56, 0.18);
+  flex: none;
 }
 .hud-tools button,
 .hud-nav .nav-btn {
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   padding: 0;
-  border-radius: 10px;
-  border: 1px solid transparent;
+  border-radius: 999px;
+  border: none;
   background: transparent;
   box-shadow: none;
   cursor: pointer;
-  color: #1f2c38;
+  color: #1a2330;
   display: grid;
   place-items: center;
 }
 .hud-tools button:hover,
-.hud-nav .nav-btn:hover { background: rgba(31,44,56,0.08); }
+.hud-nav .nav-btn:hover { background: rgba(31, 44, 56, 0.08); }
 .hud-tools button:active,
-.hud-nav .nav-btn:active { background: rgba(27, 54, 93, 0.18); }
-.hud-tools button.on { background: var(--teal); color: #fff; border-color: var(--teal); }
+.hud-nav .nav-btn:active { background: rgba(27, 54, 93, 0.14); }
+.hud-tools button.on { background: rgba(27, 54, 93, 0.12); color: #1b365d; }
 .hud-nav .nav-btn { width: 30px; height: 30px; }
 .compass-wrap {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 6px;
-  width: 50px;
-  height: 50px;
+  margin: 0 4px;
+  width: 42px;
+  height: 42px;
   flex: none;
 }
-.compass-ring {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  border: 1px dashed rgba(255,255,255,0.55);
-  background: transparent;
-  cursor: pointer;
-}
-.compass-ring:hover { border-color: rgba(27, 54, 93, 0.45); }
 .hud-nav .nav-compass {
   position: relative;
   z-index: 1;
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.5);
-  border: 1px solid rgba(255,255,255,0.6);
-  box-shadow: inset 0 0 8px rgba(27, 54, 93, 0.12);
+  background: transparent;
+  border: none;
+  box-shadow: none;
   display: grid;
   place-items: center;
   cursor: pointer;
-  color: #1f2c38;
+  color: #1a2330;
 }
 .hud-nav .nav-compass:hover {
-  background: rgba(255,255,255,0.75);
-  box-shadow: inset 0 0 8px rgba(27, 54, 93, 0.2), 0 0 0 2px rgba(27, 54, 93, 0.12);
+  background: rgba(31, 44, 56, 0.06);
 }
 .compass-needle {
   position: absolute;
@@ -585,17 +585,17 @@ body {
 .compass-needle::after {
   content: "";
   position: absolute;
-  top: 2px;
+  top: 3px;
   left: 50%;
   transform: translateX(-50%);
   border-left: 4px solid transparent;
   border-right: 4px solid transparent;
-  border-bottom: 7px solid #e25656;
+  border-bottom: 7px solid #e53935;
 }
 .hud-nav .nav-compass b {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
-  color: #1f2c38;
+  color: #1a2330;
   font-variant-numeric: tabular-nums;
 }
 
@@ -1531,6 +1531,6 @@ body {
   .detail { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
   .detail-top { right: 16px; }
   .detail-side { max-height: 46vh; }
-  .hud { left: 12px; right: 12px; justify-content: center; flex-wrap: wrap; }
+  .hud { right: 20px; bottom: 28px; left: auto; transform: none; max-width: calc(100% - 24px); justify-content: flex-end; flex-wrap: wrap; }
   .rail { top: 8px; }
 }
