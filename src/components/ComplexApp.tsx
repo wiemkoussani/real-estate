@@ -3,7 +3,7 @@
 import { useCallback, useContext, useEffect, useMemo, useRef, useState, createContext } from "react";
 import { COMPLEX, type Unit, type UnitStatus } from "@/lib/complex";
 import { buildTour, emptyTour, tourPlanUrl, tourVillaUrl, type TourMedia } from "@/lib/tour";
-import { OrbitEngine } from "@/viewer/OrbitEngine";
+import type { OrbitEngine as OrbitEngineType } from "@/viewer/OrbitEngine";
 import {
   IconApps,
   IconCards,
@@ -83,12 +83,16 @@ function useTour() {
   return useContext(TourCtx);
 }
 
-export default function ComplexApp({ slug }: { slug: string }) {
-  const [tour, setTour] = useState<TourMedia | null>(null);
+export default function ComplexApp({ slug, initialTour }: { slug: string; initialTour?: TourMedia | null }) {
+  const [tour, setTour] = useState<TourMedia | null>(initialTour ?? null);
 
   useEffect(() => {
+    if (initialTour) {
+      setTour(initialTour);
+      return;
+    }
     let cancelled = false;
-    fetch(`/api/complexes/${slug}`, { cache: "no-store" })
+    fetch(`/api/complexes/${slug}`)
       .then(async (res) => {
         const json = await res.json();
         if (!res.ok) throw new Error(json.error || "Not found");
@@ -103,7 +107,7 @@ export default function ComplexApp({ slug }: { slug: string }) {
     return () => {
       cancelled = true;
     };
-  }, [slug]);
+  }, [slug, initialTour]);
 
   if (!tour) {
     return (
@@ -131,28 +135,12 @@ function cardPhoto(tour: TourMedia, unit: Unit) {
   return plans[0] || "";
 }
 
-function preloadGallery(tour: TourMedia) {
-  const urls = [...new Set([tour.galleryHero, ...tour.galleryExterior, ...tour.galleryInterior].filter(Boolean))];
-  let i = 0;
-  const next = () => {
-    const src = urls[i];
-    i += 1;
-    if (!src) return;
-    const img = new Image();
-    img.decoding = "async";
-    img.onload = next;
-    img.onerror = next;
-    img.src = src;
-  };
-  for (let n = 0; n < 4; n += 1) next();
-}
-
 function ComplexStage({ tour }: { tour: TourMedia }) {
   const stageRef = useRef<HTMLDivElement>(null);
   const bgRef = useRef<HTMLCanvasElement>(null);
   const bgNextRef = useRef<HTMLCanvasElement>(null);
   const threeRef = useRef<HTMLCanvasElement>(null);
-  const engineRef = useRef<OrbitEngine | null>(null);
+  const engineRef = useRef<OrbitEngineType | null>(null);
   const approachedRef = useRef<string | null>(null);
   const busyRef = useRef(false);
 
@@ -185,10 +173,6 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
   const [roomsMax, setRoomsMax] = useState(6);
 
   useEffect(() => {
-    preloadGallery(tour);
-  }, [tour]);
-
-  useEffect(() => {
     try {
       setFavs(JSON.parse(localStorage.getItem("axis-favs") || "[]"));
     } catch {
@@ -196,7 +180,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
     }
   }, []);
 
-  const pickUnit = async (u: Unit, engine?: OrbitEngine | null) => {
+  const pickUnit = async (u: Unit, engine?: OrbitEngineType | null) => {
     const en = engine ?? engineRef.current;
     if (!en || busyRef.current) return;
     if (approachedRef.current === u.id) {
@@ -218,45 +202,54 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
     const bgNext = bgNextRef.current;
     const three = threeRef.current;
     if (!stage || !bg || !bgNext || !three) return;
-    const engine = new OrbitEngine(stage, { bg, bgNext, three }, {
-      onLoadProgress: setLoadPct,
-      onFrame: (i) => {
-        setFrame(i);
-        setHeadingDir(engine.getHeadingDir());
-        setHeadingDeg(engine.getHeading());
-      },
-      onHover: (u, pos) => {
-        setHover(u);
-        setHoverPos(pos ?? null);
-      },
-      onSelect: (u) => {
-        void pickUnit(u, engine);
-      },
-      onEmptyClick: () => {
-        approachedRef.current = null;
-        setSelected(null);
-        engine.resetView();
-      },
-      onReady: () => {
-        const list = engine.getUnits();
-        setUnits(list);
-        if (list.length) {
-          setAreaMax(Math.max(...list.map((u) => u.surface)));
-          setFloorMax(Math.max(...list.map((u) => u.floor)));
-          setRoomsMax(Math.max(...list.map((u) => u.rooms)));
-        }
+    let cancelled = false;
+    let engine: OrbitEngineType | null = null;
+    void import("@/viewer/OrbitEngine").then(({ OrbitEngine }) => {
+      if (cancelled) return;
+      engine = new OrbitEngine(stage, { bg, bgNext, three }, {
+        onLoadProgress: setLoadPct,
+        onFrame: (i) => {
+          setFrame(i);
+          setHeadingDir(engine!.getHeadingDir());
+          setHeadingDeg(engine!.getHeading());
+        },
+        onHover: (u, pos) => {
+          setHover(u);
+          setHoverPos(pos ?? null);
+        },
+        onSelect: (u) => {
+          void pickUnit(u, engine);
+        },
+        onEmptyClick: () => {
+          approachedRef.current = null;
+          setSelected(null);
+          engine?.resetView();
+        },
+        onReady: () => {
+          const list = engine!.getUnits();
+          setUnits(list);
+          if (list.length) {
+            setAreaMax(Math.max(...list.map((u) => u.surface)));
+            setFloorMax(Math.max(...list.map((u) => u.floor)));
+            setRoomsMax(Math.max(...list.map((u) => u.rooms)));
+          }
+          setReady(true);
+          setHeadingDir(engine!.getHeadingDir());
+          setHeadingDeg(engine!.getHeading());
+        },
+      }, tour);
+      engineRef.current = engine;
+      void engine.start().catch((err) => {
+        console.error(err);
+        setLoadPct(100);
         setReady(true);
-        setHeadingDir(engine.getHeadingDir());
-        setHeadingDeg(engine.getHeading());
-      },
-    }, tour);
-    engineRef.current = engine;
-    void engine.start().catch((err) => {
-      console.error(err);
-      setLoadPct(100);
-      setReady(true);
+      });
     });
-    return () => engine.dispose();
+    return () => {
+      cancelled = true;
+      engine?.dispose();
+      engineRef.current = null;
+    };
   }, [tour]);
 
   useEffect(() => {
@@ -654,10 +647,12 @@ function Spin360({ type, folder }: { type: number; folder: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const images = useRef<(HTMLImageElement | null)[]>([]);
+  const loadingSet = useRef(new Set<number>());
   const dragging = useRef(false);
   const startX = useRef(0);
   const [idx, setIdx] = useState(0);
   const [loading, setLoading] = useState(true);
+  const n = tour.villaFrames;
 
   const draw = useCallback((i: number) => {
     const canvas = canvasRef.current;
@@ -684,48 +679,69 @@ function Spin360({ type, folder }: { type: number; folder: string }) {
   const idxRef = useRef(0);
   idxRef.current = idx;
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setIdx(0);
-    images.current = [];
-    const n = tour.villaFrames;
-    let done = 0;
-    for (let i = 0; i < n; i++) {
-      const img = new Image();
-      images.current[i] = img;
+  const ensureFrame = useCallback((i: number) => {
+    if (!n) return;
+    const index = ((i % n) + n) % n;
+    const existing = images.current[index];
+    if (existing?.complete && existing.naturalWidth) return;
+    if (loadingSet.current.has(index)) return;
+    loadingSet.current.add(index);
+    const img = existing ?? new Image();
+    images.current[index] = img;
+    img.decoding = "async";
+    const src = tourVillaUrl(tour, type, folder, index);
+    if (!src) {
+      loadingSet.current.delete(index);
+      return;
+    }
+    if (img.src !== src) {
       img.onload = () => {
-        if (cancelled) return;
-        done += 1;
-        if (i === 0) draw(0);
-        if (done === n) setLoading(false);
+        loadingSet.current.delete(index);
+        if (idxRef.current === index) {
+          setLoading(false);
+          draw(index);
+        }
       };
       img.onerror = () => {
-        if (cancelled) return;
-        done += 1;
-        if (done === n) setLoading(false);
+        loadingSet.current.delete(index);
+        if (idxRef.current === index) setLoading(false);
       };
-      const src = tourVillaUrl(tour, type, folder, i);
-      if (!src) {
-        done += 1;
-        if (done === n) setLoading(false);
-        continue;
-      }
       img.src = src;
     }
-    const onResize = () => draw(idxRef.current);
-    window.addEventListener("resize", onResize);
-    return () => {
-      cancelled = true;
-      window.removeEventListener("resize", onResize);
-    };
-  }, [type, folder, draw, tour]);
+  }, [n, tour, type, folder, draw]);
+
+  const warmAround = useCallback((center: number) => {
+    if (!n) return;
+    ensureFrame(center);
+    for (let d = 1; d <= 4; d++) {
+      ensureFrame(center + d);
+      ensureFrame(center - d);
+    }
+  }, [n, ensureFrame]);
 
   useEffect(() => {
-    draw(idx);
-  }, [idx, draw]);
+    images.current = [];
+    loadingSet.current = new Set();
+    setIdx(0);
+    setLoading(true);
+    warmAround(0);
+    const onResize = () => draw(idxRef.current);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [type, folder, tour, warmAround, draw]);
 
-  const spin = (dir: 1 | -1) => setIdx((v) => (v + dir + tour.villaFrames) % tour.villaFrames);
+  useEffect(() => {
+    warmAround(idx);
+    const img = images.current[idx];
+    if (img?.complete && img.naturalWidth) {
+      setLoading(false);
+      draw(idx);
+    } else {
+      setLoading(true);
+    }
+  }, [idx, warmAround, draw]);
+
+  const spin = (dir: 1 | -1) => setIdx((v) => (v + dir + n) % n);
 
   return (
     <div

@@ -31,7 +31,7 @@ function PhotoGrid({ urls, tall }: { urls: (string | undefined)[]; tall?: boolea
   return (
     <div className={`site-photos n${list.length}${tall ? " tall" : ""}`}>
       {list.map((src) => (
-        <img key={src} src={src} alt="" />
+        <img key={src} src={src} alt="" loading="lazy" decoding="async" />
       ))}
     </div>
   );
@@ -118,7 +118,7 @@ function GalBoard({
       {title ? <p className="gal-board-title">{title}</p> : null}
       {items.map((src, i) => (
         <button key={src} type="button" className={`gal-cell c${i}`} onClick={() => onPick(src)}>
-          <img src={src} alt="" onError={() => onFail(src)} />
+          <img src={src} alt="" loading="lazy" decoding="async" onError={() => onFail(src)} />
         </button>
       ))}
     </section>

@@ -334,23 +334,33 @@ export class OrbitEngine {
     });
   }
 
+  /** Load a small ring around the current frame; the rest streams while turning. */
   private async preloadLow() {
     const total = this.tour.totalFrames;
     if (!total) {
       this.events.onLoadProgress?.(100);
       return;
     }
-    let loaded = this.lowImages.filter((img) => img?.complete).length;
-    const order = [0, 1, total - 1, 14, ...Array.from({ length: total }, (_, i) => i).filter((i) => i !== 0 && i !== 1 && i !== 14 && i !== total - 1)];
-    const batch = 6;
-    for (let start = 0; start < total; start += batch) {
+    const ring = this.neighborIndices(this.currentFrame, 0);
+    const batch = 4;
+    for (let start = 0; start < ring.length; start += batch) {
       if (this.disposed) return;
-      const slice = order.slice(start, start + batch);
+      const slice = ring.slice(start, start + batch);
       await Promise.all(slice.map((idx) => this.loadOne(idx)));
-      loaded = Math.min(total, loaded + slice.length);
-      this.events.onLoadProgress?.(Math.min(99, 28 + Math.round((loaded / total) * 72)));
+      this.events.onLoadProgress?.(Math.min(95, 28 + Math.round(((start + slice.length) / ring.length) * 67)));
     }
     this.events.onLoadProgress?.(100);
+  }
+
+  private neighborIndices(current: number, dir = 0) {
+    const n = this.tour.totalFrames;
+    if (!n) return [] as number[];
+    const ahead = dir === 0 ? 6 : 10;
+    const behind = dir === 0 ? 4 : 3;
+    const out: number[] = [current];
+    for (let d = 1; d <= ahead; d++) out.push((current + (dir || 1) * d + n * 2) % n);
+    for (let d = 1; d <= behind; d++) out.push((current - (dir || 1) * d + n * 2) % n);
+    return [...new Set(out)];
   }
 
   private async loadGlb() {
@@ -694,13 +704,9 @@ export class OrbitEngine {
   }
 
   private warmAround(current: number, dir = 0) {
-    const n = this.tour.totalFrames;
-    if (!n) return;
-    this.warmLow(current);
-    const ahead = dir === 0 ? 12 : 18;
-    const behind = dir === 0 ? 12 : 6;
-    for (let d = 1; d <= ahead; d++) this.warmLow((current + (dir || 1) * d + n * 2) % n);
-    for (let d = 1; d <= behind; d++) this.warmLow((current - (dir || 1) * d + n * 2) % n);
+    for (const idx of this.neighborIndices(current, dir)) {
+      void this.loadOne(idx).then(() => this.warmLow(idx));
+    }
   }
 
   private requestDraw() {

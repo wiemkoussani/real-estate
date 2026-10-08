@@ -1,5 +1,7 @@
 import ComplexApp from "@/components/ComplexApp";
 import { canViewComplex } from "@/lib/complex-access";
+import { loadComplexPayload } from "@/lib/load-complex";
+import { buildTour } from "@/lib/tour";
 import Link from "next/link";
 
 export default async function ComplexPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -15,5 +17,9 @@ export default async function ComplexPage({ params }: { params: Promise<{ slug: 
       </main>
     );
   }
-  return <ComplexApp slug={slug} />;
+
+  const payload = await loadComplexPayload(slug, access);
+  const initialTour = "error" in payload ? null : buildTour(payload, slug);
+
+  return <ComplexApp slug={slug} initialTour={initialTour} />;
 }
