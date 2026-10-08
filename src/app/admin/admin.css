@@ -382,6 +382,11 @@ a.admin-card:hover {
   cursor: pointer;
   overflow: hidden;
 }
+/* Override .portal-main label gray so Add logo / Add folder stay white on blue */
+.portal-main label.upload-pick,
+.portal-main label.upload-pick span {
+  color: #fff;
+}
 .upload-pick input {
   position: absolute;
   inset: 0;
