@@ -182,6 +182,14 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
     }
   }, []);
 
+  useEffect(() => {
+    // Phone: start with full tour — sidebar as bottom sheet only when opened.
+    if (typeof window !== "undefined" && window.matchMedia("(max-width: 840px)").matches) {
+      setListOpen(false);
+      setFiltersOpen(false);
+    }
+  }, []);
+
   const pickUnit = async (u: Unit, engine?: OrbitEngineType | null) => {
     const en = engine ?? engineRef.current;
     if (!en || busyRef.current) return;
