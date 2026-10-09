@@ -217,7 +217,19 @@ export class OrbitEngine {
 
   settle() {
     this.isNavigating = false;
+    if (this.prefersLowOnly()) {
+      this.draw("low");
+      return;
+    }
     this.fadeToHigh(this.currentFrame);
+  }
+
+  /** Phones / coarse pointers: full-bleed ~1280 low is enough; skip sharp aerials. */
+  private prefersLowOnly() {
+    if (typeof window === "undefined") return false;
+    const coarse = window.matchMedia("(pointer: coarse)").matches;
+    const narrow = window.matchMedia("(max-width: 840px)").matches;
+    return coarse || narrow;
   }
 
   setPanMode(v: boolean) {
@@ -248,7 +260,7 @@ export class OrbitEngine {
     this.draw("low");
     this.syncCamera();
     this.events.onFrame?.(this.currentFrame);
-    void this.ensureHigh((this.currentFrame + dir + n) % n);
+    if (!this.prefersLowOnly()) void this.ensureHigh((this.currentFrame + dir + n) % n);
     this.scheduleUpgrade();
   }
 
@@ -527,8 +539,12 @@ export class OrbitEngine {
     const fromPanY = this.panY;
     const toPanX = toZoom * (cw / 2 - villaX);
     const toPanY = toZoom * (ch / 2 - villaY);
-    await this.ensureHigh(this.currentFrame, toZoom);
-    this.draw("high");
+    if (!this.prefersLowOnly()) {
+      await this.ensureHigh(this.currentFrame, toZoom);
+      this.draw("high");
+    } else {
+      this.draw("low");
+    }
     this.applyTransform();
     const duration = 1100;
     const start = performance.now();
@@ -651,6 +667,7 @@ export class OrbitEngine {
   }
 
   private ensureHigh(index: number, zoom = this.zoom): Promise<void> {
+    if (this.prefersLowOnly()) return Promise.resolve();
     return new Promise((resolve) => {
       const finish = () => resolve();
       let highImg = this.highImages[index];
@@ -719,7 +736,7 @@ export class OrbitEngine {
   }
 
   private draw(quality: "low" | "high") {
-    const wantHigh = quality === "high" && (!this.isNavigating || this.approaching);
+    const wantHigh = !this.prefersLowOnly() && quality === "high" && (!this.isNavigating || this.approaching);
     const high = this.highBitmaps[this.currentFrame] || this.highImages[this.currentFrame];
     const img = wantHigh
       ? high || this.lowBitmaps[this.currentFrame] || this.lowImages[this.currentFrame]
@@ -731,6 +748,7 @@ export class OrbitEngine {
   }
 
   private scheduleUpgrade() {
+    if (this.prefersLowOnly()) return;
     if (this.upgradeTimer) window.clearTimeout(this.upgradeTimer);
     this.upgradeTimer = window.setTimeout(() => {
       this.isNavigating = false;
@@ -739,6 +757,7 @@ export class OrbitEngine {
   }
 
   private fadeToHigh(index: number) {
+    if (this.prefersLowOnly()) return;
     if (this.isNavigating || this.currentFrame !== index) return;
     let highImg = this.highImages[index];
     if (!highImg) {
