@@ -35,36 +35,65 @@ export function AroundMap({ query, title }: { query: string; title: string }) {
   const [mode, setMode] = useState<"filters" | "list">("filters");
   const [picked, setPicked] = useState<PoiPlace | null>(null);
   const [ready, setReady] = useState(false);
+  const [placesLoading, setPlacesLoading] = useState(false);
 
   useEffect(() => {
     let stop = false;
-    const key = `poi-map-v2:${query}`;
+    const key = `poi-map-v3:${query}`;
+    let hadGoodCache = false;
     try {
       const raw = sessionStorage.getItem(key);
       if (raw) {
         const saved = JSON.parse(raw) as Payload;
-        if (saved?.lat) setData(saved);
+        if (saved?.lat && saved.places?.length) {
+          setData(saved);
+          hadGoodCache = true;
+        } else if (saved?.lat) {
+          // Map coords only — still show map, then fetch pins.
+          setData({ ...saved, places: saved.places || [] });
+        }
       }
     } catch {
       /* ignore */
     }
     (async () => {
       try {
-        const poiRes = await fetch(`/api/maps/around?q=${encodeURIComponent(query)}`);
-        const pois = await poiRes.json();
+        // 1) Map home marker ASAP
+        if (!hadGoodCache) {
+          const fastRes = await fetch(`/api/maps/around?q=${encodeURIComponent(query)}&fast=1`);
+          const fast = (await fastRes.json()) as Payload & { error?: string };
+          if (stop) return;
+          if (fastRes.ok && fast.lat) {
+            setData((prev) => prev?.places?.length ? prev : { lat: fast.lat, lng: fast.lng, address: fast.address, places: [] });
+          } else if (!hadGoodCache) {
+            setErr(fast.error || "تعذر تحميل الخريطة");
+            return;
+          }
+        }
+
+        if (hadGoodCache) return;
+
+        // 2) Pins (Overpass + Photon on server)
+        setPlacesLoading(true);
+        const lightRes = await fetch(`/api/maps/around?q=${encodeURIComponent(query)}&light=1`);
+        const light = (await lightRes.json()) as Payload & { error?: string };
         if (stop) return;
-        if (!poiRes.ok) {
-          setErr(pois.error || "تعذر تحميل الخريطة");
+        if (!lightRes.ok) {
+          setErr(light.error || "تعذر تحميل الأماكن");
           return;
         }
-        setData(pois);
-        try {
-          sessionStorage.setItem(key, JSON.stringify(pois));
-        } catch {
-          /* ignore */
+        setData(light);
+        if (light.places?.length) {
+          try {
+            sessionStorage.setItem(key, JSON.stringify(light));
+          } catch {
+            /* ignore */
+          }
         }
       } catch {
         if (!stop) setErr("تعذر تحميل الخريطة");
+      } finally {
+        if (!stop) setPlacesLoading(false);
       }
     })();
     return () => {
@@ -155,6 +184,7 @@ export function AroundMap({ query, title }: { query: string; title: string }) {
       <div className="poi-map-wrap">
         <div ref={mapEl} className="poi-map" />
         {!data && !err && <div className="poi-status">Loading map…</div>}
+        {data && placesLoading && <div className="poi-status poi-status-soft">Loading places…</div>}
         {err && <div className="poi-status">{err}</div>}
       </div>
       <aside className="poi-panel">

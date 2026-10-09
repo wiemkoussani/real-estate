@@ -190,6 +190,43 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
     }
   }, []);
 
+  useEffect(() => {
+    if (!ready) return;
+    const q = tour.locationQuery || tour.name;
+    if (!q) return;
+    const key = `poi-map-v3:${q}`;
+    try {
+      const raw = sessionStorage.getItem(key);
+      if (raw) {
+        const saved = JSON.parse(raw) as { places?: unknown[] };
+        if (saved?.places?.length) return;
+      }
+    } catch {
+      /* ignore */
+    }
+    const run = () => {
+      void fetch(`/api/maps/around?q=${encodeURIComponent(q)}&light=1`)
+        .then((r) => r.json())
+        .then((body) => {
+          if (body?.lat && body?.places?.length) {
+            try {
+              sessionStorage.setItem(key, JSON.stringify(body));
+            } catch {
+              /* ignore */
+            }
+          }
+        })
+        .catch(() => {});
+    };
+    const ric = (window as Window & { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number }).requestIdleCallback;
+    if (ric) {
+      const id = ric(run, { timeout: 2500 });
+      return () => (window as Window & { cancelIdleCallback?: (id: number) => void }).cancelIdleCallback?.(id);
+    }
+    const t = window.setTimeout(run, 1500);
+    return () => window.clearTimeout(t);
+  }, [ready, tour.locationQuery, tour.name]);
+
   const pickUnit = async (u: Unit, engine?: OrbitEngineType | null) => {
     const en = engine ?? engineRef.current;
     if (!en || busyRef.current) return;

@@ -216,6 +216,13 @@ body {
   padding: 12px 12px 12px 14px;
   background: #fff;
   position: relative;
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.units.cards .unit:hover,
+.units.cards .unit.sel {
+  background: #f2f6fb;
+  border-color: #c5d5e6;
+  box-shadow: 0 4px 14px rgba(24, 39, 56, 0.07);
 }
 .units.cards .card-copy {
   display: flex;
@@ -1091,6 +1098,23 @@ body {
   font-weight: 700;
   background: rgba(236,239,242,0.72);
   z-index: 2;
+}
+.poi-status-soft {
+  inset: auto;
+  top: 12px;
+  left: 50%;
+  right: auto;
+  bottom: auto;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12);
+  pointer-events: none;
+  place-items: unset;
 }
 .poi-icon-wrap {
   background: transparent !important;
