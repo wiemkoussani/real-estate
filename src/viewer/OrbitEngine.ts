@@ -232,7 +232,7 @@ export class OrbitEngine {
     this.fadeToHigh(this.currentFrame);
   }
 
-  /** Phones stay on the fast photo until the user zooms in. */
+  /** The frame on screen upgrades to sharp. On a phone, the other frames stay light until they are shown. */
   private prefersLowOnly() {
     if (typeof window === "undefined") return false;
     const coarse = window.matchMedia("(pointer: coarse)").matches;
@@ -241,7 +241,7 @@ export class OrbitEngine {
   }
 
   private skipSharp() {
-    return this.prefersLowOnly() && this.zoom <= 1.01;
+    return false;
   }
 
   setPanMode(v: boolean) {
