@@ -159,6 +159,8 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
   const [favOnly, setFavOnly] = useState(false);
   const [overlayOn, setOverlayOn] = useState(false);
   const [panMode, setPanMode] = useState(false);
+  const [toolsOpen, setToolsOpen] = useState(false);
+  const [layoutReady, setLayoutReady] = useState(false);
   const [headingDir, setHeadingDir] = useState("N");
   const [headingDeg, setHeadingDeg] = useState(0);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -183,11 +185,19 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
   }, []);
 
   useEffect(() => {
-    // Phone: start with full tour — sidebar as bottom sheet only when opened.
-    if (typeof window !== "undefined" && window.matchMedia("(max-width: 840px)").matches) {
-      setListOpen(false);
-      setFiltersOpen(false);
-    }
+    const mq = window.matchMedia("(max-width: 1100px)");
+    const apply = () => {
+      if (mq.matches) {
+        setListOpen(false);
+      } else {
+        setListOpen(true);
+        setFiltersOpen(true);
+      }
+      setLayoutReady(true);
+    };
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
   }, []);
 
   useEffect(() => {
@@ -356,7 +366,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
   };
 
   return (
-    <div className="app">
+    <div className={`app${toolsOpen ? " tools-on" : ""}${layoutReady ? " layout-ready" : ""}`}>
       {!ready && (
         <div className="boot">
           {tour.logoUrl ? <img src={tour.logoUrl} alt={tour.name} /> : <p>{tour.name}</p>}
@@ -386,6 +396,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
                 {cards ? <IconList size={14} /> : <IconCards size={14} />}
               </button>
             </div>
+            <button type="button" className="panel-x" onClick={() => setListOpen(false)} aria-label="Close">×</button>
           </header>
           {filtersOpen && (
             <div className="filters">
@@ -509,11 +520,43 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
           </div>
         )}
 
+        <div className="compact-top" onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            className={overlayOn ? "on" : ""}
+            title="Show units"
+            onClick={() => {
+              const v = !overlayOn;
+              setOverlayOn(v);
+              engineRef.current?.setOverlayVisible(v);
+            }}
+          >
+            {overlayOn ? <IconEye size={17} /> : <IconEyeOff size={17} />}
+          </button>
+          <button
+            type="button"
+            className={listOpen ? "on" : ""}
+            title="Filters"
+            onClick={() => {
+              setFiltersOpen(true);
+              setListOpen((v) => !v);
+            }}
+          >
+            <IconFilters size={17} />
+          </button>
+        </div>
+
         <nav className="rail" aria-label="Tools" onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
-          <span className="rail-fab open">
+          <button
+            type="button"
+            className="rail-fab project-toggle open"
+            onClick={() => {
+              if (window.matchMedia("(max-width: 1100px)").matches) setToolsOpen((v) => !v);
+            }}
+          >
             <span className="rail-name">مشروع</span>
             <span className="rail-ico project"><IconApps size={20} /></span>
-          </span>
+          </button>
           <button type="button" className="rail-fab" onClick={() => { setFormOpen(true); setListOpen(true); }}>
             <span className="rail-name">تواصل</span>
             <span className="rail-ico glass"><IconMail size={16} /></span>
@@ -613,6 +656,40 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
             ><IconTriR size={14} /></button>
           </div>
         </div>
+
+        <div className="dock" onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
+          {filtered.map((u) => {
+            const photo = cardPhoto(tour, u);
+            return (
+              <button
+                key={u.id}
+                type="button"
+                className={`dock-card ${u.status} ${selected?.id === u.id ? "sel" : ""}`}
+                onMouseEnter={() => engineRef.current?.setPreview(u.id)}
+                onMouseLeave={() => engineRef.current?.setPreview(null)}
+                onClick={() => openUnit(u)}
+              >
+                <span className="dock-photo">
+                  {photo ? <img src={photo} alt="" /> : <span className="card-img-fallback" />}
+                </span>
+                <span className="dock-copy">
+                  <strong>
+                    {u.displayId}
+                    <em className={u.status}>{STATUS_LABEL[u.status]}</em>
+                  </strong>
+                  <span className="dock-stats">
+                    <span><small>Area</small><b>{u.surface} m²</b></span>
+                    <span><small>Floor</small><b>{u.floor}</b></span>
+                    <span><small>Rooms</small><b>{u.rooms}</b></span>
+                  </span>
+                </span>
+                <span className={favs.includes(u.id) ? "heart on" : "heart"} onClick={(e) => { e.stopPropagation(); toggleFav(u.id); }}>
+                  <IconHeart size={14} filled={favs.includes(u.id)} />
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {helpOpen && <HelpPage tour={tour} onClose={() => setHelpOpen(false)} />}
@@ -653,7 +730,6 @@ function ContactSidebar({ unit, onBack }: { unit: Unit | null; onBack: () => voi
       gender,
       subject: String(fd.get("subject") || "").trim(),
       message: String(fd.get("message") || "").trim(),
-      toFavorites: fd.get("favorites") === "on",
       unitId: unit?.id ?? null,
       unitDisplayId: unit?.displayId ?? null,
       complex: tour.slug,
@@ -708,10 +784,6 @@ function ContactSidebar({ unit, onBack }: { unit: Unit | null; onBack: () => voi
         </label>
         <label>هل لديك رسالة لنا؟ <input name="subject" placeholder="طلبك" /></label>
         <textarea name="message" rows={4} placeholder="رسالتك" aria-label="رسالتك" />
-        <label className="lead-check">
-          <span>إرسال إلى المفضلة</span>
-          <input type="checkbox" name="favorites" />
-        </label>
         <label className="lead-check">
           <span>وافقت عليها. سياسة الخصوصية لقد قرأت</span>
           <input type="checkbox" name="privacy" required />
@@ -947,7 +1019,6 @@ function DetailLead({ unit }: { unit: Unit }) {
       gender,
       subject: String(fd.get("subject") || "").trim(),
       message: String(fd.get("message") || "").trim(),
-      toFavorites: fd.get("favorites") === "on",
       unitId: unit.id,
       unitDisplayId: unit.displayId,
       complex: tour.slug,
@@ -978,10 +1049,6 @@ function DetailLead({ unit }: { unit: Unit }) {
       <label>رقم الهاتف <PhoneField required /></label>
       <label>هل لديك رسالة لنا؟ <input name="subject" placeholder="طلبك" /></label>
       <textarea name="message" rows={3} placeholder="رسالتك" aria-label="رسالتك" />
-      <label className="lead-check">
-        <span>إرسال إلى المفضلة</span>
-        <input type="checkbox" name="favorites" />
-      </label>
       {err && <p className="err">{err}</p>}
       {ok ? <p className="ok">تم الإرسال</p> : <button type="submit" disabled={busy}>{busy ? "..." : "إرسال طلب اتصال"}</button>}
     </form>

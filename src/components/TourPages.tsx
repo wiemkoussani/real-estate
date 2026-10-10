@@ -114,13 +114,15 @@ function GalBoard({
   onFail: (src: string) => void;
 }) {
   return (
-    <section className={`gal-board n${items.length}`}>
+    <section className="gal-sheet">
       {title ? <p className="gal-board-title">{title}</p> : null}
-      {items.map((src, i) => (
-        <button key={src} type="button" className={`gal-cell c${i}`} onClick={() => onPick(src)}>
-          <img src={src} alt="" loading="lazy" decoding="async" onError={() => onFail(src)} />
-        </button>
-      ))}
+      <div className={`gal-board n${items.length}`}>
+        {items.map((src, i) => (
+          <button key={src} type="button" className={`gal-cell c${i}`} onClick={() => onPick(src)}>
+            <img src={src} alt="" loading="lazy" decoding="async" onError={() => onFail(src)} />
+          </button>
+        ))}
+      </div>
     </section>
   );
 }

@@ -117,7 +117,8 @@ export function AroundMap({ query, title }: { query: string; title: string }) {
         mapRef.current.remove();
         mapRef.current = null;
       }
-      const map = L.map(mapEl.current, { zoomControl: false, attributionControl: false }).setView([data.lat, data.lng], 14);
+      const compact = window.matchMedia("(max-width: 1100px)").matches;
+      const map = L.map(mapEl.current, { zoomControl: false, attributionControl: false }).setView([data.lat, data.lng], compact ? 12 : 14);
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
       }).addTo(map);
@@ -132,7 +133,19 @@ export function AroundMap({ query, title }: { query: string; title: string }) {
       layerRef.current = L.layerGroup().addTo(map);
       mapRef.current = map;
       setReady(true);
-      setTimeout(() => map.invalidateSize(), 60);
+      const fit = () => {
+        if (mapRef.current === map) map.invalidateSize();
+      };
+      requestAnimationFrame(fit);
+      const later = window.setTimeout(fit, 280);
+      const again = window.setTimeout(fit, 700);
+      const watch = new ResizeObserver(fit);
+      if (mapEl.current) watch.observe(mapEl.current);
+      map.once("unload", () => {
+        window.clearTimeout(later);
+        window.clearTimeout(again);
+        watch.disconnect();
+      });
     })();
     return () => {
       cancelled = true;
@@ -164,8 +177,11 @@ export function AroundMap({ query, title }: { query: string; title: string }) {
         m.addTo(layer);
         pts.push([p.lat, p.lng]);
       });
+      const compact = window.matchMedia("(max-width: 1100px)").matches;
       if (pts.length > 1) {
-        map.fitBounds(pts, { padding: [36, 36], maxZoom: 15 });
+        map.fitBounds(pts, { padding: compact ? [72, 72] : [36, 36], maxZoom: compact ? 12 : 15 });
+      } else if (compact) {
+        map.setView([data.lat, data.lng], 12);
       }
     })();
     return () => {

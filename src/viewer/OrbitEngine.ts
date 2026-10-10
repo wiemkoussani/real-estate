@@ -77,6 +77,12 @@ export class OrbitEngine {
   private lowDecodeQueued = new Set<number>();
   private lowDecodeDone = new Set<number>();
   private highDecodeQueued = new Set<number>();
+  private stepping = false;
+  private resizeObserver: ResizeObserver | null = null;
+  private lastCw = 0;
+  private lastCh = 0;
+  private wasPhone = false;
+  private resizeFollow = false;
   private tour: TourMedia;
 
   constructor(
@@ -168,15 +174,13 @@ export class OrbitEngine {
     });
     if (best === this.currentFrame) return;
     const n = this.tour.totalFrames;
-    const dir = best > this.currentFrame ? 1 : -1;
-    this.clearCrossfade();
-    this.isNavigating = true;
-    this.currentFrame = best;
-    this.warmAround(this.currentFrame, dir);
-    this.draw("low");
-    this.syncCamera();
-    this.events.onFrame?.(this.currentFrame);
-    this.scheduleUpgrade();
+    const dir: 1 | -1 = best > this.currentFrame ? 1 : -1;
+    const go = () => {
+      if (this.disposed || !this.frameReady(best)) return;
+      this.commitFrame(best, dir);
+    };
+    if (this.frameReady(best)) go();
+    else void this.loadOne(best).then(go);
     void n;
   }
 
@@ -236,13 +240,11 @@ export class OrbitEngine {
     this.panMode = v;
     this.container.classList.toggle("hand-mode", v);
     this.container.style.cursor = v ? "grab" : "";
-    if (v && this.zoom < 2) this.zoom = 2;
     this.applyTransform();
   }
 
   zoomBy(delta: number) {
-    const min = this.panMode ? 1.25 : COMPLEX.zoomMin;
-    const next = Math.min(COMPLEX.zoomMax, Math.max(min, this.zoom + delta));
+    const next = Math.min(COMPLEX.zoomMax, Math.max(COMPLEX.zoomMin, this.zoom + delta));
     if (next === this.zoom) return false;
     this.zoom = next;
     this.applyTransform();
@@ -252,15 +254,37 @@ export class OrbitEngine {
 
   rotateBy(dir: 1 | -1) {
     const n = this.tour.totalFrames;
-    if (!n) return;
+    if (!n || this.stepping || this.approaching) return;
+    const from = this.currentFrame;
+    const next = (from + dir + n) % n;
+    const go = () => {
+      this.stepping = false;
+      if (this.disposed || this.currentFrame !== from || !this.frameReady(next)) return;
+      this.commitFrame(next, dir);
+    };
+    if (this.frameReady(next)) {
+      this.commitFrame(next, dir);
+      return;
+    }
+    this.stepping = true;
+    void this.loadOne(next).then(go);
+  }
+
+  private frameReady(idx: number) {
+    const img = this.lowImages[idx];
+    return Boolean(img?.complete && img.naturalWidth);
+  }
+
+  private commitFrame(next: number, dir: 1 | -1) {
+    const n = this.tour.totalFrames;
     this.clearCrossfade();
     this.isNavigating = true;
-    this.currentFrame = (this.currentFrame + dir + n) % n;
+    this.currentFrame = next;
     this.warmAround(this.currentFrame, dir);
     this.draw("low");
     this.syncCamera();
     this.events.onFrame?.(this.currentFrame);
-    if (!this.prefersLowOnly()) void this.ensureHigh((this.currentFrame + dir + n) % n);
+    if (!this.prefersLowOnly()) void this.ensureHigh((next + dir + n) % n);
     this.scheduleUpgrade();
   }
 
@@ -284,6 +308,10 @@ export class OrbitEngine {
     this.container.addEventListener("wheel", this.onWheel, { passive: false });
     this.container.addEventListener("click", this.onClick);
     window.addEventListener("resize", this.onResize);
+    if (typeof ResizeObserver !== "undefined") {
+      this.resizeObserver = new ResizeObserver(() => this.resize());
+      this.resizeObserver.observe(this.container);
+    }
   }
 
   private unbind() {
@@ -298,6 +326,8 @@ export class OrbitEngine {
     this.container.removeEventListener("wheel", this.onWheel);
     this.container.removeEventListener("click", this.onClick);
     window.removeEventListener("resize", this.onResize);
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = null;
   }
 
   private onResize = () => this.resize();
@@ -305,20 +335,40 @@ export class OrbitEngine {
   private resize() {
     const w = this.container.clientWidth;
     const h = this.container.clientHeight;
-    this.renderer.setSize(w, h, false);
-    if (this.zoom === 1) {
-      this.zoomOx = w / 2;
-      this.zoomOy = h / 2;
+    if (w < 2 || h < 2) return;
+    const phone = w <= 720;
+    if (!this.isDragging && !this.approaching) {
+      this.panX = 0;
+      this.panY = 0;
+      if (phone !== this.wasPhone) this.zoom = 1;
     }
+    this.wasPhone = phone;
+    this.lastCw = w;
+    this.lastCh = h;
+    [this.bg, this.bgNext, this.threeCanvas].forEach((el) => {
+      el.style.width = "100%";
+      el.style.height = "100%";
+    });
+    this.renderer.setSize(w, h, false);
     this.applyTransform();
     this.syncCamera();
-    if (this.lowImages[this.currentFrame]?.complete) this.draw("high");
+    if (this.lowImages[this.currentFrame]?.complete) this.draw(this.isNavigating ? "low" : "high");
+    if (!this.resizeFollow) {
+      this.resizeFollow = true;
+      requestAnimationFrame(() => {
+        this.resizeFollow = false;
+        const w2 = this.container.clientWidth;
+        const h2 = this.container.clientHeight;
+        if (w2 !== this.lastCw || h2 !== this.lastCh) this.resize();
+      });
+    }
   }
 
   private loadOne(idx: number) {
     return new Promise<void>((resolve) => {
       const existing = this.lowImages[idx];
-      if (existing?.complete && existing.naturalWidth) {
+      if (existing?.complete) {
+        if (existing.naturalWidth) void this.warmLow(idx);
         resolve();
         return;
       }
@@ -335,14 +385,22 @@ export class OrbitEngine {
         resolve();
         return;
       }
-      const done = () => {
+      const prevLoad = img.onload;
+      const prevErr = img.onerror;
+      const finish = () => {
         void this.warmLow(idx);
         if (idx === this.currentFrame) this.draw("low");
         resolve();
       };
-      img.onload = done;
-      img.onerror = () => resolve();
-      img.src = src;
+      img.onload = (ev) => {
+        if (typeof prevLoad === "function") prevLoad.call(img, ev);
+        finish();
+      };
+      img.onerror = (ev) => {
+        if (typeof prevErr === "function") prevErr.call(img, ev as Event);
+        resolve();
+      };
+      if (!existing?.src) img.src = src;
     });
   }
 
@@ -362,6 +420,16 @@ export class OrbitEngine {
       this.events.onLoadProgress?.(Math.min(95, 28 + Math.round(((start + slice.length) / ring.length) * 67)));
     }
     this.events.onLoadProgress?.(100);
+    void this.preloadRest();
+  }
+
+  private async preloadRest() {
+    const total = this.tour.totalFrames;
+    for (let i = 0; i < total; i++) {
+      if (this.disposed) return;
+      if (!this.frameReady(i)) await this.loadOne(i);
+      if (i % 4 === 3) await new Promise((resolve) => setTimeout(resolve, 24));
+    }
   }
 
   private neighborIndices(current: number, dir = 0) {
@@ -503,7 +571,8 @@ export class OrbitEngine {
     this.isNavigating = false;
     this.highlight(id);
     this.syncCamera();
-    const { cw, ch } = this.getDrawRect();
+    const view = this.getDrawRect();
+    const { cw, ch, dw, dh, dx, dy, contain } = view;
     const box = new THREE.Box3().setFromObject(mesh);
     const corners = [
       new THREE.Vector3(box.min.x, box.min.y, box.min.z),
@@ -521,8 +590,8 @@ export class OrbitEngine {
     let maxY = -Infinity;
     corners.forEach((p) => {
       p.project(this.activeCamera);
-      const sx = (p.x * 0.5 + 0.5) * cw;
-      const sy = (-p.y * 0.5 + 0.5) * ch;
+      const sx = contain ? dx + (p.x * 0.5 + 0.5) * dw : (p.x * 0.5 + 0.5) * cw;
+      const sy = contain ? dy + (-p.y * 0.5 + 0.5) * dh : (-p.y * 0.5 + 0.5) * ch;
       minX = Math.min(minX, sx);
       maxX = Math.max(maxX, sx);
       minY = Math.min(minY, sy);
@@ -533,7 +602,9 @@ export class OrbitEngine {
     const bw = Math.max(24, maxX - minX);
     const bh = Math.max(24, maxY - minY);
     const fill = COMPLEX.approachFill;
-    const toZoom = Math.min(COMPLEX.zoomMax, Math.max(3.4, Math.min((cw * fill) / bw, (ch * fill) / bh)));
+    const viewW = contain ? dw : cw;
+    const viewH = contain ? dh : ch;
+    const toZoom = Math.min(COMPLEX.zoomMax, Math.max(3.4, Math.min((viewW * fill) / bw, (viewH * fill) / bh)));
     const fromZoom = this.zoom;
     const fromPanX = this.panX;
     const fromPanY = this.panY;
@@ -600,15 +671,21 @@ export class OrbitEngine {
     });
   }
 
+  private phoneFit() {
+    const w = this.container.clientWidth;
+    return w > 0 && w <= 720;
+  }
+
   private getDrawRect() {
-    const RW = this.tour.renderW;
-    const RH = this.tour.renderH;
+    const RW = this.tour.renderW || 1;
+    const RH = this.tour.renderH || 1;
     const cw = this.container.clientWidth;
     const ch = this.container.clientHeight;
-    const scale = Math.max(cw / RW, ch / RH);
-    const dw = RW * scale;
-    const dh = RH * scale;
-    return { cw, ch, dw, dh, dx: (cw - dw) / 2, dy: (ch - dh) / 2 };
+    const contain = this.phoneFit();
+    const scale = contain ? Math.min(cw / RW, ch / RH) : Math.max(cw / RW, ch / RH);
+    const dw = Math.round(RW * scale);
+    const dh = Math.round(RH * scale);
+    return { cw, ch, dw, dh, dx: Math.round((cw - dw) / 2), dy: Math.round((ch - dh) / 2), contain };
   }
 
   private paint(ctx: CanvasRenderingContext2D, img: CanvasImageSource, quality: "low" | "high") {
@@ -619,6 +696,8 @@ export class OrbitEngine {
       canvas.width = w;
       canvas.height = h;
     }
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.setTransform(dpr * scale, 0, 0, dpr * scale, 0, 0);
     ctx.drawImage(img, dx, dy, dw, dh);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -822,12 +901,22 @@ export class OrbitEngine {
     const dist = this.activeCamera.position.length();
     this.activeCamera.near = dist * 0.001;
     this.activeCamera.far = Math.max(dist * 10, 100000);
-    const { cw, ch, dw, dh, dx, dy } = this.getDrawRect();
-    this.activeCamera.aspect = dw / dh;
+    const { cw, ch, dw, dh, dx, dy, contain } = this.getDrawRect();
+    if (contain) {
+      this.activeCamera.clearViewOffset();
+      this.activeCamera.aspect = dw / Math.max(1, dh);
+      this.activeCamera.updateProjectionMatrix();
+      const y = Math.round(ch - dy - dh);
+      this.renderer.setViewport(dx, y, dw, dh);
+      this.renderer.setScissor(dx, y, dw, dh);
+      this.renderer.setScissorTest(true);
+      return;
+    }
+    this.renderer.setScissorTest(false);
+    this.activeCamera.aspect = dw / Math.max(1, dh);
     this.activeCamera.setViewOffset(dw, dh, -dx, -dy, cw, ch);
     this.activeCamera.updateProjectionMatrix();
     this.renderer.setViewport(0, 0, cw, ch);
-    this.renderer.setScissorTest(false);
   }
 
   private applyTransform() {
@@ -835,8 +924,9 @@ export class OrbitEngine {
     const h = this.container.clientHeight;
     this.zoomOx = w / 2;
     this.zoomOy = h / 2;
-    const maxX = Math.max(0, (w * (this.zoom - 1)) / 2);
-    const maxY = Math.max(0, (h * (this.zoom - 1)) / 2);
+    const slack = this.zoom > 1 ? 0 : Math.min(w, h) * 0.4;
+    const maxX = Math.max(slack, (w * (this.zoom - 1)) / 2);
+    const maxY = Math.max(slack, (h * (this.zoom - 1)) / 2);
     this.panX = Math.min(maxX, Math.max(-maxX, this.panX));
     this.panY = Math.min(maxY, Math.max(-maxY, this.panY));
     const t = `translate3d(${this.zoomOx + this.panX}px, ${this.zoomOy + this.panY}px, 0) scale(${this.zoom}) translate3d(${-this.zoomOx}px, ${-this.zoomOy}px, 0)`;
@@ -848,7 +938,7 @@ export class OrbitEngine {
   }
 
   private uiBlock(t: EventTarget | null) {
-    return (t as HTMLElement | null)?.closest("button, a, input, select, nav, .hud, .panel, .modal, .tour, .detail, .bottom-controls, .rail");
+    return (t as HTMLElement | null)?.closest("button, a, input, select, textarea, nav, .hud, .panel, .modal, .tour, .detail, .bottom-controls, .rail, .dock, .compact-top");
   }
 
   private beginDrag(x: number, y: number) {
@@ -858,13 +948,7 @@ export class OrbitEngine {
     this.dragStartX = x;
     this.panStartX = x;
     this.panStartY = y;
-    if (this.panMode) {
-      if (this.zoom < 2) {
-        this.zoom = 2;
-        this.applyTransform();
-      }
-      this.container.style.cursor = "grabbing";
-    }
+    if (this.panMode) this.container.style.cursor = "grabbing";
   }
 
   private dragTo(x: number, y: number) {
@@ -881,13 +965,14 @@ export class OrbitEngine {
     if (Math.abs(delta) < COMPLEX.dragSensitivity) return;
     const n = this.tour.totalFrames;
     if (!n) return;
-    const dir = delta > 0 ? -1 : 1;
+    const dir: 1 | -1 = delta > 0 ? -1 : 1;
+    const next = (this.currentFrame + dir + n) % n;
     this.moved = true;
-    this.clearCrossfade();
-    this.currentFrame = (this.currentFrame + dir + n) % n;
-    this.warmAround(this.currentFrame, dir);
-    this.requestDraw();
-    this.events.onFrame?.(this.currentFrame);
+    if (!this.frameReady(next)) {
+      void this.loadOne(next);
+      return;
+    }
+    this.commitFrame(next, dir);
     this.dragStartX = x;
   }
 
@@ -967,6 +1052,16 @@ export class OrbitEngine {
   private loop = () => {
     if (this.disposed) return;
     this.rafLoop = requestAnimationFrame(this.loop);
+    const w = this.container.clientWidth;
+    const h = this.container.clientHeight;
+    if (w > 1 && h > 1 && (w !== this.lastCw || h !== this.lastCh)) this.resize();
+    if (this.phoneFit()) {
+      const { cw, ch } = this.getDrawRect();
+      this.renderer.setScissorTest(false);
+      this.renderer.setViewport(0, 0, cw, ch);
+      this.renderer.clear();
+      this.syncCamera();
+    }
     Object.values(this.unitMeshes).forEach((m) => {
       const mat = m.material as THREE.MeshBasicMaterial;
       const target = m.userData.targetOpacity;
@@ -1003,14 +1098,21 @@ export class OrbitEngine {
     const top = new THREE.Vector3((box.min.x + box.max.x) / 2, box.max.y, (box.min.z + box.max.z) / 2);
     top.project(this.activeCamera);
     const rect = this.threeCanvas.getBoundingClientRect();
-    const x = rect.left + (top.x * 0.5 + 0.5) * rect.width;
-    const y = rect.top + (-top.y * 0.5 + 0.5) * rect.height;
+    const { cw, ch, dx, dy, dw, dh, contain } = this.getDrawRect();
+    const sx = rect.width / Math.max(1, cw);
+    const sy = rect.height / Math.max(1, ch);
+    const x = contain
+      ? rect.left + (dx + (top.x * 0.5 + 0.5) * dw) * sx
+      : rect.left + (top.x * 0.5 + 0.5) * rect.width;
+    const y = contain
+      ? rect.top + (dy + (-top.y * 0.5 + 0.5) * dh) * sy
+      : rect.top + (-top.y * 0.5 + 0.5) * rect.height;
     this.events.onHover?.(unit, { x, y });
   }
 
   private onClick = (e: MouseEvent) => {
     const t = e.target as HTMLElement | null;
-    if (t?.closest("button, a, input, select, nav, .hud, .panel, .modal, .tour, .detail, .bottom-controls, .rail")) return;
+    if (t?.closest("button, a, input, select, textarea, nav, .hud, .panel, .modal, .tour, .detail, .bottom-controls, .rail, .dock, .compact-top")) return;
     if (this.moved || this.approaching || this.panMode) return;
     const unit = this.hit(e);
     if (unit) this.events.onSelect?.(unit);
@@ -1020,8 +1122,21 @@ export class OrbitEngine {
   private hit(e: MouseEvent | PointerEvent): Unit | null {
     const rect = this.threeCanvas.getBoundingClientRect();
     if (rect.width < 2 || rect.height < 2) return null;
-    this.pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-    this.pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+    const { cw, ch, dx, dy, dw, dh, contain } = this.getDrawRect();
+    if (contain && cw > 0 && ch > 0) {
+      const sx = rect.width / cw;
+      const sy = rect.height / ch;
+      const left = rect.left + dx * sx;
+      const top = rect.top + dy * sy;
+      const w = dw * sx;
+      const h = dh * sy;
+      if (w < 2 || h < 2) return null;
+      this.pointer.x = ((e.clientX - left) / w) * 2 - 1;
+      this.pointer.y = -((e.clientY - top) / h) * 2 + 1;
+    } else {
+      this.pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      this.pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+    }
     if (Math.abs(this.pointer.x) > 1.05 || Math.abs(this.pointer.y) > 1.05) return null;
     this.raycaster.setFromCamera(this.pointer, this.activeCamera);
     const hits = this.raycaster.intersectObjects(this.clickable, false);
