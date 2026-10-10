@@ -293,6 +293,8 @@ export class OrbitEngine {
     this.clearCrossfade();
     this.isNavigating = true;
     this.currentFrame = next;
+    this.cropX = 0;
+    this.cropY = 0;
     this.warmAround(this.currentFrame, dir);
     this.draw("low");
     this.syncCamera();
@@ -586,70 +588,121 @@ export class OrbitEngine {
     this.approaching = true;
     this.isNavigating = false;
     this.highlight(id);
-    this.syncCamera();
-    const view = this.getDrawRect();
-    const { cw, ch, dw, dh, dx, dy, contain } = view;
-    const box = new THREE.Box3().setFromObject(mesh);
-    const corners = [
-      new THREE.Vector3(box.min.x, box.min.y, box.min.z),
-      new THREE.Vector3(box.min.x, box.min.y, box.max.z),
-      new THREE.Vector3(box.min.x, box.max.y, box.min.z),
-      new THREE.Vector3(box.min.x, box.max.y, box.max.z),
-      new THREE.Vector3(box.max.x, box.min.y, box.min.z),
-      new THREE.Vector3(box.max.x, box.min.y, box.max.z),
-      new THREE.Vector3(box.max.x, box.max.y, box.min.z),
-      new THREE.Vector3(box.max.x, box.max.y, box.max.z),
-    ];
-    let minX = Infinity;
-    let maxX = -Infinity;
-    let minY = Infinity;
-    let maxY = -Infinity;
-    corners.forEach((p) => {
-      p.project(this.activeCamera);
-      const sx = contain ? dx + (p.x * 0.5 + 0.5) * dw : (p.x * 0.5 + 0.5) * cw;
-      const sy = contain ? dy + (-p.y * 0.5 + 0.5) * dh : (-p.y * 0.5 + 0.5) * ch;
-      minX = Math.min(minX, sx);
-      maxX = Math.max(maxX, sx);
-      minY = Math.min(minY, sy);
-      maxY = Math.max(maxY, sy);
-    });
-    const villaX = (minX + maxX) / 2;
-    const villaY = (minY + maxY) / 2;
-    const bw = Math.max(24, maxX - minX);
-    const bh = Math.max(24, maxY - minY);
-    const fill = COMPLEX.approachFill;
-    const viewW = contain ? dw : cw;
-    const viewH = contain ? dh : ch;
-    const toZoom = Math.min(COMPLEX.zoomMax, Math.max(3.4, Math.min((viewW * fill) / bw, (viewH * fill) / bh)));
+    const box = this.projectUnit(mesh);
+    if (!box) {
+      this.approaching = false;
+      return;
+    }
+    const { dw, dh, cw, ch } = box;
+    const baseX = Math.round((cw - dw) / 2);
+    const baseY = Math.round((ch - dh) / 2);
+    const limitX = Math.max(0, Math.round((dw - cw) / 2));
+    const limitY = Math.max(0, Math.round((dh - ch) / 2));
+    const toCropX = Math.min(limitX, Math.max(-limitX, Math.round(cw / 2 - box.cx - baseX)));
+    const toCropY = Math.min(limitY, Math.max(-limitY, Math.round(ch / 2 - box.cy - baseY)));
+    const fromCropX = this.cropX;
+    const fromCropY = this.cropY;
     const fromZoom = this.zoom;
     const fromPanX = this.panX;
     const fromPanY = this.panY;
-    const toPanX = toZoom * (cw / 2 - villaX);
-    const toPanY = toZoom * (ch / 2 - villaY);
-    await this.ensureHigh(this.currentFrame, toZoom);
-    this.draw(this.highBitmaps[this.currentFrame] ? "high" : "low");
-    this.applyTransform();
-    const duration = 1100;
-    const start = performance.now();
-    await new Promise<void>((resolve) => {
-      const step = (now: number) => {
-        const t = Math.min(1, (now - start) / duration);
-        const e = 1 - Math.pow(1 - t, 3);
-        this.zoom = fromZoom + (toZoom - fromZoom) * e;
-        this.panX = fromPanX + (toPanX - fromPanX) * e;
-        this.panY = fromPanY + (toPanY - fromPanY) * e;
-        this.applyTransform();
-        if (t < 1) requestAnimationFrame(step);
-        else resolve();
-      };
-      requestAnimationFrame(step);
+    const sharp = this.ensureHigh(this.currentFrame, COMPLEX.zoomMax);
+    await this.tween(520, (e) => {
+      this.cropX = fromCropX + (toCropX - fromCropX) * e;
+      this.cropY = fromCropY + (toCropY - fromCropY) * e;
+      this.zoom = fromZoom + (1 - fromZoom) * e;
+      this.panX = fromPanX * (1 - e);
+      this.panY = fromPanY * (1 - e);
+      this.paintCurrent();
+      this.syncCamera();
+      this.applyTransform();
     });
+    if (this.disposed) return;
+    this.cropX = toCropX;
+    this.cropY = toCropY;
+    this.zoom = 1;
+    this.panX = 0;
+    this.panY = 0;
+    this.syncCamera();
+    this.applyTransform();
+    const placed = this.getDrawRect();
+    const villaX = placed.dx + box.cx;
+    const villaY = placed.dy + box.cy;
+    const toZoom = COMPLEX.zoomMax;
+    const toPanX = toZoom * (placed.cw / 2 - villaX);
+    const toPanY = toZoom * (placed.ch / 2 - villaY);
+    await sharp;
+    if (this.disposed) return;
+    this.paintCurrent();
+    await this.tween(640, (e) => {
+      this.zoom = 1 + (toZoom - 1) * e;
+      this.panX = toPanX * e;
+      this.panY = toPanY * e;
+      this.applyTransform();
+    });
+    if (this.disposed) return;
     this.zoom = toZoom;
     this.panX = toPanX;
     this.panY = toPanY;
     this.applyTransform();
+    this.syncCamera();
     this.approaching = false;
     this.settle();
+  }
+
+  /** House position on the full aerial, before the phone crop. */
+  private projectUnit(mesh: THREE.Mesh) {
+    this.syncCamera();
+    const { dw, dh, cw, ch } = this.getDrawRect();
+    if (dw < 2 || dh < 2) return null;
+    const cam = this.activeCamera;
+    cam.clearViewOffset();
+    cam.aspect = dw / dh;
+    cam.updateProjectionMatrix();
+    const box = new THREE.Box3().setFromObject(mesh);
+    const p = new THREE.Vector3();
+    let minX = Infinity;
+    let maxX = -Infinity;
+    let minY = Infinity;
+    let maxY = -Infinity;
+    for (const x of [box.min.x, box.max.x]) {
+      for (const y of [box.min.y, box.max.y]) {
+        for (const z of [box.min.z, box.max.z]) {
+          p.set(x, y, z).project(cam);
+          const ix = (p.x * 0.5 + 0.5) * dw;
+          const iy = (-p.y * 0.5 + 0.5) * dh;
+          minX = Math.min(minX, ix);
+          maxX = Math.max(maxX, ix);
+          minY = Math.min(minY, iy);
+          maxY = Math.max(maxY, iy);
+        }
+      }
+    }
+    this.syncCamera();
+    if (!Number.isFinite(minX) || !Number.isFinite(minY)) return null;
+    return { cx: (minX + maxX) / 2, cy: (minY + maxY) / 2, dw, dh, cw, ch };
+  }
+
+  private paintCurrent() {
+    const high = this.highBitmaps[this.currentFrame] || this.highImages[this.currentFrame];
+    const ready = high instanceof HTMLImageElement ? high.complete && high.naturalWidth > 0 : Boolean(high);
+    this.draw(ready ? "high" : "low");
+  }
+
+  private tween(ms: number, step: (e: number) => void) {
+    const start = performance.now();
+    return new Promise<void>((resolve) => {
+      const frame = (now: number) => {
+        if (this.disposed) {
+          resolve();
+          return;
+        }
+        const t = Math.min(1, (now - start) / ms);
+        step(1 - Math.pow(1 - t, 3));
+        if (t < 1) requestAnimationFrame(frame);
+        else resolve();
+      };
+      requestAnimationFrame(frame);
+    });
   }
 
   private paintUnitColor(mesh: THREE.Mesh, unit: Unit) {
