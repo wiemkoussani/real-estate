@@ -60,7 +60,12 @@ export function AroundMap({ query, title }: { query: string; title: string }) {
     }
     (async () => {
       try {
-        // 1) Map home marker ASAP
+        const lightTask = hadGoodCache
+          ? null
+          : fetch(`/api/maps/around?q=${encodeURIComponent(query)}&light=1`).then(async (res) => ({
+              ok: res.ok,
+              body: (await res.json()) as Payload & { error?: string },
+            }));
         if (!hadGoodCache) {
           const fastRes = await fetch(`/api/maps/around?q=${encodeURIComponent(query)}&fast=1`);
           const fast = (await fastRes.json()) as Payload & { error?: string };
@@ -73,21 +78,19 @@ export function AroundMap({ query, title }: { query: string; title: string }) {
           }
         }
 
-        if (hadGoodCache) return;
+        if (!lightTask) return;
 
-        // 2) Pins (Overpass + Photon on server)
         setPlacesLoading(true);
-        const lightRes = await fetch(`/api/maps/around?q=${encodeURIComponent(query)}&light=1`);
-        const light = (await lightRes.json()) as Payload & { error?: string };
+        const light = await lightTask;
         if (stop) return;
-        if (!lightRes.ok) {
-          setErr(light.error || "تعذر تحميل الأماكن");
+        if (!light.ok) {
+          setErr(light.body.error || "تعذر تحميل الأماكن");
           return;
         }
-        setData(light);
-        if (light.places?.length) {
+        setData(light.body);
+        if (light.body.places?.length) {
           try {
-            sessionStorage.setItem(key, JSON.stringify(light));
+            sessionStorage.setItem(key, JSON.stringify(light.body));
           } catch {
             /* ignore */
           }

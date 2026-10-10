@@ -1285,15 +1285,15 @@ body {
   .site-head h2 { font-size: 18px; }
   .site-tabs.map-in { padding: 6px 12px 0; }
   .poi-explorer {
-    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr);
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 1fr) auto;
   }
-  .poi-map-wrap { min-height: 0; }
+  .poi-map-wrap { min-height: 48dvh; }
   .poi-panel {
-    max-height: none;
-    border-top: 0;
-    border-left: 1px solid #e6eaee;
-    padding: 10px 10px 8px;
+    max-height: 34dvh;
+    border-left: 0;
+    border-top: 1px solid #e6eaee;
+    padding: 12px 14px 10px;
   }
   .poi-panel h3 { font-size: 16px; }
   .poi-addr { margin: 4px 0 8px; }
