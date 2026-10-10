@@ -28,6 +28,8 @@ export function AroundMap({ query, title }: { query: string; title: string }) {
   const mapEl = useRef<HTMLDivElement>(null);
   const mapRef = useRef<import("leaflet").Map | null>(null);
   const layerRef = useRef<import("leaflet").LayerGroup | null>(null);
+  const pointsRef = useRef<[number, number][]>([]);
+  const framedSize = useRef({ x: 0, y: 0 });
   const [data, setData] = useState<Payload | null>(null);
   const [err, setErr] = useState("");
   const [on, setOn] = useState<Record<PoiKind, boolean>>(ALL_ON);
@@ -107,6 +109,17 @@ export function AroundMap({ query, title }: { query: string; title: string }) {
     return data.places.filter((p) => on[p.kind] && (!q || p.name.toLowerCase().includes(q)));
   }, [data, on, dest]);
 
+  const framePins = (map: import("leaflet").Map) => {
+    const pts = pointsRef.current;
+    const size = map.getSize();
+    if (!pts.length || size.x < 48 || size.y < 48) return;
+    const tablet = window.matchMedia("(min-width: 721px) and (max-width: 1100px)").matches;
+    const pad = Math.max(8, Math.min(tablet ? 48 : 24, Math.floor(Math.min(size.x, size.y) / 8)));
+    framedSize.current = { x: size.x, y: size.y };
+    if (pts.length > 1) map.fitBounds(pts, { padding: [pad, pad], maxZoom: tablet ? 12 : 15 });
+    else map.setView(pts[0], tablet ? 12 : 14);
+  };
+
   useEffect(() => {
     if (!data || !mapEl.current) return;
     let cancelled = false;
@@ -137,7 +150,14 @@ export function AroundMap({ query, title }: { query: string; title: string }) {
       mapRef.current = map;
       setReady(true);
       const fit = () => {
-        if (mapRef.current === map) map.invalidateSize();
+        if (mapRef.current !== map) return;
+        map.invalidateSize();
+        const size = map.getSize();
+        if (size.x < 48 || size.y < 48) return;
+        const changed = Math.abs(size.x - framedSize.current.x) > 12 || Math.abs(size.y - framedSize.current.y) > 12;
+        if (!changed) return;
+        framedSize.current = { x: size.x, y: size.y };
+        framePins(map);
       };
       requestAnimationFrame(fit);
       const later = window.setTimeout(fit, 280);
@@ -180,15 +200,10 @@ export function AroundMap({ query, title }: { query: string; title: string }) {
         m.addTo(layer);
         pts.push([p.lat, p.lng]);
       });
-      const tablet = window.matchMedia("(min-width: 721px) and (max-width: 1100px)").matches;
-      if (pts.length > 1) {
-        map.fitBounds(pts, {
-          padding: tablet ? [72, 72] : [36, 36],
-          maxZoom: tablet ? 12 : 15,
-        });
-      } else if (tablet) {
-        map.setView([data.lat, data.lng], 12);
-      }
+      pointsRef.current = pts;
+      framedSize.current = { x: 0, y: 0 };
+      map.invalidateSize();
+      framePins(map);
     })();
     return () => {
       alive = false;
