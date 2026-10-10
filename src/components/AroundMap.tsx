@@ -117,8 +117,11 @@ export function AroundMap({ query, title }: { query: string; title: string }) {
         mapRef.current.remove();
         mapRef.current = null;
       }
-      const compact = window.matchMedia("(max-width: 1100px)").matches;
-      const map = L.map(mapEl.current, { zoomControl: false, attributionControl: false }).setView([data.lat, data.lng], compact ? 12 : 14);
+      const tablet = window.matchMedia("(min-width: 721px) and (max-width: 1100px)").matches;
+      const map = L.map(mapEl.current, { zoomControl: false, attributionControl: false }).setView(
+        [data.lat, data.lng],
+        tablet ? 12 : 14,
+      );
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
       }).addTo(map);
@@ -177,10 +180,13 @@ export function AroundMap({ query, title }: { query: string; title: string }) {
         m.addTo(layer);
         pts.push([p.lat, p.lng]);
       });
-      const compact = window.matchMedia("(max-width: 1100px)").matches;
+      const tablet = window.matchMedia("(min-width: 721px) and (max-width: 1100px)").matches;
       if (pts.length > 1) {
-        map.fitBounds(pts, { padding: compact ? [72, 72] : [36, 36], maxZoom: compact ? 12 : 15 });
-      } else if (compact) {
+        map.fitBounds(pts, {
+          padding: tablet ? [72, 72] : [36, 36],
+          maxZoom: tablet ? 12 : 15,
+        });
+      } else if (tablet) {
         map.setView([data.lat, data.lng], 12);
       }
     })();

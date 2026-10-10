@@ -1270,6 +1270,36 @@ body {
   .poi-explorer { grid-template-columns: 1fr; grid-template-rows: 1fr 46%; }
   .poi-panel { border-left: 0; border-top: 1px solid #e6eaee; }
 }
+@media (max-width: 720px) {
+  .site-overlay { padding: 0; background: #1c2430; }
+  .site-page,
+  .site-page.wide {
+    width: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .site-head { padding: 12px 14px 4px; }
+  .site-head h2 { font-size: 18px; }
+  .site-tabs.map-in { padding: 6px 12px 0; }
+  .poi-explorer {
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+  }
+  .poi-map-wrap { min-height: 0; }
+  .poi-panel {
+    max-height: none;
+    border-top: 0;
+    border-left: 1px solid #e6eaee;
+    padding: 10px 10px 8px;
+  }
+  .poi-panel h3 { font-size: 16px; }
+  .poi-addr { margin: 4px 0 8px; }
+  .poi-dest { margin-bottom: 8px; }
+  .poi-row { padding: 6px 0; font-size: 12px; gap: 6px; }
+}
 .site-empty { color: #8b98a4; padding: 24px; }
 .gal-stage {
   width: min(1280px, 98vw);

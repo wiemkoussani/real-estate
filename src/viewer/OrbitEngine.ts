@@ -683,9 +683,9 @@ export class OrbitEngine {
     });
   }
 
+  /** Cover-fit on every screen. A portrait phone used to letterbox the aerial into a thin strip. */
   private phoneFit() {
-    const w = this.container.clientWidth;
-    return w > 0 && w <= 720;
+    return false;
   }
 
   private getDrawRect() {
