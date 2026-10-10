@@ -204,7 +204,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
     if (!ready) return;
     const q = tour.locationQuery || tour.name;
     if (!q) return;
-    const key = `poi-map-v4:${q}`;
+    const key = `poi-map-v5:${q}`;
     try {
       const raw = sessionStorage.getItem(key);
       if (raw) {
@@ -215,7 +215,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
       /* ignore */
     }
     const run = () => {
-      void fetch(`/api/maps/around?q=${encodeURIComponent(q)}&light=1`)
+      void fetch(`/api/maps/around?q=${encodeURIComponent(q)}&light=1&pins=2`)
         .then((r) => r.json())
         .then((body) => {
           if (body?.lat && body?.places?.length) {

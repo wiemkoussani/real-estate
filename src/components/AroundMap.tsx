@@ -41,7 +41,7 @@ export function AroundMap({ query, title }: { query: string; title: string }) {
 
   useEffect(() => {
     let stop = false;
-    const key = `poi-map-v4:${query}`;
+    const key = `poi-map-v5:${query}`;
     let hadGoodCache = false;
     try {
       const raw = sessionStorage.getItem(key);
@@ -62,7 +62,7 @@ export function AroundMap({ query, title }: { query: string; title: string }) {
       try {
         const lightTask = hadGoodCache
           ? null
-          : fetch(`/api/maps/around?q=${encodeURIComponent(query)}&light=1`).then(async (res) => ({
+              : fetch(`/api/maps/around?q=${encodeURIComponent(query)}&light=1&pins=2`).then(async (res) => ({
               ok: res.ok,
               body: (await res.json()) as Payload & { error?: string },
             }));
@@ -207,6 +207,13 @@ export function AroundMap({ query, title }: { query: string; title: string }) {
       framedSize.current = { x: 0, y: 0 };
       map.invalidateSize();
       framePins(map);
+      window.setTimeout(() => {
+        if (mapRef.current === map) {
+          map.invalidateSize();
+          framedSize.current = { x: 0, y: 0 };
+          framePins(map);
+        }
+      }, 200);
     })();
     return () => {
       alive = false;

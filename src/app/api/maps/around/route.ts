@@ -170,6 +170,10 @@ async function photonPlacesLight(lat: number, lng: number): Promise<PoiPlace[]> 
 }
 
 function jsonOk(body: unknown, maxAge = 120) {
+  const places = (body as { places?: unknown[] } | null)?.places;
+  if (Array.isArray(places) && places.length === 0) {
+    return NextResponse.json(body, { headers: { "Cache-Control": "no-store" } });
+  }
   return NextResponse.json(body, {
     headers: {
       "Cache-Control": `public, s-maxage=${maxAge}, stale-while-revalidate=600`,
