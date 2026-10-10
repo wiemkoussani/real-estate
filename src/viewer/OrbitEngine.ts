@@ -683,10 +683,9 @@ export class OrbitEngine {
     });
   }
 
-  /** Phones open a little wider than a tight fill, so more of the project is visible. */
+  /** Cover-fit on every screen so a phone does not open with a black band. */
   private phoneFit() {
-    const w = this.container.clientWidth;
-    return w > 0 && w <= 720;
+    return false;
   }
 
   private getDrawRect() {
@@ -695,9 +694,7 @@ export class OrbitEngine {
     const cw = this.container.clientWidth;
     const ch = this.container.clientHeight;
     const contain = this.phoneFit();
-    const cover = Math.max(cw / RW, ch / RH);
-    const fit = Math.min(cw / RW, ch / RH);
-    const scale = contain ? fit + (cover - fit) * 0.5 : cover;
+    const scale = Math.max(cw / RW, ch / RH);
     const dw = Math.round(RW * scale);
     const dh = Math.round(RH * scale);
     const baseX = Math.round((cw - dw) / 2);

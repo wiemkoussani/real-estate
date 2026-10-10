@@ -204,7 +204,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
     if (!ready) return;
     const q = tour.locationQuery || tour.name;
     if (!q) return;
-    const key = `poi-map-v3:${q}`;
+    const key = `poi-map-v4:${q}`;
     try {
       const raw = sessionStorage.getItem(key);
       if (raw) {

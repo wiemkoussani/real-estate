@@ -138,7 +138,7 @@ async function photonPlacesLight(lat: number, lng: number): Promise<PoiPlace[]> 
     queries.map(async ({ kind, q, fallback }) => {
       try {
         const r = await fetch(
-          `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&lat=${lat}&lon=${lng}&limit=8`,
+          `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&lat=${lat}&lon=${lng}&limit=15`,
           { headers: UA, signal: AbortSignal.timeout(4500) },
         );
         if (!r.ok) return [] as PoiPlace[];
@@ -187,7 +187,7 @@ export async function GET(req: Request) {
   let address = sp.get("address") || "";
 
   if (q && q.length >= 2) {
-    const qkey = `v9:${q.toLowerCase()}${light ? ":l" : ""}`;
+    const qkey = `v10:${q.toLowerCase()}${light ? ":l" : ""}`;
     const hit = cached(qkey, 30 * 60_000);
     if (hit && !fast) return jsonOk(hit);
 
@@ -201,26 +201,23 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Missing query" }, { status: 400 });
   }
 
-  const pkey = `v9p:${lat.toFixed(4)}:${lng.toFixed(4)}${light ? ":l" : ""}`;
+  const pkey = `v10p:${lat.toFixed(4)}:${lng.toFixed(4)}${light ? ":l" : ""}`;
   const phit = cached(pkey, 30 * 60_000);
   if (phit) return jsonOk(phit);
 
-  const photonP = photonPlacesLight(lat, lng);
+  // Overpass + Photon in parallel so pins still show if one source fails.
   const overP = overpassPlaces(lat, lng, light
-    ? { timeout: 6, radius: 4000, signalMs: 7000 }
+    ? { timeout: 7, radius: 4000, signalMs: 8000 }
     : { timeout: 10, radius: 5000, signalMs: 11000 });
-  const photon = await photonP;
-  const over = await Promise.race([
-    overP,
-    new Promise<PoiPlace[]>((resolve) => setTimeout(() => resolve([]), photon.length ? 700 : 2500)),
-  ]);
+  const photonP = photonPlacesLight(lat, lng);
+  const [over, photon] = await Promise.all([overP, photonP]);
   const places = mergePlaces(over, photon);
 
   const body = { lat, lng, address, places };
   // Never cache empty POI sets — that blocks pins for 30 minutes.
   if (places.length) {
     putCache(pkey, body);
-    if (q && q.length >= 2) putCache(`v9:${q.toLowerCase()}${light ? ":l" : ""}`, body);
+    if (q && q.length >= 2) putCache(`v10:${q.toLowerCase()}${light ? ":l" : ""}`, body);
   }
   return jsonOk(body);
 }
