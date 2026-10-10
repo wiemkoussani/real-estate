@@ -673,10 +673,10 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
                   {photo ? <img src={photo} alt="" /> : <span className="card-img-fallback" />}
                 </span>
                 <span className="dock-copy">
-                  <strong>
-                    {u.displayId}
+                  <span className="dock-title">
+                    <strong>{u.displayId}</strong>
                     <em className={u.status}>{STATUS_LABEL[u.status]}</em>
-                  </strong>
+                  </span>
                   <span className="dock-stats">
                     <span><small>Area</small><b>{u.surface} m²</b></span>
                     <span><small>Floor</small><b>{u.floor}</b></span>

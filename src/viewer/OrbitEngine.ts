@@ -45,6 +45,8 @@ export class OrbitEngine {
   private zoom = 1;
   private panX = 0;
   private panY = 0;
+  private cropX = 0;
+  private cropY = 0;
   private panMode = false;
   private overlayVisible = false;
   private statusFilter: "all" | UnitStatus = "all";
@@ -213,6 +215,8 @@ export class OrbitEngine {
     this.zoom = 1;
     this.panX = 0;
     this.panY = 0;
+    this.cropX = 0;
+    this.cropY = 0;
     this.applyTransform();
     this.syncMeshVisibility();
     this.draw("low");
@@ -240,7 +244,12 @@ export class OrbitEngine {
     this.panMode = v;
     this.container.classList.toggle("hand-mode", v);
     this.container.style.cursor = v ? "grab" : "";
+    if (v) {
+      this.panX = 0;
+      this.panY = 0;
+    }
     this.applyTransform();
+    if (v) this.draw(this.isNavigating ? "low" : "high");
   }
 
   zoomBy(delta: number) {
@@ -337,9 +346,12 @@ export class OrbitEngine {
     const h = this.container.clientHeight;
     if (w < 2 || h < 2) return;
     const phone = w <= 720;
-    if (!this.isDragging && !this.approaching) {
+    const jumped = this.lastCw === 0 || Math.abs(w - this.lastCw) > 80 || Math.abs(h - this.lastCh) > 80 || phone !== this.wasPhone;
+    if (jumped && !this.isDragging && !this.approaching) {
       this.panX = 0;
       this.panY = 0;
+      this.cropX = 0;
+      this.cropY = 0;
       if (phone !== this.wasPhone) this.zoom = 1;
     }
     this.wasPhone = phone;
@@ -685,7 +697,13 @@ export class OrbitEngine {
     const scale = contain ? Math.min(cw / RW, ch / RH) : Math.max(cw / RW, ch / RH);
     const dw = Math.round(RW * scale);
     const dh = Math.round(RH * scale);
-    return { cw, ch, dw, dh, dx: Math.round((cw - dw) / 2), dy: Math.round((ch - dh) / 2), contain };
+    const baseX = Math.round((cw - dw) / 2);
+    const baseY = Math.round((ch - dh) / 2);
+    const limitX = Math.max(0, Math.round((dw - cw) / 2));
+    const limitY = Math.max(0, Math.round((dh - ch) / 2));
+    this.cropX = Math.min(limitX, Math.max(-limitX, this.cropX));
+    this.cropY = Math.min(limitY, Math.max(-limitY, this.cropY));
+    return { cw, ch, dw, dh, dx: baseX + this.cropX, dy: baseY + this.cropY, contain };
   }
 
   private paint(ctx: CanvasRenderingContext2D, img: CanvasImageSource, quality: "low" | "high") {
@@ -924,9 +942,8 @@ export class OrbitEngine {
     const h = this.container.clientHeight;
     this.zoomOx = w / 2;
     this.zoomOy = h / 2;
-    const slack = this.zoom > 1 ? 0 : Math.min(w, h) * 0.4;
-    const maxX = Math.max(slack, (w * (this.zoom - 1)) / 2);
-    const maxY = Math.max(slack, (h * (this.zoom - 1)) / 2);
+    const maxX = Math.max(0, (w * (this.zoom - 1)) / 2);
+    const maxY = Math.max(0, (h * (this.zoom - 1)) / 2);
     this.panX = Math.min(maxX, Math.max(-maxX, this.panX));
     this.panY = Math.min(maxY, Math.max(-maxY, this.panY));
     const t = `translate3d(${this.zoomOx + this.panX}px, ${this.zoomOy + this.panY}px, 0) scale(${this.zoom}) translate3d(${-this.zoomOx}px, ${-this.zoomOy}px, 0)`;

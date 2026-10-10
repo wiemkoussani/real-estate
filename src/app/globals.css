@@ -1685,8 +1685,10 @@ body {
     flex: 0 0 min(78vw, 300px);
     scroll-snap-align: start;
     display: grid;
-    grid-template-columns: 74px 1fr auto;
-    gap: 10px;
+    grid-template-columns: 74px minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
+    column-gap: 10px;
+    row-gap: 6px;
     align-items: center;
     background: rgba(255, 255, 255, 0.96);
     border: 0;
@@ -1707,15 +1709,27 @@ body {
     display: block;
     background: #e8eef3;
   }
-  .dock-copy { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-  .dock-copy strong {
+  .dock-photo { grid-row: 1 / span 2; }
+  .dock-copy { display: contents; }
+  .dock-title {
+    grid-column: 2 / span 2;
+    grid-row: 1;
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 16px;
+    justify-content: space-between;
+    gap: 12px;
+    min-width: 0;
   }
-  .dock-copy em { font-style: normal; font-size: 12px; font-weight: 700; }
-  .dock-stats { display: flex; gap: 12px; }
+  .dock-title strong { font-size: 16px; line-height: 1; }
+  .dock-title em {
+    font-style: normal;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .dock-card .heart { grid-column: 3; grid-row: 2; justify-self: end; align-self: center; }
+  .dock-stats { grid-column: 2; grid-row: 2; display: flex; gap: 12px; }
   .dock-stats span { display: flex; flex-direction: column; gap: 1px; }
   .dock-stats small { font-size: 10px; color: var(--muted); font-weight: 600; }
   .dock-stats b { font-size: 13px; }
