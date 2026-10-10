@@ -138,7 +138,7 @@ async function photonPlacesLight(lat: number, lng: number): Promise<PoiPlace[]> 
     queries.map(async ({ kind, q, fallback }) => {
       try {
         const r = await fetch(
-          `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&lat=${lat}&lon=${lng}&limit=15`,
+          `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&lat=${lat}&lon=${lng}&limit=8`,
           { headers: UA, signal: AbortSignal.timeout(4500) },
         );
         if (!r.ok) return [] as PoiPlace[];
@@ -205,12 +205,15 @@ export async function GET(req: Request) {
   const phit = cached(pkey, 30 * 60_000);
   if (phit) return jsonOk(phit);
 
-  // Overpass + Photon in parallel so pins still show if one source fails.
-  const overP = overpassPlaces(lat, lng, light
-    ? { timeout: 7, radius: 4000, signalMs: 8000 }
-    : { timeout: 10, radius: 5000, signalMs: 11000 });
   const photonP = photonPlacesLight(lat, lng);
-  const [over, photon] = await Promise.all([overP, photonP]);
+  const overP = overpassPlaces(lat, lng, light
+    ? { timeout: 6, radius: 4000, signalMs: 7000 }
+    : { timeout: 10, radius: 5000, signalMs: 11000 });
+  const photon = await photonP;
+  const over = await Promise.race([
+    overP,
+    new Promise<PoiPlace[]>((resolve) => setTimeout(() => resolve([]), photon.length ? 700 : 2500)),
+  ]);
   const places = mergePlaces(over, photon);
 
   const body = { lat, lng, address, places };

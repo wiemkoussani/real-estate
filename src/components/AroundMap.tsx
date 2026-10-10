@@ -116,9 +116,21 @@ export function AroundMap({ query, title }: { query: string; title: string }) {
     const pts = pointsRef.current;
     const size = map.getSize();
     if (!pts.length || size.x < 48 || size.y < 48) return;
+    const phone = window.matchMedia("(max-width: 720px)").matches;
     const tablet = window.matchMedia("(min-width: 721px) and (max-width: 1100px)").matches;
     const pad = Math.max(8, Math.min(tablet ? 48 : 24, Math.floor(Math.min(size.x, size.y) / 8)));
     framedSize.current = { x: size.x, y: size.y };
+    if (phone && pts.length > 1) {
+      const home = pts[0];
+      const near = pts.filter((p) => {
+        const dLat = (p[0] - home[0]) * 111;
+        const dLng = (p[1] - home[1]) * 111 * Math.cos((home[0] * Math.PI) / 180);
+        return dLat * dLat + dLng * dLng <= 1.6 * 1.6;
+      });
+      map.fitBounds(near.length > 1 ? near : pts, { padding: [pad, pad], maxZoom: 16 });
+      if (map.getZoom() < 16) map.setZoom(16);
+      return;
+    }
     if (pts.length > 1) map.fitBounds(pts, { padding: [pad, pad], maxZoom: tablet ? 12 : 15 });
     else map.setView(pts[0], tablet ? 12 : 14);
   };

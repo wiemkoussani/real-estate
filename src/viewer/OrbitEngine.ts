@@ -683,9 +683,10 @@ export class OrbitEngine {
     });
   }
 
-  /** Cover-fit on every screen. A portrait phone used to letterbox the aerial into a thin strip. */
+  /** Phones open a little wider than a tight fill, so more of the project is visible. */
   private phoneFit() {
-    return false;
+    const w = this.container.clientWidth;
+    return w > 0 && w <= 720;
   }
 
   private getDrawRect() {
@@ -694,7 +695,9 @@ export class OrbitEngine {
     const cw = this.container.clientWidth;
     const ch = this.container.clientHeight;
     const contain = this.phoneFit();
-    const scale = contain ? Math.min(cw / RW, ch / RH) : Math.max(cw / RW, ch / RH);
+    const cover = Math.max(cw / RW, ch / RH);
+    const fit = Math.min(cw / RW, ch / RH);
+    const scale = contain ? fit + (cover - fit) * 0.5 : cover;
     const dw = Math.round(RW * scale);
     const dh = Math.round(RH * scale);
     const baseX = Math.round((cw - dw) / 2);
@@ -926,7 +929,11 @@ export class OrbitEngine {
       this.activeCamera.updateProjectionMatrix();
       const y = Math.round(ch - dy - dh);
       this.renderer.setViewport(dx, y, dw, dh);
-      this.renderer.setScissor(dx, y, dw, dh);
+      const sx = Math.max(0, dx);
+      const sy = Math.max(0, y);
+      const sw = Math.max(0, Math.min(cw, dx + dw) - sx);
+      const sh = Math.max(0, Math.min(ch, y + dh) - sy);
+      this.renderer.setScissor(sx, sy, sw, sh);
       this.renderer.setScissorTest(true);
       return;
     }
