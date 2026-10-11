@@ -80,6 +80,12 @@ export class OrbitEngine {
   private lowDecodeDone = new Set<number>();
   private highDecodeQueued = new Set<number>();
   private stepping = false;
+  private dragTurning = false;
+  private spinHeld = false;
+  private spinIdle: number | null = null;
+  private spinPump = 0;
+  private spinWaiting = false;
+  private pointerX = 0;
   private resizeObserver: ResizeObserver | null = null;
   private lastCw = 0;
   private lastCh = 0;
@@ -120,16 +126,17 @@ export class OrbitEngine {
   async start() {
     this.bind();
     this.resize();
-    await this.loadOne(0);
+    await this.loadOne(0, true);
     this.events.onLoadProgress?.(28);
     void this.loadGlb();
     await this.loadUnits();
     this.syncCamera();
     this.draw("low");
     this.loop();
-    this.scheduleUpgrade();
+    await this.preloadLow();
+    if (this.disposed) return;
     this.events.onReady?.();
-    void this.preloadLow();
+    this.scheduleUpgrade();
   }
 
   dispose() {
@@ -137,6 +144,8 @@ export class OrbitEngine {
     if (this.rafLoop) cancelAnimationFrame(this.rafLoop);
     if (this.rafDraw) cancelAnimationFrame(this.rafDraw);
     if (this.upgradeTimer) window.clearTimeout(this.upgradeTimer);
+    if (this.spinIdle) window.clearTimeout(this.spinIdle);
+    if (this.spinPump) cancelAnimationFrame(this.spinPump);
     if (this.crossfadeId) cancelAnimationFrame(this.crossfadeId);
     this.unbind();
     this.lowBitmaps.forEach((b) => b?.close());
@@ -267,7 +276,9 @@ export class OrbitEngine {
 
   rotateBy(dir: 1 | -1) {
     const n = this.tour.totalFrames;
-    if (!n || this.stepping || this.approaching) return;
+    if (!n || this.approaching) return;
+    this.holdSpin();
+    if (this.stepping) return;
     const from = this.currentFrame;
     const next = (from + dir + n) % n;
     const go = () => {
@@ -280,6 +291,7 @@ export class OrbitEngine {
       return;
     }
     this.stepping = true;
+    this.warmAround(from, dir);
     void this.loadOne(next).then(go);
   }
 
@@ -299,8 +311,7 @@ export class OrbitEngine {
     this.draw("low");
     this.syncCamera();
     this.events.onFrame?.(this.currentFrame);
-    if (!this.skipSharp()) void this.ensureHigh((next + dir + n) % n);
-    this.scheduleUpgrade();
+    if (!this.turning()) this.scheduleUpgrade();
   }
 
   private clearCrossfade() {
@@ -382,11 +393,11 @@ export class OrbitEngine {
     }
   }
 
-  private loadOne(idx: number) {
+  private loadOne(idx: number, decode = false) {
     return new Promise<void>((resolve) => {
       const existing = this.lowImages[idx];
       if (existing?.complete) {
-        if (existing.naturalWidth) void this.warmLow(idx);
+        if (decode && existing.naturalWidth) void this.warmLow(idx);
         resolve();
         return;
       }
@@ -399,14 +410,14 @@ export class OrbitEngine {
       img.decoding = "async";
       this.lowImages[idx] = img;
       if (img.complete && img.naturalWidth) {
-        void this.warmLow(idx);
+        if (decode) void this.warmLow(idx);
         resolve();
         return;
       }
       const prevLoad = img.onload;
       const prevErr = img.onerror;
       const finish = () => {
-        void this.warmLow(idx);
+        if (decode) void this.warmLow(idx);
         if (idx === this.currentFrame) this.draw("low");
         resolve();
       };
@@ -422,19 +433,19 @@ export class OrbitEngine {
     });
   }
 
-  /** Load a small ring around the current frame; the rest streams while turning. */
+  /** Light photos on both sides of the opening view, then the rest without blocking the tour. */
   private async preloadLow() {
     const total = this.tour.totalFrames;
     if (!total) {
       this.events.onLoadProgress?.(100);
       return;
     }
-    const ring = this.neighborIndices(this.currentFrame, 0);
+    const ring = this.ringAround(this.currentFrame, 8);
     const batch = 4;
     for (let start = 0; start < ring.length; start += batch) {
       if (this.disposed) return;
       const slice = ring.slice(start, start + batch);
-      await Promise.all(slice.map((idx) => this.loadOne(idx)));
+      await Promise.all(slice.map((idx) => this.loadOne(idx, true)));
       this.events.onLoadProgress?.(Math.min(95, 28 + Math.round(((start + slice.length) / ring.length) * 67)));
     }
     this.events.onLoadProgress?.(100);
@@ -448,6 +459,17 @@ export class OrbitEngine {
       if (!this.frameReady(i)) await this.loadOne(i);
       if (i % 4 === 3) await new Promise((resolve) => setTimeout(resolve, 24));
     }
+  }
+
+  private ringAround(current: number, radius: number) {
+    const n = this.tour.totalFrames;
+    const out: number[] = [current];
+    if (!n) return out;
+    for (let d = 1; d <= radius; d++) {
+      out.push((current + d) % n);
+      out.push((current - d + n) % n);
+    }
+    return out;
   }
 
   private neighborIndices(current: number, dir = 0) {
@@ -872,7 +894,7 @@ export class OrbitEngine {
 
   private warmAround(current: number, dir = 0) {
     for (const idx of this.neighborIndices(current, dir)) {
-      void this.loadOne(idx).then(() => this.warmLow(idx));
+      void this.loadOne(idx);
     }
   }
 
@@ -898,16 +920,18 @@ export class OrbitEngine {
   }
 
   private scheduleUpgrade() {
-    if (this.skipSharp()) return;
+    if (this.skipSharp() || this.turning()) return;
     if (this.upgradeTimer) window.clearTimeout(this.upgradeTimer);
     this.upgradeTimer = window.setTimeout(() => {
+      this.upgradeTimer = null;
+      if (this.turning() || this.disposed) return;
       this.isNavigating = false;
       this.fadeToHigh(this.currentFrame);
     }, COMPLEX.lowResUpgradeDelay);
   }
 
   private fadeToHigh(index: number) {
-    if (this.skipSharp()) return;
+    if (this.skipSharp() || this.turning()) return;
     if (this.isNavigating || this.currentFrame !== index) return;
     let highImg = this.highImages[index];
     if (!highImg) {
@@ -1020,8 +1044,13 @@ export class OrbitEngine {
     this.isNavigating = !this.panMode;
     this.moved = false;
     this.dragStartX = x;
+    this.pointerX = x;
     this.panStartX = x;
     this.panStartY = y;
+    if (!this.panMode) {
+      this.dragTurning = true;
+      this.cancelUpgrade();
+    }
     if (this.panMode) this.container.style.cursor = "grabbing";
   }
 
@@ -1035,27 +1064,93 @@ export class OrbitEngine {
       this.applyTransform();
       return;
     }
-    const delta = x - this.dragStartX;
-    if (Math.abs(delta) < COMPLEX.dragSensitivity) return;
+    this.pointerX = x;
+    this.pumpSpin();
+  }
+
+  private pumpSpin() {
+    if (this.spinPump || this.disposed) return;
+    this.spinPump = requestAnimationFrame(() => {
+      this.spinPump = 0;
+      if (this.isDragging) this.stepDrag();
+    });
+  }
+
+  private stepDrag() {
+    if (!this.isDragging || this.panMode || this.disposed || this.spinWaiting) return;
+    const sens = COMPLEX.dragSensitivity;
     const n = this.tour.totalFrames;
     if (!n) return;
+    const delta = this.pointerX - this.dragStartX;
+    if (Math.abs(delta) < sens) return;
     const dir: 1 | -1 = delta > 0 ? -1 : 1;
     const next = (this.currentFrame + dir + n) % n;
-    this.moved = true;
     if (!this.frameReady(next)) {
-      void this.loadOne(next);
+      this.warmAround(this.currentFrame, dir);
+      this.waitFrame(next);
       return;
     }
+    this.moved = true;
     this.commitFrame(next, dir);
-    this.dragStartX = x;
+    this.dragStartX = this.pointerX;
+  }
+
+  private waitFrame(next: number) {
+    if (this.spinWaiting) return;
+    this.spinWaiting = true;
+    void this.loadOne(next).then(() => {
+      this.spinWaiting = false;
+      if (this.disposed || !this.isDragging) return;
+      const sens = COMPLEX.dragSensitivity;
+      const n = this.tour.totalFrames;
+      const delta = this.pointerX - this.dragStartX;
+      if (n && this.frameReady(next) && Math.abs(delta) >= sens) {
+        const dir: 1 | -1 = delta > 0 ? -1 : 1;
+        this.moved = true;
+        this.commitFrame((this.currentFrame + dir + n) % n, dir);
+      }
+      this.dragStartX = this.pointerX;
+    });
+  }
+
+  private holdSpin() {
+    this.spinHeld = true;
+    this.isNavigating = true;
+    this.cancelUpgrade();
+    if (this.spinIdle) window.clearTimeout(this.spinIdle);
+    this.spinIdle = window.setTimeout(() => {
+      this.spinIdle = null;
+      this.spinHeld = false;
+      if (!this.dragTurning) this.finishTurn();
+    }, 180);
+  }
+
+  private turning() {
+    return this.dragTurning || this.spinHeld;
+  }
+
+  private cancelUpgrade() {
+    if (!this.upgradeTimer) return;
+    window.clearTimeout(this.upgradeTimer);
+    this.upgradeTimer = null;
+  }
+
+  private finishTurn() {
+    if (this.turning() || this.approaching || this.disposed) return;
+    this.settle();
   }
 
   private endDrag = () => {
     this.isDragging = false;
     this.pointers.clear();
     this.pinchStartDist = 0;
+    if (this.spinPump) {
+      cancelAnimationFrame(this.spinPump);
+      this.spinPump = 0;
+    }
     if (this.panMode) this.container.style.cursor = "grab";
-    this.scheduleUpgrade();
+    this.dragTurning = false;
+    this.finishTurn();
   };
 
   private onPointerDown = (e: PointerEvent) => {
