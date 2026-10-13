@@ -10,6 +10,7 @@ const ALLOW: Partial<Record<AssetKind, RegExp>> = {
   gallery: /\.(webp|jpe?g|png)$/i,
   plan: /\.(webp|jpe?g|png|pdf)$/i,
   villa_360: /\.(webp|jpe?g|png)$/i,
+  scene_360: /\.(webp|jpe?g|png)$/i,
   document: /\.(pdf|png|jpe?g|webp|docx?)$/i,
 };
 

@@ -8,6 +8,7 @@ const CAPS: Partial<Record<AssetKind, Cap>> = {
   frame_high: { maxEdge: 4096, quality: 0.82, mime: "image/webp" },
   gallery: { maxEdge: 2048, quality: 0.8, mime: "image/webp" },
   villa_360: { maxEdge: 2048, quality: 0.78, mime: "image/webp" },
+  scene_360: { maxEdge: 2048, quality: 0.8, mime: "image/webp" },
   plan: { maxEdge: 2400, quality: 0.85, mime: "image/webp" },
   branding: { maxEdge: 1024, quality: 0.9, mime: "image/webp" },
 };

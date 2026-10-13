@@ -19,6 +19,13 @@ export function normalizeRel(kind: AssetKind, rel: string) {
     const top = parts[0]?.toLowerCase();
     if ((top === "gallery" || top === "gallerie") && parts.length > 1) return parts.slice(1).join("/");
   }
+  if (kind === "scene_360") {
+    const parts = clean.split("/");
+    const top = parts[0]?.toLowerCase();
+    if ((top === "scene_360" || top === "scenes_360" || top === "360") && parts.length > 1) {
+      return parts.slice(1).join("/");
+    }
+  }
   return clean;
 }
 

@@ -1,6 +1,12 @@
 import { COMPLEX, type Unit } from "@/lib/complex";
 import type { AssetKind, AssetRow, ComplexRow } from "@/lib/types";
 
+export type TourScene360 = {
+  id: string;
+  label: string;
+  url: string;
+};
+
 export type TourMedia = {
   slug: string;
   name: string;
@@ -22,6 +28,7 @@ export type TourMedia = {
   galleryInterior: string[];
   plans: Record<string, string>;
   villa360: Record<string, string>;
+  scenes360: TourScene360[];
   source: "db" | "file" | "local";
 };
 
@@ -71,6 +78,35 @@ function splitGallery(urls: string[]) {
   return { hero: root[0] || "", exterior: [...root.slice(1), ...exterior], interior };
 }
 
+function humanizeSceneLabel(raw: string) {
+  return decodeURIComponent(raw)
+    .replace(/\.[^.]+$/, "")
+    .replace(/^\d+[-_\s.]*/, "")
+    .replace(/[-_]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (c) => c.toUpperCase()) || "Scene";
+}
+
+/** One scene per top-level folder (cover = first image), or one scene per flat file. */
+export function buildScenes360(paths: string[]): TourScene360[] {
+  const groups = new Map<string, string[]>();
+  for (const path of paths) {
+    const rel = relAfterKind("scene_360", path);
+    const parts = rel.split("/").filter(Boolean);
+    if (!parts.length) continue;
+    const key = parts.length >= 2 ? parts[0] : parts[0].replace(/\.[^.]+$/, "");
+    const list = groups.get(key) || [];
+    list.push(path);
+    groups.set(key, list);
+  }
+  return [...groups.entries()].map(([key, list]) => ({
+    id: key.toLowerCase().replace(/\s+/g, "-"),
+    label: humanizeSceneLabel(key),
+    url: list[0],
+  }));
+}
+
 function emptyShell(slug: string, name?: string): TourMedia {
   return {
     slug,
@@ -93,6 +129,7 @@ function emptyShell(slug: string, name?: string): TourMedia {
     galleryInterior: [],
     plans: {},
     villa360: {},
+    scenes360: [],
     source: "db",
   };
 }
@@ -115,12 +152,14 @@ export function buildTour(payload: Payload, slug: string): TourMedia {
   sortAssets(assets, "villa_360").forEach((a) => {
     villa360[relAfterKind("villa_360", a.path)] = a.path;
   });
+  const scenes360 = buildScenes360(urls(assets, "scene_360"));
 
   const storedFrames = framesLow.length || framesHigh.length;
   const logo =
     branding.find((u) => /logo/i.test(u)) ||
     branding[0] ||
     (cx?.logo_path && String(cx.logo_path).startsWith("http") ? cx.logo_path : "") ||
+    COMPLEX.logoPath ||
     "";
   const glbUrl =
     glb[0] || (cx?.glb_path && String(cx.glb_path).startsWith("http") ? String(cx.glb_path) : "") || "";
@@ -146,6 +185,7 @@ export function buildTour(payload: Payload, slug: string): TourMedia {
     galleryInterior: split.interior,
     plans,
     villa360,
+    scenes360,
     source: payload.source === "file" ? "file" : "db",
   };
 }

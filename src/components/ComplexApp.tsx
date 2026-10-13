@@ -5,14 +5,14 @@ import { COMPLEX, type Unit, type UnitStatus } from "@/lib/complex";
 import { buildTour, emptyTour, tourPlanUrl, tourVillaUrl, type TourMedia } from "@/lib/tour";
 import type { OrbitEngine as OrbitEngineType } from "@/viewer/OrbitEngine";
 import {
+  Icon360,
   IconApps,
-  IconCards,
+  IconBack,
   IconEye,
   IconFilters,
   IconGallery,
   IconHeart,
   IconHelp,
-  IconList,
   IconMail,
   IconEyeOff,
   IconFullscreen,
@@ -29,6 +29,12 @@ const STATUS_LABEL: Record<UnitStatus, string> = {
   available: "Available",
   reserved: "Reserved",
   sold: "Sold",
+};
+
+const STATUS_AR: Record<UnitStatus, string> = {
+  available: "متوفر",
+  reserved: "محجوز",
+  sold: "مباع",
 };
 
 function mediaSrc(url: string | undefined | null) {
@@ -89,22 +95,21 @@ export default function ComplexApp({ slug, initialTour }: { slug: string; initia
   const [tour, setTour] = useState<TourMedia | null>(initialTour ?? null);
 
   useEffect(() => {
-    if (initialTour) {
-      setTour(initialTour);
-      return;
-    }
     let cancelled = false;
+    const apply = (next: TourMedia) => {
+      if (!cancelled) setTour(next);
+    };
+    if (initialTour) apply(initialTour);
+    // Refresh from API so branding logo / assets are not missing after SSR.
     fetch(`/api/complexes/${slug}`)
       .then(async (res) => {
         const json = await res.json();
         if (!res.ok) throw new Error(json.error || "Not found");
         return buildTour(json, slug);
       })
-      .then((next) => {
-        if (!cancelled) setTour(next);
-      })
+      .then((next) => apply(next))
       .catch(() => {
-        if (!cancelled) setTour(emptyTour(slug));
+        if (!cancelled && !initialTour) apply(emptyTour(slug));
       });
     return () => {
       cancelled = true;
@@ -154,8 +159,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
   const [hoverPos, setHoverPos] = useState<{ x: number; y: number } | null>(null);
   const [selected, setSelected] = useState<Unit | null>(null);
   const [listOpen, setListOpen] = useState(true);
-  const [cards, setCards] = useState(false);
-  const [filtersOpen, setFiltersOpen] = useState(true);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [favOnly, setFavOnly] = useState(false);
   const [overlayOn, setOverlayOn] = useState(false);
   const [panMode, setPanMode] = useState(false);
@@ -169,12 +173,17 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
   const [locationOpen, setLocationOpen] = useState(false);
   const [tourUnit, setTourUnit] = useState<Unit | null>(null);
   const [favs, setFavs] = useState<string[]>([]);
+  const [railInvite, setRailInvite] = useState(true);
+  const [scene360Open, setScene360Open] = useState(false);
+  const [activeSceneId, setActiveSceneId] = useState<string | null>(null);
+  const listBefore360Ref = useRef(false);
   const rotateHoldRef = useRef<number | null>(null);
   const [status, setStatus] = useState<"all" | UnitStatus>("all");
-  const [type, setType] = useState<"all" | "1" | "2" | "3">("all");
+  const [selectedTypes, setSelectedTypes] = useState<number[]>([]);
+  const [selectedRooms, setSelectedRooms] = useState<number[]>([]);
+  const [areaMin, setAreaMin] = useState(100);
   const [areaMax, setAreaMax] = useState(300);
   const [floorMax, setFloorMax] = useState(5);
-  const [roomsMax, setRoomsMax] = useState(6);
 
   useEffect(() => {
     try {
@@ -189,9 +198,9 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
     const apply = () => {
       if (mq.matches) {
         setListOpen(false);
+        setFiltersOpen(false);
       } else {
         setListOpen(true);
-        setFiltersOpen(true);
       }
       setLayoutReady(true);
     };
@@ -286,9 +295,9 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
           const list = engine!.getUnits();
           setUnits(list);
           if (list.length) {
+            setAreaMin(Math.min(...list.map((u) => u.surface)));
             setAreaMax(Math.max(...list.map((u) => u.surface)));
             setFloorMax(Math.max(...list.map((u) => u.floor)));
-            setRoomsMax(Math.max(...list.map((u) => u.rooms)));
           }
           setReady(true);
           setHeadingDir(engine!.getHeadingDir());
@@ -323,12 +332,13 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
 
   const filtered = useMemo(() => {
     return units
-      .filter((u) => u.surface <= areaMax && u.floor <= floorMax && u.rooms <= roomsMax)
+      .filter((u) => u.surface <= areaMax && u.floor <= floorMax)
       .filter((u) => status === "all" || u.status === status)
-      .filter((u) => type === "all" || String(u.type) === type)
+      .filter((u) => !selectedTypes.length || selectedTypes.includes(u.type))
+      .filter((u) => !selectedRooms.length || selectedRooms.includes(u.rooms))
       .filter((u) => !favOnly || favs.includes(u.id))
       .sort((a, b) => a.displayId.localeCompare(b.displayId, undefined, { numeric: true }));
-  }, [units, areaMax, floorMax, roomsMax, status, type, favOnly, favs]);
+  }, [units, areaMax, floorMax, status, selectedTypes, selectedRooms, favOnly, favs]);
 
   const toggleFav = (id: string) => {
     setFavs((prev) => {
@@ -339,34 +349,87 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
   };
 
   const bounds = useMemo(() => {
-    if (!units.length) return { areaMin: 100, areaMax: 300, floorMin: 1, floorMax: 5, roomsMin: 1, roomsMax: 6 };
+    if (!units.length) return { areaMin: 100, areaMax: 300, floorMin: 1, floorMax: 5, rooms: [1, 2, 3, 4], types: [1, 2, 3] as number[] };
     const fmin = Math.min(...units.map((u) => u.floor));
     const fmax = Math.max(...units.map((u) => u.floor));
+    const rooms = [...new Set(units.map((u) => u.rooms))].sort((a, b) => a - b);
+    const types = [...new Set(units.map((u) => u.type))].sort((a, b) => a - b);
     return {
       areaMin: Math.min(...units.map((u) => u.surface)),
       areaMax: Math.max(...units.map((u) => u.surface)),
       floorMin: fmin === fmax ? 1 : fmin,
       floorMax: fmin === fmax ? Math.max(5, fmax) : fmax,
-      roomsMin: Math.min(...units.map((u) => u.rooms)),
-      roomsMax: Math.max(...units.map((u) => u.rooms)),
+      rooms,
+      types,
     };
   }, [units]);
 
+  const statusCounts = useMemo(() => {
+    const base = units.filter((u) => u.surface <= areaMax);
+    return {
+      available: base.filter((u) => u.status === "available").length,
+      reserved: base.filter((u) => u.status === "reserved").length,
+      sold: base.filter((u) => u.status === "sold").length,
+    };
+  }, [units, areaMax]);
+
   const resetFilters = () => {
+    setAreaMin(bounds.areaMin);
     setAreaMax(bounds.areaMax);
     setFloorMax(bounds.floorMax);
-    setRoomsMax(bounds.roomsMax);
     setStatus("all");
-    setType("all");
-    setFavOnly(false);
+    setSelectedTypes([]);
+    setSelectedRooms([]);
   };
+
+  const toggleRoom = (n: number) => {
+    setSelectedRooms((prev) => (prev.includes(n) ? prev.filter((x) => x !== n) : [...prev, n]));
+  };
+
+  const toggleType = (n: number) => {
+    setSelectedTypes((prev) => (prev.includes(n) ? prev.filter((x) => x !== n) : [...prev, n]));
+  };
+
+  const openProjectList = () => {
+    setRailInvite(false);
+    setFormOpen(false);
+    if (window.matchMedia("(max-width: 1100px)").matches) {
+      setToolsOpen((v) => !v);
+    } else {
+      setListOpen(true);
+    }
+  };
+
+  const openFilters = () => {
+    setFormOpen(false);
+    setFiltersOpen(true);
+    setListOpen((v) => !v);
+  };
+
+  const openScene360 = () => {
+    listBefore360Ref.current = listOpen;
+    setFormOpen(false);
+    setFiltersOpen(false);
+    setListOpen(false);
+    setScene360Open(true);
+    const first = tour.scenes360[0];
+    setActiveSceneId(first?.id ?? null);
+  };
+
+  const closeScene360 = () => {
+    setScene360Open(false);
+    setActiveSceneId(null);
+    if (listBefore360Ref.current) setListOpen(true);
+  };
+
+  const activeScene = tour.scenes360.find((s) => s.id === activeSceneId) || tour.scenes360[0] || null;
 
   const openUnit = (u: Unit) => {
     void pickUnit(u);
   };
 
   return (
-    <div className={`app${toolsOpen ? " tools-on" : ""}${layoutReady ? " layout-ready" : ""}`}>
+    <div className={`app${toolsOpen ? " tools-on" : ""}${layoutReady ? " layout-ready" : ""}${scene360Open ? " scene360-mode" : ""}`}>
       {!ready && (
         <div className="boot">
           {tour.logoUrl ? <img src={tour.logoUrl} alt={tour.name} /> : <p>{tour.name}</p>}
@@ -374,7 +437,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
           <p>{loadPct}%</p>
         </div>
       )}
-      <aside className={`panel ${listOpen ? "open" : ""} ${formOpen ? "form-wide" : ""}`}>
+      <aside className={`panel ${listOpen && !scene360Open ? "open" : ""} ${formOpen ? "form-wide" : ""} ${filtersOpen ? "filters-on" : ""}`}>
         <button className="peek" type="button" onClick={() => setListOpen((v) => !v)} aria-label="Toggle list">
           {listOpen ? "‹" : "›"}
         </button>
@@ -383,62 +446,113 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
             <ContactSidebar unit={selected} onBack={() => setFormOpen(false)} />
           ) : (
             <>
-          <header className="panel-head">
-            <span className="unit-count">{filtered.length} units</span>
-            <div className="pills">
-              <button type="button" className={`pill ${favOnly ? "on" : ""}`} onClick={() => setFavOnly((v) => !v)} title="Favorites">
-                <IconHeart size={14} filled={favOnly || favs.length > 0} /> {favs.length}
-              </button>
-              <button className={`pill ${filtersOpen ? "on" : ""}`} type="button" onClick={() => setFiltersOpen((v) => !v)} title="Filters">
-                <IconFilters size={14} />
-              </button>
-              <button className={`pill ${cards ? "on" : ""}`} type="button" onClick={() => setCards((v) => !v)} title={cards ? "List" : "Cards"}>
-                {cards ? <IconList size={14} /> : <IconCards size={14} />}
-              </button>
+          <header className="panel-brand">
+            <div className="panel-brand-capsule">
+              <span className="agency-logo panel-agency-logo">
+                <img
+                  src={tour.logoUrl || COMPLEX.logoPath}
+                  alt={tour.name}
+                  onError={(e) => {
+                    const img = e.currentTarget;
+                    if (img.dataset.fallback === "1") return;
+                    img.dataset.fallback = "1";
+                    img.src = COMPLEX.logoPath;
+                  }}
+                />
+              </span>
+              <div className="panel-brand-copy">
+                <b>{tour.name}</b>
+                <span>{filtered.length} units</span>
+              </div>
             </div>
             <button type="button" className="panel-x" onClick={() => setListOpen(false)} aria-label="Close">×</button>
           </header>
+          <div className="panel-toolbar">
+            <div className="panel-actions-ring">
+              <button type="button" className={`tool-fab heart-fab ${favOnly ? "on" : ""}`} onClick={() => setFavOnly((v) => !v)} title="Favorites" aria-label="Favorites">
+                <IconHeart size={16} filled={favOnly || favs.length > 0} />
+              </button>
+              <button type="button" className={`tool-fab filter-fab ${filtersOpen ? "on" : ""}`} onClick={() => setFiltersOpen((v) => !v)} title="Filters" aria-label="Filters">
+                <IconFilters size={16} />
+              </button>
+            </div>
+          </div>
           {filtersOpen && (
-            <div className="filters">
-              <div className="slider-row">
-                <label>
-                  <span>Area</span>
-                  <input type="range" min={bounds.areaMin} max={bounds.areaMax} value={areaMax} onChange={(e) => setAreaMax(+e.target.value)} style={{ backgroundSize: `${((areaMax - bounds.areaMin) / Math.max(1, bounds.areaMax - bounds.areaMin)) * 100}% 100%` }} />
-                  <em>{bounds.areaMin}–{areaMax}</em>
-                </label>
-                <label>
-                  <span>Rooms</span>
-                  <input type="range" min={bounds.roomsMin} max={bounds.roomsMax} value={roomsMax} onChange={(e) => setRoomsMax(+e.target.value)} style={{ backgroundSize: `${((roomsMax - bounds.roomsMin) / Math.max(1, bounds.roomsMax - bounds.roomsMin)) * 100}% 100%` }} />
-                  <em>{bounds.roomsMin}–{roomsMax}</em>
-                </label>
-              </div>
-              <button type="button" className="reset" onClick={resetFilters}>Reset</button>
-              <div className="row">
-                <label className="select-field">
-                  <span>Status</span>
-                  <select value={status} onChange={(e) => setStatus(e.target.value as typeof status)}>
-                    <option value="all">All</option>
-                    <option value="available">Available</option>
-                    <option value="reserved">Reserved</option>
-                    <option value="sold">Sold</option>
-                  </select>
-                </label>
-                <label className="select-field">
-                  <span>Types</span>
-                  <select value={type} onChange={(e) => setType(e.target.value as typeof type)}>
-                    <option value="all">All</option>
-                    <option value="1">Type 1</option>
-                    <option value="2">Type 2</option>
-                    <option value="3">Type 3</option>
-                  </select>
-                </label>
+            <div className="filters-flyout" dir="rtl">
+              <header className="filters-head">
+                <h2>Filtres</h2>
+                <button type="button" className="filters-back" onClick={() => setFiltersOpen(false)} aria-label="Close filters">›</button>
+              </header>
+              <div className="filters filters-rich">
+                <section>
+                  <h3>الحالة</h3>
+                  <div className="status-pills">
+                    {(["available", "reserved", "sold"] as UnitStatus[]).map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        className={`status-pill ${s} ${status === s ? "on" : ""}`}
+                        onClick={() => setStatus((v) => (v === s ? "all" : s))}
+                      >
+                        <span className="status-dot-mark" aria-hidden />
+                        <span className="status-label">{STATUS_AR[s]}</span>
+                        <span className="status-count">{statusCounts[s]}</span>
+                      </button>
+                    ))}
+                  </div>
+                </section>
+                <section className="filter-area">
+                  <div className="filter-area-head">
+                    <h3>المساحة</h3>
+                    <em className="range-readout">
+                      {Math.round(bounds.areaMin)} – {Math.round(areaMax)} m²
+                    </em>
+                  </div>
+                  <label className="range-single" dir="ltr">
+                    <span className="sr-only">Max area</span>
+                    <input
+                      type="range"
+                      min={bounds.areaMin}
+                      max={Math.max(bounds.areaMax, bounds.areaMin + 1)}
+                      step={1}
+                      value={Math.min(areaMax, Math.max(bounds.areaMax, bounds.areaMin + 1))}
+                      onInput={(e) => setAreaMax(Number((e.target as HTMLInputElement).value))}
+                      onChange={(e) => setAreaMax(Number(e.target.value))}
+                      style={{
+                        ["--range-fill" as string]: `${
+                          ((Math.min(areaMax, Math.max(bounds.areaMax, bounds.areaMin + 1)) - bounds.areaMin) /
+                            Math.max(1, Math.max(bounds.areaMax, bounds.areaMin + 1) - bounds.areaMin)) *
+                          100
+                        }%`,
+                      }}
+                    />
+                  </label>
+                </section>
+                <section>
+                  <h3>عدد الغرف</h3>
+                  <div className="chip-row">
+                    {bounds.rooms.map((n) => (
+                      <button key={n} type="button" className={`filter-chip ${selectedRooms.includes(n) ? "on" : ""}`} onClick={() => toggleRoom(n)}>
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+                </section>
+                <section>
+                  <h3>النموذج</h3>
+                  <div className="chip-row">
+                    {bounds.types.map((n) => (
+                      <button key={n} type="button" className={`filter-chip ${selectedTypes.includes(n) ? "on" : ""}`} onClick={() => toggleType(n)}>
+                        {COMPLEX.typeLabels[n] ?? n}
+                      </button>
+                    ))}
+                  </div>
+                </section>
+                <button type="button" className="filters-reset-btn" onClick={resetFilters}>Reset</button>
               </div>
             </div>
           )}
-          <div className={`units ${cards ? "cards" : "table"}`}>
-            {!cards && (
-              <div className="thead"><span /><span>ID</span><span>Area</span><span>Floor</span><span>Rooms</span><span /></div>
-            )}
+          <div className="units cards">
             {filtered.map((u) => {
               const photo = cardPhoto(tour, u);
               return (
@@ -450,36 +564,21 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
                 onMouseEnter={() => engineRef.current?.setPreview(u.id)}
                 onMouseLeave={() => engineRef.current?.setPreview(null)}
               >
-                {cards ? (
-                  <>
-                    <div className="card-copy">
-                      <strong>
-                        {u.displayId}
-                        <span className={`status-dot ${u.status} dot ${u.status}`} />
-                      </strong>
-                      <span className="meta-area"><small>Area</small><b>{u.surface} m²</b></span>
-                      <span className="meta-floor"><small>Floor</small><b>{u.floor}</b></span>
-                      <span className="meta-rooms"><small>Rooms</small><b>{u.rooms}</b></span>
-                      <span className={favs.includes(u.id) ? "heart on" : "heart"} onClick={(e) => { e.stopPropagation(); toggleFav(u.id); }}>
-                        <IconHeart size={14} filled={favs.includes(u.id)} />
-                      </span>
-                    </div>
-                    <div className="card-side">
-                      {photo ? <img src={photo} alt="" /> : <span className="card-img-fallback" />}
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <span className={`dot ${u.status}`} />
-                    <strong>{u.displayId}</strong>
-                    <span className="meta-area"><b>{u.surface} m²</b></span>
-                    <span className="meta-floor"><b>{u.floor}</b></span>
-                    <span className="meta-rooms"><b>{u.rooms}</b></span>
-                    <span className={favs.includes(u.id) ? "heart on" : "heart"} onClick={(e) => { e.stopPropagation(); toggleFav(u.id); }}>
-                      <IconHeart size={14} filled={favs.includes(u.id)} />
-                    </span>
-                  </>
-                )}
+                <div className="card-copy">
+                  <strong>
+                    {u.displayId}
+                    <span className={`status-dot ${u.status} dot ${u.status}`} />
+                  </strong>
+                  <span className="meta-area"><small>Area</small><b>{u.surface} m²</b></span>
+                  <span className="meta-floor"><small>Floor</small><b>{u.floor}</b></span>
+                  <span className="meta-rooms"><small>Rooms</small><b>{u.rooms}</b></span>
+                  <span className={favs.includes(u.id) ? "heart on" : "heart"} onClick={(e) => { e.stopPropagation(); toggleFav(u.id); }}>
+                    <IconHeart size={14} filled={favs.includes(u.id)} />
+                  </span>
+                </div>
+                <div className="card-side">
+                  {photo ? <img src={photo} alt="" /> : <span className="card-img-fallback" />}
+                </div>
                 <em className={`badge ${u.status}`}>{STATUS_LABEL[u.status]}</em>
               </button>
               );
@@ -495,7 +594,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
         <canvas ref={bgNextRef} className="layer bg-next" />
         <canvas ref={threeRef} className="layer webgl" />
 
-        {hover && hoverPos && !tourUnit && (
+        {hover && hoverPos && !tourUnit && !scene360Open && (
           <div className="tip follow" style={{ left: hoverPos.x, top: hoverPos.y }}>
             {mediaSrc(tourPlanUrl(tour, hover)) ? <img src={tourPlanUrl(tour, hover)} alt="" /> : null}
             <div>
@@ -507,7 +606,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
             </div>
           </div>
         )}
-        {selected && !hover && !tourUnit && approachedRef.current === selected.id && (
+        {selected && !hover && !tourUnit && !scene360Open && approachedRef.current === selected.id && (
           <div className="tip">
             {mediaSrc(tourPlanUrl(tour, selected)) ? <img src={tourPlanUrl(tour, selected)} alt="" /> : null}
             <div>
@@ -520,39 +619,49 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
           </div>
         )}
 
-        <div className="compact-top" onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
-          <button
-            type="button"
-            className={overlayOn ? "on" : ""}
-            title="Show units"
-            onClick={() => {
-              const v = !overlayOn;
-              setOverlayOn(v);
-              engineRef.current?.setOverlayVisible(v);
-            }}
-          >
-            {overlayOn ? <IconEye size={17} /> : <IconEyeOff size={17} />}
-          </button>
-          <button
-            type="button"
-            className={listOpen ? "on" : ""}
-            title="Filters"
-            onClick={() => {
-              setFiltersOpen(true);
-              setListOpen((v) => !v);
-            }}
-          >
-            <IconFilters size={17} />
-          </button>
-        </div>
+        {!scene360Open && (
+          <div className="compact-top" onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className="compact-logo"
+              title={tour.name}
+              aria-label={tour.name}
+              onClick={() => {
+                setFormOpen(false);
+                setFiltersOpen(false);
+                setListOpen(true);
+              }}
+            >
+              <span className="agency-logo compact-agency-logo">
+                <img
+                  src={tour.logoUrl || COMPLEX.logoPath}
+                  alt=""
+                  onError={(e) => {
+                    const img = e.currentTarget;
+                    if (img.dataset.fallback === "1") return;
+                    img.dataset.fallback = "1";
+                    img.src = COMPLEX.logoPath;
+                  }}
+                />
+              </span>
+            </button>
+            <button
+              type="button"
+              className={`compact-filter${listOpen && filtersOpen ? " on" : ""}`}
+              title="Filters"
+              onClick={openFilters}
+            >
+              <IconFilters size={17} />
+            </button>
+          </div>
+        )}
 
-        <nav className="rail" aria-label="Tools" onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
+        <nav className={`rail${scene360Open ? " is-hidden" : ""}`} aria-label="Tools" onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
           <button
             type="button"
-            className="rail-fab project-toggle open"
-            onClick={() => {
-              if (window.matchMedia("(max-width: 1100px)").matches) setToolsOpen((v) => !v);
-            }}
+            className={`rail-fab project-toggle open${railInvite ? " invite" : ""}`}
+            onClick={openProjectList}
+            title="مشروع"
           >
             <span className="rail-name">مشروع</span>
             <span className="rail-ico project"><IconApps size={20} /></span>
@@ -561,102 +670,164 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
             <span className="rail-name">تواصل</span>
             <span className="rail-ico glass"><IconMail size={16} /></span>
           </button>
-          <button type="button" className="rail-fab" onClick={() => setHelpOpen(true)}>
-            <span className="rail-name">مساعدة</span>
-            <span className="rail-ico glass"><IconHelp size={16} /></span>
+          <button type="button" className="rail-fab" onClick={() => setGalleryOpen(true)}>
+            <span className="rail-name">المعرض</span>
+            <span className="rail-ico glass"><IconGallery size={16} /></span>
           </button>
           <button type="button" className="rail-fab" onClick={() => setLocationOpen(true)}>
             <span className="rail-name">الموقع</span>
             <span className="rail-ico glass"><IconPin size={16} /></span>
           </button>
-          <button type="button" className="rail-fab" onClick={() => setGalleryOpen(true)}>
-            <span className="rail-name">المعرض</span>
-            <span className="rail-ico glass"><IconGallery size={16} /></span>
+          <button type="button" className="rail-fab" onClick={() => setHelpOpen(true)}>
+            <span className="rail-name">مساعدة</span>
+            <span className="rail-ico glass"><IconHelp size={16} /></span>
           </button>
         </nav>
 
-        <div className="hud" onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
-          <div className="hud-tools">
-            <button
-              type="button"
-              title="Fullscreen"
-              onClick={() => {
-                if (document.fullscreenElement) void document.exitFullscreen?.();
-                else void document.documentElement.requestFullscreen?.();
-              }}
-            >
-              <IconFullscreen size={17} />
+        {!scene360Open && (
+          <div className="hud" onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
+            <button type="button" className="hud-360" title="360" onClick={openScene360} aria-label="Open 360 scenes">
+              <Icon360 size={40} />
             </button>
-            <button
-              type="button"
-              className={overlayOn ? "on" : ""}
-              title="Show units"
-              onClick={() => {
-                const v = !overlayOn;
-                setOverlayOn(v);
-                engineRef.current?.setOverlayVisible(v);
-              }}
-            >
-              {overlayOn ? <IconEye size={17} /> : <IconEyeOff size={17} />}
-            </button>
-            <span className="hud-sep" aria-hidden />
-            <button
-              type="button"
-              className={panMode ? "on" : ""}
-              title="Pan"
-              onClick={() => {
-                const v = !panMode;
-                setPanMode(v);
-                engineRef.current?.setPanMode(v);
-              }}
-            >
-              <IconPan size={17} />
-            </button>
-            <button type="button" title="Zoom out" onClick={() => engineRef.current?.zoomBy(-COMPLEX.zoomStep)}>
-              <IconMinus size={17} />
-            </button>
-            <button type="button" title="Zoom in" onClick={() => engineRef.current?.zoomBy(COMPLEX.zoomStep)}>
-              <IconPlus size={17} />
-            </button>
-          </div>
-          <div className="hud-nav">
-            <button
-              type="button"
-              className="nav-btn"
-              title="Rotate left"
-              onPointerDown={(e) => {
-                e.preventDefault();
-                (e.currentTarget as HTMLButtonElement).setPointerCapture(e.pointerId);
-                engineRef.current?.rotateBy(-1);
-                if (rotateHoldRef.current) window.clearInterval(rotateHoldRef.current);
-                rotateHoldRef.current = window.setInterval(() => engineRef.current?.rotateBy(-1), 70);
-              }}
-              onPointerUp={() => { if (rotateHoldRef.current) { window.clearInterval(rotateHoldRef.current); rotateHoldRef.current = null; } }}
-              onPointerCancel={() => { if (rotateHoldRef.current) { window.clearInterval(rotateHoldRef.current); rotateHoldRef.current = null; } }}
-            ><IconTriL size={14} /></button>
-            <div className="compass-wrap">
-              <button type="button" className="nav-compass" title="Compass" onClick={() => engineRef.current?.rotateToNextCardinal()}>
-                <span className="compass-needle" style={{ transform: `rotate(${headingDeg}deg)` }} />
-                <b>{headingDir}</b>
+            <div className="hud-tools">
+              <button
+                type="button"
+                title="Fullscreen"
+                onClick={() => {
+                  if (document.fullscreenElement) void document.exitFullscreen?.();
+                  else void document.documentElement.requestFullscreen?.();
+                }}
+              >
+                <IconFullscreen size={17} />
+              </button>
+              <span className="hud-sep" aria-hidden />
+              <button
+                type="button"
+                className={panMode ? "on" : ""}
+                title="Pan"
+                onClick={() => {
+                  const v = !panMode;
+                  setPanMode(v);
+                  engineRef.current?.setPanMode(v);
+                }}
+              >
+                <IconPan size={17} />
+              </button>
+              <button type="button" title="Zoom out" onClick={() => engineRef.current?.zoomBy(-COMPLEX.zoomStep)}>
+                <IconMinus size={17} />
+              </button>
+              <button type="button" title="Zoom in" onClick={() => engineRef.current?.zoomBy(COMPLEX.zoomStep)}>
+                <IconPlus size={17} />
+              </button>
+              <span className="hud-sep hud-sep-eye" aria-hidden />
+              <button
+                type="button"
+                className={`hud-eye-in-tools ${overlayOn ? "on" : ""}`}
+                title="Show units"
+                onClick={() => {
+                  const v = !overlayOn;
+                  setOverlayOn(v);
+                  engineRef.current?.setOverlayVisible(v);
+                }}
+              >
+                {overlayOn ? <IconEye size={17} /> : <IconEyeOff size={17} />}
               </button>
             </div>
+            <div className="hud-compass-row">
+              <button
+                type="button"
+                className={`hud-eye hud-eye-solo ${overlayOn ? "on" : ""}`}
+                title="Show units"
+                onClick={() => {
+                  const v = !overlayOn;
+                  setOverlayOn(v);
+                  engineRef.current?.setOverlayVisible(v);
+                }}
+              >
+                {overlayOn ? <IconEye size={17} /> : <IconEyeOff size={17} />}
+              </button>
+              <div className="hud-nav">
+                <button
+                  type="button"
+                  className="nav-btn"
+                  title="Rotate left"
+                  onPointerDown={(e) => {
+                    e.preventDefault();
+                    (e.currentTarget as HTMLButtonElement).setPointerCapture(e.pointerId);
+                    engineRef.current?.rotateBy(-1);
+                    if (rotateHoldRef.current) window.clearInterval(rotateHoldRef.current);
+                    rotateHoldRef.current = window.setInterval(() => engineRef.current?.rotateBy(-1), 70);
+                  }}
+                  onPointerUp={() => { if (rotateHoldRef.current) { window.clearInterval(rotateHoldRef.current); rotateHoldRef.current = null; } }}
+                  onPointerCancel={() => { if (rotateHoldRef.current) { window.clearInterval(rotateHoldRef.current); rotateHoldRef.current = null; } }}
+                ><IconTriL size={14} /></button>
+                <div className="compass-wrap">
+                  <button type="button" className="nav-compass" title="Compass" onClick={() => engineRef.current?.rotateToNextCardinal()}>
+                    <span className="compass-needle" style={{ transform: `rotate(${headingDeg}deg)` }} />
+                    <b>{headingDir}</b>
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  className="nav-btn"
+                  title="Rotate right"
+                  onPointerDown={(e) => {
+                    e.preventDefault();
+                    (e.currentTarget as HTMLButtonElement).setPointerCapture(e.pointerId);
+                    engineRef.current?.rotateBy(1);
+                    if (rotateHoldRef.current) window.clearInterval(rotateHoldRef.current);
+                    rotateHoldRef.current = window.setInterval(() => engineRef.current?.rotateBy(1), 70);
+                  }}
+                  onPointerUp={() => { if (rotateHoldRef.current) { window.clearInterval(rotateHoldRef.current); rotateHoldRef.current = null; } }}
+                  onPointerCancel={() => { if (rotateHoldRef.current) { window.clearInterval(rotateHoldRef.current); rotateHoldRef.current = null; } }}
+                ><IconTriR size={14} /></button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {scene360Open && (
+          <>
             <button
               type="button"
-              className="nav-btn"
-              title="Rotate right"
-              onPointerDown={(e) => {
-                e.preventDefault();
-                (e.currentTarget as HTMLButtonElement).setPointerCapture(e.pointerId);
-                engineRef.current?.rotateBy(1);
-                if (rotateHoldRef.current) window.clearInterval(rotateHoldRef.current);
-                rotateHoldRef.current = window.setInterval(() => engineRef.current?.rotateBy(1), 70);
-              }}
-              onPointerUp={() => { if (rotateHoldRef.current) { window.clearInterval(rotateHoldRef.current); rotateHoldRef.current = null; } }}
-              onPointerCancel={() => { if (rotateHoldRef.current) { window.clearInterval(rotateHoldRef.current); rotateHoldRef.current = null; } }}
-            ><IconTriR size={14} /></button>
-          </div>
-        </div>
+              className="scene360-back"
+              onClick={closeScene360}
+              title="Retour"
+              aria-label="Retour au tour"
+            >
+              <IconBack size={22} />
+            </button>
+            {activeScene?.url ? (
+              <div className="scene360-view" aria-live="polite">
+                <img src={activeScene.url} alt={activeScene.label} />
+                <span className="scene360-view-label">{activeScene.label}</span>
+              </div>
+            ) : (
+              <div className="scene360-empty">
+                <p>360 scenes will appear here once uploaded in admin.</p>
+              </div>
+            )}
+            <div className="scene360-bar" onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
+              <div className="scene360-strip" role="list">
+                {tour.scenes360.map((scene) => (
+                  <button
+                    key={scene.id}
+                    type="button"
+                    role="listitem"
+                    className={`scene360-thumb${activeScene?.id === scene.id ? " on" : ""}`}
+                    onClick={() => setActiveSceneId(scene.id)}
+                  >
+                    <img src={scene.url} alt="" />
+                    <span>{scene.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
 
+      {!scene360Open && (
         <div className="dock" onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
           {filtered.map((u) => {
             const photo = cardPhoto(tour, u);
@@ -690,7 +861,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
             );
           })}
         </div>
-      </div>
+      )}
 
       {helpOpen && <HelpPage tour={tour} onClose={() => setHelpOpen(false)} />}
       {locationOpen && <LocationPage tour={tour} onClose={() => setLocationOpen(false)} />}
@@ -730,6 +901,7 @@ function ContactSidebar({ unit, onBack }: { unit: Unit | null; onBack: () => voi
       gender,
       subject: String(fd.get("subject") || "").trim(),
       message: String(fd.get("message") || "").trim(),
+      toFavorites: fd.get("favorites") === "on",
       unitId: unit?.id ?? null,
       unitDisplayId: unit?.displayId ?? null,
       complex: tour.slug,
@@ -784,6 +956,10 @@ function ContactSidebar({ unit, onBack }: { unit: Unit | null; onBack: () => voi
         </label>
         <label>هل لديك رسالة لنا؟ <input name="subject" placeholder="طلبك" /></label>
         <textarea name="message" rows={4} placeholder="رسالتك" aria-label="رسالتك" />
+        <label className="lead-check">
+          <span>إرسال إلى المفضلة</span>
+          <input type="checkbox" name="favorites" />
+        </label>
         <label className="lead-check">
           <span>وافقت عليها. سياسة الخصوصية لقد قرأت</span>
           <input type="checkbox" name="privacy" required />
@@ -1019,6 +1195,7 @@ function DetailLead({ unit }: { unit: Unit }) {
       gender,
       subject: String(fd.get("subject") || "").trim(),
       message: String(fd.get("message") || "").trim(),
+      toFavorites: fd.get("favorites") === "on",
       unitId: unit.id,
       unitDisplayId: unit.displayId,
       complex: tour.slug,
@@ -1049,6 +1226,10 @@ function DetailLead({ unit }: { unit: Unit }) {
       <label>رقم الهاتف <PhoneField required /></label>
       <label>هل لديك رسالة لنا؟ <input name="subject" placeholder="طلبك" /></label>
       <textarea name="message" rows={3} placeholder="رسالتك" aria-label="رسالتك" />
+      <label className="lead-check">
+        <span>إرسال إلى المفضلة</span>
+        <input type="checkbox" name="favorites" />
+      </label>
       {err && <p className="err">{err}</p>}
       {ok ? <p className="ok">تم الإرسال</p> : <button type="submit" disabled={busy}>{busy ? "..." : "إرسال طلب اتصال"}</button>}
     </form>

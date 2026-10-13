@@ -23,7 +23,7 @@ export const COMPLEX = {
   assetBase: "/complexes/villas-ajyad",
   glbPath: "/complexes/villas-ajyad/models/building.glb",
   dataPath: "/complexes/villas-ajyad/data/units.json",
-  logoPath: "/complexes/villas-ajyad/logo.png",
+  logoPath: "/complexes/villas-ajyad/logo.webp",
   framesPath: "/complexes/villas-ajyad/panorama/frames/",
   framesLowPath: "/complexes/villas-ajyad/panorama/frames_low/",
   framePrefix: "frame-",

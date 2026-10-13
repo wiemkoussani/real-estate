@@ -1,11 +1,22 @@
 export type AppRole = "admin" | "client";
 export type UnitStatus = "available" | "reserved" | "sold";
-export type AssetKind = "frame_low" | "frame_high" | "villa_360" | "plan" | "gallery" | "branding" | "glb" | "document" | "other";
+export type AssetKind =
+  | "frame_low"
+  | "frame_high"
+  | "villa_360"
+  | "scene_360"
+  | "plan"
+  | "gallery"
+  | "branding"
+  | "glb"
+  | "document"
+  | "other";
 
 export const PUBLIC_ASSET_KINDS: AssetKind[] = [
   "frame_low",
   "frame_high",
   "villa_360",
+  "scene_360",
   "plan",
   "gallery",
   "branding",

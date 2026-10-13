@@ -8,6 +8,7 @@ const KINDS = new Set<AssetKind>([
   "frame_low",
   "frame_high",
   "villa_360",
+  "scene_360",
   "plan",
   "gallery",
   "branding",

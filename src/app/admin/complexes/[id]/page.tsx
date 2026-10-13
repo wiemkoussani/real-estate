@@ -25,6 +25,7 @@ const UPLOAD_STEPS: {
   { id: "glb", title: "3D model", why: "Lets visitors tap a villa.", where: "models → building.glb", pick: "files", action: "Add model" },
   { id: "frame_low", title: "Orbit photos", why: "The aerial while turning. Auto-resized on upload (~1280px).", where: "panorama → frames_low", pick: "folder", action: "Add folder" },
   { id: "gallery", title: "Gallery", why: "One cover photo at the root, then exterior/ and interior/ folders. Auto-capped (~2048px).", where: "gallery → cover + exterior + interior", pick: "folder", action: "Add folder" },
+  { id: "scene_360", title: "Site 360 scenes", why: "Amenity stills shown when visitors tap 360 (Lobby, Lounge, Pool…). One folder per scene, or flat files named by scene. Auto-capped (~2048px).", where: "scene_360 → Lobby/ · Lounge/ · …", pick: "folder", action: "Add folder" },
   { id: "plan", title: "Plans", why: "Types and floors", where: "plans → types , plans → floors", pick: "folder", action: "Add folder" },
   { id: "villa_360", title: "Inside 360", why: "Each type: RDC, floors, whole villa. Auto-capped (~2048px).", where: "villa-types", pick: "folder", action: "Add folder" },
   { id: "frame_high", title: "Sharp aerials", why: "Last step — auto-capped to ~4096px WebP (not full 13k).", where: "panorama → frames", pick: "folder", action: "Add folder" },
