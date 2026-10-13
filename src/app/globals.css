@@ -1016,46 +1016,59 @@ body {
 .hud-eye-in-tools:hover { background: rgba(31, 44, 56, 0.08); }
 .hud-eye-in-tools.on { background: rgba(27, 54, 93, 0.12); color: #1b365d; }
 .hud-eye-solo {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
   border: 1px solid rgba(255, 255, 255, 0.55);
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.1);
+  background: rgba(255, 255, 255, 0.34);
+  backdrop-filter: blur(12px) saturate(120%);
+  -webkit-backdrop-filter: blur(12px) saturate(120%);
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.08);
   color: #1a2330;
   display: none;
   place-items: center;
   cursor: pointer;
   flex: none;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 .hud-eye-solo.on {
-  background: rgba(59, 125, 216, 0.16);
+  background: rgba(255, 255, 255, 0.48);
   color: var(--teal-deep);
-  border-color: rgba(59, 125, 216, 0.35);
+  border-color: rgba(255, 255, 255, 0.7);
 }
 .hud-360 {
   width: 44px;
   height: 44px;
   padding: 0;
-  border: 0;
-  background: transparent;
-  border-radius: 12px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.34);
+  backdrop-filter: blur(12px) saturate(120%);
+  -webkit-backdrop-filter: blur(12px) saturate(120%);
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.08);
+  color: #1a2330;
   display: grid;
   place-items: center;
   cursor: pointer;
   flex: none;
-  filter: drop-shadow(0 4px 12px rgba(15, 23, 42, 0.18));
+  transition: transform 0.15s ease, background 0.15s ease;
 }
-.hud-360:hover { transform: scale(1.04); }
+.hud-360:hover {
+  transform: scale(1.04);
+  background: rgba(255, 255, 255, 0.48);
+}
 .compact-top .hud-360,
 .compact-top .compact-360 {
   width: 44px;
   height: 44px;
-  border-radius: 12px;
-  border: 0;
-  background: transparent;
-  box-shadow: none;
-  filter: drop-shadow(0 4px 12px rgba(15, 23, 42, 0.18));
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.34);
+  backdrop-filter: blur(12px) saturate(120%);
+  -webkit-backdrop-filter: blur(12px) saturate(120%);
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.08);
+  color: #1a2330;
+  filter: none;
 }
 .rail.is-hidden { display: none; }
 
@@ -2388,8 +2401,8 @@ body {
     box-shadow: none;
   }
   .hud-compass-row { gap: 6px; }
-  .hud-eye { width: 40px; height: 40px; }
-  .hud-360 { width: 42px; height: 42px; }
+  .hud-eye-solo,
+  .hud-360 { width: 44px; height: 44px; }
   .scene360-thumb { width: 112px; height: 72px; }
   .scene360-view-label { bottom: 96px; left: 12px; }
   .app.scene360-mode .panel.open,

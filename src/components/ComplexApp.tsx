@@ -799,8 +799,8 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
             </button>
             {activeScene?.url ? (
               <div className="scene360-view" aria-live="polite">
-                <img src={activeScene.url} alt={activeScene.label} />
-                <span className="scene360-view-label">{activeScene.label}</span>
+                <img src={activeScene.url} alt={activeScene.label || "360 scene"} />
+                {activeScene.label ? <span className="scene360-view-label">{activeScene.label}</span> : null}
               </div>
             ) : (
               <div className="scene360-empty">
@@ -816,9 +816,10 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
                     role="listitem"
                     className={`scene360-thumb${activeScene?.id === scene.id ? " on" : ""}`}
                     onClick={() => setActiveSceneId(scene.id)}
+                    aria-label={scene.label || "360 scene"}
                   >
                     <img src={scene.url} alt="" />
-                    <span>{scene.label}</span>
+                    {scene.label ? <span>{scene.label}</span> : null}
                   </button>
                 ))}
               </div>

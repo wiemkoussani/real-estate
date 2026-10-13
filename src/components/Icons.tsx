@@ -79,19 +79,31 @@ export const IconPan = (p: Props) => (
   <Svg {...p}><path d="M18 11V6a2 2 0 0 0-4 0v5M14 10V4a2 2 0 0 0-4 0v6M10 11V6a2 2 0 0 0-4 0v8a8 8 0 0 0 8 8h1a6 6 0 0 0 6-6v-5a2 2 0 0 0-4 0" /></Svg>
 );
 export const Icon360 = ({ size = 40, className }: Props) => (
-  <svg className={className} width={size} height={size} viewBox="0 0 48 48" aria-hidden>
-    <circle cx="24" cy="24" r="22" fill="#5c4033" />
-    <text x="24" y="27" textAnchor="middle" fill="#fff" fontSize="14" fontWeight="800" fontFamily="Segoe UI, Tahoma, sans-serif">
+  <svg className={className} width={size} height={size} viewBox="0 0 48 48" fill="none" aria-hidden>
+    <text
+      x="24"
+      y="27"
+      textAnchor="middle"
+      fill="currentColor"
+      fontSize="14"
+      fontWeight="800"
+      fontFamily="Segoe UI, Tahoma, sans-serif"
+    >
       360
     </text>
     <path
       d="M12 30c2.2 3.2 6 5.2 12 5.2 4.4 0 8-1.2 10.4-3.2"
-      fill="none"
-      stroke="#fff"
+      stroke="currentColor"
       strokeWidth="2.2"
       strokeLinecap="round"
     />
-    <path d="M33.2 29.2 36.4 32.2 32.6 33.6" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+    <path
+      d="M33.2 29.2 36.4 32.2 32.6 33.6"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
   </svg>
 );
 export const IconEye = (p: Props) => (

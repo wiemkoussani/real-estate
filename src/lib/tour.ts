@@ -79,13 +79,22 @@ function splitGallery(urls: string[]) {
 }
 
 function humanizeSceneLabel(raw: string) {
-  return decodeURIComponent(raw)
-    .replace(/\.[^.]+$/, "")
+  const base = decodeURIComponent(raw).replace(/\.[^.]+$/, "").trim();
+  // Pure index filenames like "(2)", "10", "(5-)" → no caption on thumbs
+  if (/^[()\d\s._-]+$/.test(base)) return "";
+  const cleaned = base
+    .replace(/[()]/g, "")
     .replace(/^\d+[-_\s.]*/, "")
     .replace(/[-_]+/g, " ")
     .replace(/\s+/g, " ")
-    .trim()
-    .replace(/\b\w/g, (c) => c.toUpperCase()) || "Scene";
+    .trim();
+  if (!cleaned || /^\d+$/.test(cleaned)) return "";
+  return cleaned.replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function sceneSortKey(raw: string) {
+  const n = parseInt(raw.replace(/[^\d]/g, ""), 10);
+  return Number.isFinite(n) ? n : Number.POSITIVE_INFINITY;
 }
 
 /** One scene per top-level folder (cover = first image), or one scene per flat file. */
@@ -100,11 +109,13 @@ export function buildScenes360(paths: string[]): TourScene360[] {
     list.push(path);
     groups.set(key, list);
   }
-  return [...groups.entries()].map(([key, list]) => ({
-    id: key.toLowerCase().replace(/\s+/g, "-"),
-    label: humanizeSceneLabel(key),
-    url: list[0],
-  }));
+  return [...groups.entries()]
+    .sort((a, b) => sceneSortKey(a[0]) - sceneSortKey(b[0]) || a[0].localeCompare(b[0]))
+    .map(([key, list]) => ({
+      id: key.toLowerCase().replace(/\s+/g, "-"),
+      label: humanizeSceneLabel(key),
+      url: list[0],
+    }));
 }
 
 function emptyShell(slug: string, name?: string): TourMedia {
