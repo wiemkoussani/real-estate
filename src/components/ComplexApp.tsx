@@ -213,7 +213,10 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
     if (!ready) return;
     const q = tour.locationQuery || tour.name;
     if (!q) return;
-    const key = `poi-map-v5:${q}`;
+    const hasExact = Number.isFinite(tour.locationLat) && Number.isFinite(tour.locationLng);
+    const key = hasExact
+      ? `poi-map-v6:${tour.locationLat.toFixed(5)},${tour.locationLng.toFixed(5)}`
+      : `poi-map-v6:${q}`;
     try {
       const raw = sessionStorage.getItem(key);
       if (raw) {
@@ -223,8 +226,11 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
     } catch {
       /* ignore */
     }
+    const url = hasExact
+      ? `/api/maps/around?lat=${tour.locationLat}&lng=${tour.locationLng}&address=${encodeURIComponent(q)}&light=1&pins=2`
+      : `/api/maps/around?q=${encodeURIComponent(q)}&light=1&pins=2`;
     const run = () => {
-      void fetch(`/api/maps/around?q=${encodeURIComponent(q)}&light=1&pins=2`)
+      void fetch(url)
         .then((r) => r.json())
         .then((body) => {
           if (body?.lat && body?.places?.length) {
@@ -244,7 +250,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
     }
     const t = window.setTimeout(run, 1500);
     return () => window.clearTimeout(t);
-  }, [ready, tour.locationQuery, tour.name]);
+  }, [ready, tour.locationQuery, tour.locationLat, tour.locationLng, tour.name]);
 
   const pickUnit = async (u: Unit, engine?: OrbitEngineType | null) => {
     const en = engine ?? engineRef.current;

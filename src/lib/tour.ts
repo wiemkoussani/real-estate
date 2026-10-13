@@ -11,6 +11,8 @@ export type TourMedia = {
   slug: string;
   name: string;
   locationQuery: string;
+  locationLat: number;
+  locationLng: number;
   contactEmail: string;
   contactTel: string;
   logoUrl: string;
@@ -123,6 +125,8 @@ function emptyShell(slug: string, name?: string): TourMedia {
     slug,
     name: name || slug,
     locationQuery: COMPLEX.locationQuery,
+    locationLat: COMPLEX.locationLat,
+    locationLng: COMPLEX.locationLng,
     contactEmail: COMPLEX.contactEmail,
     contactTel: COMPLEX.contactTel,
     logoUrl: "",
@@ -179,6 +183,8 @@ export function buildTour(payload: Payload, slug: string): TourMedia {
     slug: cx?.slug || slug,
     name: cx?.name || slug,
     locationQuery: COMPLEX.locationQuery,
+    locationLat: COMPLEX.locationLat,
+    locationLng: COMPLEX.locationLng,
     contactEmail: COMPLEX.contactEmail,
     contactTel: COMPLEX.contactTel,
     logoUrl: logo,

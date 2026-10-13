@@ -24,7 +24,17 @@ const ALL_ON = Object.fromEntries(POI_FILTERS.map((f) => [f.id, true])) as Recor
 
 type Payload = { lat: number; lng: number; address: string; places: PoiPlace[] };
 
-export function AroundMap({ query, title }: { query: string; title: string }) {
+export function AroundMap({
+  query,
+  title,
+  lat,
+  lng,
+}: {
+  query: string;
+  title: string;
+  lat?: number;
+  lng?: number;
+}) {
   const mapEl = useRef<HTMLDivElement>(null);
   const mapRef = useRef<import("leaflet").Map | null>(null);
   const layerRef = useRef<import("leaflet").LayerGroup | null>(null);
@@ -41,17 +51,30 @@ export function AroundMap({ query, title }: { query: string; title: string }) {
 
   useEffect(() => {
     let stop = false;
-    const key = `poi-map-v5:${query}`;
+    const hasExact = Number.isFinite(lat) && Number.isFinite(lng);
+    const key = hasExact ? `poi-map-v6:${lat!.toFixed(5)},${lng!.toFixed(5)}` : `poi-map-v6:${query}`;
+    const aroundUrl = (extra: string) =>
+      hasExact
+        ? `/api/maps/around?lat=${lat}&lng=${lng}&address=${encodeURIComponent(query)}&${extra}`
+        : `/api/maps/around?q=${encodeURIComponent(query)}&${extra}`;
     let hadGoodCache = false;
     try {
-      const raw = sessionStorage.getItem(key);
-      if (raw) {
+      const tryKeys = [key];
+      // Reuse older session caches so pins appear instantly after coord fixes.
+      if (query) tryKeys.push(`poi-map-v5:${query}`, `poi-map-v6:${query}`);
+      for (const k of tryKeys) {
+        const raw = sessionStorage.getItem(k);
+        if (!raw) continue;
         const saved = JSON.parse(raw) as Payload;
-        if (saved?.lat && saved.places?.length) {
-          setData(saved);
+        if (saved?.places?.length) {
+          const pinned = hasExact
+            ? { ...saved, lat: lat!, lng: lng!, address: query || saved.address }
+            : saved;
+          setData(pinned);
           hadGoodCache = true;
-        } else if (saved?.lat) {
-          // Map coords only — still show map, then fetch pins.
+          break;
+        }
+        if (saved?.lat && !hasExact) {
           setData({ ...saved, places: saved.places || [] });
         }
       }
@@ -60,43 +83,51 @@ export function AroundMap({ query, title }: { query: string; title: string }) {
     }
     (async () => {
       try {
-        const lightTask = hadGoodCache
-          ? null
-              : fetch(`/api/maps/around?q=${encodeURIComponent(query)}&light=1&pins=2`).then(async (res) => ({
-              ok: res.ok,
-              body: (await res.json()) as Payload & { error?: string },
-            }));
         if (!hadGoodCache) {
-          const fastRes = await fetch(`/api/maps/around?q=${encodeURIComponent(query)}&fast=1`);
-          const fast = (await fastRes.json()) as Payload & { error?: string };
-          if (stop) return;
-          if (fastRes.ok && fast.lat) {
-            setData((prev) => prev?.places?.length ? prev : { lat: fast.lat, lng: fast.lng, address: fast.address, places: [] });
-          } else if (!hadGoodCache) {
-            setErr(fast.error || "تعذر تحميل الخريطة");
-            return;
+          if (hasExact) {
+            setErr("");
+            setData((prev) =>
+              prev?.places?.length
+                ? prev
+                : { lat: lat!, lng: lng!, address: query, places: [] },
+            );
+          } else {
+            const fastRes = await fetch(aroundUrl("fast=1"));
+            const fast = (await fastRes.json()) as Payload & { error?: string };
+            if (stop) return;
+            if (fastRes.ok && fast.lat) {
+              setErr("");
+              setData((prev) =>
+                prev?.places?.length ? prev : { lat: fast.lat, lng: fast.lng, address: fast.address, places: [] },
+              );
+            } else {
+              setErr("تعذر تحميل الخريطة");
+              return;
+            }
           }
         }
 
-        if (!lightTask) return;
-
-        setPlacesLoading(true);
-        const light = await lightTask;
+        // Always refresh pins in background; show cache first when available.
+        if (!hadGoodCache) setPlacesLoading(true);
+        const lightRes = await fetch(aroundUrl("light=1&pins=2"));
+        const light = (await lightRes.json()) as Payload & { error?: string };
         if (stop) return;
-        if (!light.ok) {
-          setErr(light.body.error || "تعذر تحميل الأماكن");
+        if (!lightRes.ok) {
+          if (!hadGoodCache && !hasExact) setErr("تعذر تحميل الأماكن");
           return;
         }
-        setData(light.body);
-        if (light.body.places?.length) {
+        if (light.places?.length) {
+          setData(light);
           try {
-            sessionStorage.setItem(key, JSON.stringify(light.body));
+            sessionStorage.setItem(key, JSON.stringify(light));
           } catch {
             /* ignore */
           }
+        } else if (!hadGoodCache) {
+          setData(light);
         }
       } catch {
-        if (!stop) setErr("تعذر تحميل الخريطة");
+        if (!stop && !hadGoodCache) setErr("تعذر تحميل الخريطة");
       } finally {
         if (!stop) setPlacesLoading(false);
       }
@@ -104,7 +135,7 @@ export function AroundMap({ query, title }: { query: string; title: string }) {
     return () => {
       stop = true;
     };
-  }, [query]);
+  }, [query, lat, lng]);
 
   const visible = useMemo(() => {
     if (!data) return [];

@@ -214,7 +214,14 @@ export function LocationPage({ tour, onClose }: { tour: TourMedia; onClose: () =
           </p>
         </div>
       )}
-      {tab === "map" && <AroundMap query={query} title={tour.name} />}
+      {tab === "map" && (
+        <AroundMap
+          query={query}
+          title={tour.name}
+          lat={tour.locationLat}
+          lng={tour.locationLng}
+        />
+      )}
     </SiteFrame>
   );
 }
