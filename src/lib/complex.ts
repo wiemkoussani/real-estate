@@ -4,12 +4,24 @@ export type Unit = {
   id: string;
   displayId: string;
   type: 1 | 2 | 3;
+  /** Filter / display model code: 1A, 1B, 2A, 2B, 3A, 3B */
+  model: string;
   status: UnitStatus;
   surface: number;
   rooms: number;
   floor: number;
+  price: number;
   planImage: string;
 };
+
+export const UNIT_MODELS = ["1A", "1B", "2A", "2B", "3A", "3B"] as const;
+export type UnitModel = (typeof UNIT_MODELS)[number];
+
+export function modelOf(u: Pick<Unit, "type" | "model" | "displayId">): string {
+  if (u.model && /^[123][AB]$/i.test(u.model)) return u.model.toUpperCase();
+  const t = u.type === 2 || u.type === 3 ? u.type : 1;
+  return `${t}A`;
+}
 
 export const STATUS_COLOR = {
   available: 0x3dba67,
@@ -70,8 +82,21 @@ export const COMPLEX = {
     ],
   },
   villaTypes: { 1: "type-1", 2: "type-2", 3: "type-3" } as Record<number, string>,
-  typeLabels: { 1: "Type 1", 2: "Type 2", 3: "Type 3" } as Record<number, string>,
+  typeLabels: { 1: "1A", 2: "2A", 3: "3A" } as Record<number, string>,
+  defaultPriceByType: { 1: 280_000, 2: 340_000, 3: 380_000 } as Record<number, number>,
+  defaultPriceByModel: {
+    "1A": 280_000,
+    "1B": 295_000,
+    "2A": 340_000,
+    "2B": 355_000,
+    "3A": 380_000,
+    "3B": 395_000,
+  } as Record<string, number>,
 };
+
+export function formatSar(n: number) {
+  return `${Math.round(n).toLocaleString("en-US")} ر.س`;
+}
 
 export function frameUrl(index: number, quality: "low" | "high") {
   const num = String(index + 1).padStart(2, "0");

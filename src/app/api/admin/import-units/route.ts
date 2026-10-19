@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-auth";
 import { createServiceSupabase } from "@/lib/supabase/service";
-import type { Unit } from "@/lib/complex";
+import { COMPLEX, type Unit } from "@/lib/complex";
 
 type Body = { complexId: string; units?: Unit[]; payload?: { units?: Unit[] } };
 
@@ -25,17 +25,23 @@ export async function POST(req: Request) {
   }
 
   const sb = createServiceSupabase() ?? auth.supabase;
-  const rows = units.map((u) => ({
-    complex_id: body.complexId,
-    mesh_id: u.id,
-    display_id: u.displayId,
-    type: u.type,
-    status: u.status,
-    surface: u.surface,
-    rooms: u.rooms,
-    floor: u.floor,
-    plan_path: u.planImage,
-  }));
+  const rows = units.map((u) => {
+    const type = u.type === 2 || u.type === 3 ? u.type : 1;
+    const model = (u.model || `${type}A`).toUpperCase();
+    return {
+      complex_id: body.complexId,
+      mesh_id: u.id,
+      display_id: u.displayId,
+      type,
+      model,
+      status: u.status,
+      surface: u.surface,
+      rooms: u.rooms,
+      floor: u.floor,
+      price: u.price || COMPLEX.defaultPriceByModel[model] || COMPLEX.defaultPriceByType[type] || 0,
+      plan_path: u.planImage,
+    };
+  });
 
   const { error } = await sb.from("units").upsert(rows, { onConflict: "complex_id,mesh_id" });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

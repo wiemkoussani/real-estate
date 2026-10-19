@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { COMPLEX, type Unit } from "@/lib/complex";
+import { COMPLEX, modelOf, type Unit } from "@/lib/complex";
 import type { canViewComplex } from "@/lib/complex-access";
 import { createServiceSupabase } from "@/lib/supabase/service";
 import type { AssetRow, ComplexRow, UnitRow } from "@/lib/types";
@@ -14,14 +14,18 @@ export type ComplexPayload = {
 };
 
 function mapUnit(row: UnitRow): Unit {
+  const type = (row.type === 2 || row.type === 3 ? row.type : 1) as 1 | 2 | 3;
+  const model = (row.model || `${type}A`).toUpperCase();
   return {
     id: row.mesh_id,
     displayId: row.display_id,
-    type: (row.type === 2 || row.type === 3 ? row.type : 1) as 1 | 2 | 3,
+    type,
+    model,
     status: row.status,
     surface: row.surface,
     rooms: row.rooms,
     floor: row.floor,
+    price: row.price || COMPLEX.defaultPriceByModel[model] || COMPLEX.defaultPriceByType[type] || 0,
     planImage: row.plan_path || `assets/plans/types/type-${row.type}.webp`,
   };
 }
@@ -52,10 +56,20 @@ export async function loadComplexPayload(slug: string, access: Access): Promise<
     const file = path.join(process.cwd(), "public", "complexes", slug, "data", "units.json");
     const raw = await readFile(file, "utf8");
     const json = JSON.parse(raw) as { units: Unit[] };
+    const units = (json.units ?? []).map((u) => {
+      const type = (u.type === 2 || u.type === 3 ? u.type : 1) as 1 | 2 | 3;
+      const model = modelOf({ ...u, type });
+      return {
+        ...u,
+        type,
+        model,
+        price: u.price || COMPLEX.defaultPriceByModel[model] || COMPLEX.defaultPriceByType[type] || 0,
+      };
+    });
     return {
       source: "file",
       complex: slug === COMPLEX.slug ? { slug: COMPLEX.slug, name: COMPLEX.name, asset_base: COMPLEX.assetBase, published: true } : undefined,
-      units: json.units ?? [],
+      units,
       assets: [],
       published: true,
     };

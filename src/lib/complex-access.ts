@@ -1,3 +1,4 @@
+import { COMPLEX } from "@/lib/complex";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { createServiceSupabase } from "@/lib/supabase/service";
 
@@ -6,8 +7,12 @@ export async function canViewComplex(slug: string) {
   if (!service) {
     return { ok: true as const, reason: "local" as const, complex: null };
   }
-  const { data: complex } = await service.from("complexes").select("*").eq("slug", slug).maybeSingle();
-  if (!complex) {
+  const { data: complex, error } = await service.from("complexes").select("*").eq("slug", slug).maybeSingle();
+  if (error || !complex) {
+    // Bundled demo complex: keep tour usable from public/ files if DB row is missing.
+    if (slug === COMPLEX.slug) {
+      return { ok: true as const, reason: "local" as const, complex: null };
+    }
     return { ok: false as const, reason: "missing" as const, complex: null };
   }
   if (complex.published) {

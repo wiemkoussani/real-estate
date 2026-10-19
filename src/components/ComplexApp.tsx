@@ -1,13 +1,15 @@
 "use client";
 
 import { useCallback, useContext, useEffect, useMemo, useRef, useState, createContext } from "react";
-import { COMPLEX, type Unit, type UnitStatus } from "@/lib/complex";
+import { COMPLEX, UNIT_MODELS, formatSar, modelOf, type Unit, type UnitStatus } from "@/lib/complex";
 import { buildTour, emptyTour, tourPlanUrl, tourVillaUrl, type TourMedia } from "@/lib/tour";
 import type { OrbitEngine as OrbitEngineType } from "@/viewer/OrbitEngine";
 import {
   Icon360,
   IconApps,
   IconBack,
+  IconChevronDown,
+  IconClose,
   IconEye,
   IconFilters,
   IconGallery,
@@ -16,14 +18,17 @@ import {
   IconMail,
   IconEyeOff,
   IconFullscreen,
+  IconFullscreenExit,
   IconMinus,
   IconPan,
+  IconPanClosed,
   IconPin,
   IconPlus,
   IconTriL,
   IconTriR,
 } from "@/components/Icons";
 import { GalleryPage, HelpPage, LocationPage } from "@/components/TourPages";
+import PanoramaViewer from "@/components/PanoramaViewer";
 
 const STATUS_LABEL: Record<UnitStatus, string> = {
   available: "Available",
@@ -32,10 +37,15 @@ const STATUS_LABEL: Record<UnitStatus, string> = {
 };
 
 const STATUS_AR: Record<UnitStatus, string> = {
-  available: "متوفر",
+  available: "متاح",
   reserved: "محجوز",
   sold: "مباع",
 };
+
+function unitPrice(u: Unit) {
+  const model = modelOf(u);
+  return u.price || COMPLEX.defaultPriceByModel[model] || COMPLEX.defaultPriceByType[u.type] || 0;
+}
 
 function mediaSrc(url: string | undefined | null) {
   return url ? url : undefined;
@@ -163,6 +173,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
   const [favOnly, setFavOnly] = useState(false);
   const [overlayOn, setOverlayOn] = useState(false);
   const [panMode, setPanMode] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [layoutReady, setLayoutReady] = useState(false);
   const [headingDir, setHeadingDir] = useState("N");
@@ -173,16 +184,18 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
   const [locationOpen, setLocationOpen] = useState(false);
   const [tourUnit, setTourUnit] = useState<Unit | null>(null);
   const [favs, setFavs] = useState<string[]>([]);
-  const [railInvite, setRailInvite] = useState(true);
+  const [scene360Strip, setScene360Strip] = useState(false);
   const [scene360Open, setScene360Open] = useState(false);
   const [activeSceneId, setActiveSceneId] = useState<string | null>(null);
-  const listBefore360Ref = useRef(false);
   const rotateHoldRef = useRef<number | null>(null);
+  const stripDragRef = useRef(false);
   const [status, setStatus] = useState<"all" | UnitStatus>("all");
-  const [selectedTypes, setSelectedTypes] = useState<number[]>([]);
+  const [selectedModels, setSelectedModels] = useState<string[]>([]);
   const [selectedRooms, setSelectedRooms] = useState<number[]>([]);
   const [areaMin, setAreaMin] = useState(100);
   const [areaMax, setAreaMax] = useState(300);
+  const [priceMin, setPriceMin] = useState(0);
+  const [priceMax, setPriceMax] = useState(600_000);
   const [floorMax, setFloorMax] = useState(5);
 
   useEffect(() => {
@@ -333,18 +346,29 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
   }, [panMode, ready]);
 
   useEffect(() => {
+    const syncFs = () => setIsFullscreen(Boolean(document.fullscreenElement));
+    syncFs();
+    document.addEventListener("fullscreenchange", syncFs);
+    return () => document.removeEventListener("fullscreenchange", syncFs);
+  }, []);
+
+  useEffect(() => {
     engineRef.current?.setOverlayVisible(overlayOn);
   }, [overlayOn, ready]);
 
   const filtered = useMemo(() => {
     return units
       .filter((u) => u.surface <= areaMax && u.floor <= floorMax)
+      .filter((u) => {
+        const p = unitPrice(u);
+        return p >= priceMin && p <= priceMax;
+      })
       .filter((u) => status === "all" || u.status === status)
-      .filter((u) => !selectedTypes.length || selectedTypes.includes(u.type))
+      .filter((u) => !selectedModels.length || selectedModels.includes(modelOf(u)))
       .filter((u) => !selectedRooms.length || selectedRooms.includes(u.rooms))
       .filter((u) => !favOnly || favs.includes(u.id))
       .sort((a, b) => a.displayId.localeCompare(b.displayId, undefined, { numeric: true }));
-  }, [units, areaMax, floorMax, status, selectedTypes, selectedRooms, favOnly, favs]);
+  }, [units, areaMax, floorMax, priceMin, priceMax, status, selectedModels, selectedRooms, favOnly, favs]);
 
   const toggleFav = (id: string) => {
     setFavs((prev) => {
@@ -355,20 +379,40 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
   };
 
   const bounds = useMemo(() => {
-    if (!units.length) return { areaMin: 100, areaMax: 300, floorMin: 1, floorMax: 5, rooms: [1, 2, 3, 4], types: [1, 2, 3] as number[] };
+    if (!units.length) {
+      return {
+        areaMin: 100,
+        areaMax: 300,
+        priceMin: 100_000,
+        priceMax: 600_000,
+        floorMin: 1,
+        floorMax: 5,
+        rooms: [1, 2, 3, 4],
+        models: [...UNIT_MODELS] as string[],
+      };
+    }
     const fmin = Math.min(...units.map((u) => u.floor));
     const fmax = Math.max(...units.map((u) => u.floor));
+    const prices = units.map(unitPrice);
     const rooms = [...new Set(units.map((u) => u.rooms))].sort((a, b) => a - b);
-    const types = [...new Set(units.map((u) => u.type))].sort((a, b) => a - b);
+    const models = [...new Set(units.map((u) => modelOf(u)))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
     return {
       areaMin: Math.min(...units.map((u) => u.surface)),
       areaMax: Math.max(...units.map((u) => u.surface)),
+      priceMin: Math.min(...prices),
+      priceMax: Math.max(...prices),
       floorMin: fmin === fmax ? 1 : fmin,
       floorMax: fmin === fmax ? Math.max(5, fmax) : fmax,
       rooms,
-      types,
+      models,
     };
   }, [units]);
+
+  useEffect(() => {
+    if (!units.length) return;
+    setPriceMin(bounds.priceMin);
+    setPriceMax(bounds.priceMax);
+  }, [units.length, bounds.priceMin, bounds.priceMax]);
 
   const statusCounts = useMemo(() => {
     const base = units.filter((u) => u.surface <= areaMax);
@@ -382,9 +426,11 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
   const resetFilters = () => {
     setAreaMin(bounds.areaMin);
     setAreaMax(bounds.areaMax);
+    setPriceMin(bounds.priceMin);
+    setPriceMax(bounds.priceMax);
     setFloorMax(bounds.floorMax);
     setStatus("all");
-    setSelectedTypes([]);
+    setSelectedModels([]);
     setSelectedRooms([]);
   };
 
@@ -392,12 +438,11 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
     setSelectedRooms((prev) => (prev.includes(n) ? prev.filter((x) => x !== n) : [...prev, n]));
   };
 
-  const toggleType = (n: number) => {
-    setSelectedTypes((prev) => (prev.includes(n) ? prev.filter((x) => x !== n) : [...prev, n]));
+  const toggleModel = (code: string) => {
+    setSelectedModels((prev) => (prev.includes(code) ? prev.filter((x) => x !== code) : [...prev, code]));
   };
 
   const openProjectList = () => {
-    setRailInvite(false);
     setFormOpen(false);
     if (window.matchMedia("(max-width: 1100px)").matches) {
       setToolsOpen((v) => !v);
@@ -408,34 +453,99 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
 
   const openFilters = () => {
     setFormOpen(false);
+    if (window.matchMedia("(max-width: 1100px)").matches) {
+      setFiltersOpen((v) => !v);
+      return;
+    }
     setFiltersOpen(true);
-    setListOpen((v) => !v);
+    setListOpen(true);
   };
 
   const openScene360 = () => {
-    listBefore360Ref.current = listOpen;
     setFormOpen(false);
     setFiltersOpen(false);
-    setListOpen(false);
-    setScene360Open(true);
-    const first = tour.scenes360[0];
-    setActiveSceneId(first?.id ?? null);
+    const phone = window.matchMedia("(max-width: 1100px)").matches;
+    setScene360Strip((open) => {
+      if (open) {
+        setScene360Open(false);
+        setActiveSceneId(null);
+        return false;
+      }
+      if (phone) setListOpen(false);
+      setScene360Open(false);
+      setActiveSceneId(tour.scenes360[0]?.id ?? null);
+      return true;
+    });
   };
+
+  const openScene360View = (id: string) => {
+    if (stripDragRef.current) return;
+    setActiveSceneId(id);
+    setScene360Open(true);
+  };
+
+  const stripScrollCleanup = useRef<(() => void) | null>(null);
+  const stripRef = useCallback((node: HTMLDivElement | null) => {
+    stripScrollCleanup.current?.();
+    stripScrollCleanup.current = null;
+    if (!node) return;
+    const onWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX) && e.deltaX === 0) return;
+      e.preventDefault();
+      node.scrollLeft += e.deltaY + e.deltaX;
+    };
+    let dragging = false;
+    let startX = 0;
+    let startScroll = 0;
+    const onDown = (e: PointerEvent) => {
+      if (e.button !== 0) return;
+      dragging = true;
+      stripDragRef.current = false;
+      startX = e.clientX;
+      startScroll = node.scrollLeft;
+      node.setPointerCapture(e.pointerId);
+      node.classList.add("is-dragging");
+    };
+    const onMove = (e: PointerEvent) => {
+      if (!dragging) return;
+      const dx = e.clientX - startX;
+      if (Math.abs(dx) > 5) stripDragRef.current = true;
+      node.scrollLeft = startScroll - dx;
+    };
+    const onUp = () => {
+      dragging = false;
+      node.classList.remove("is-dragging");
+      window.setTimeout(() => {
+        stripDragRef.current = false;
+      }, 40);
+    };
+    node.addEventListener("wheel", onWheel, { passive: false });
+    node.addEventListener("pointerdown", onDown);
+    node.addEventListener("pointermove", onMove);
+    node.addEventListener("pointerup", onUp);
+    node.addEventListener("pointercancel", onUp);
+    stripScrollCleanup.current = () => {
+      node.removeEventListener("wheel", onWheel);
+      node.removeEventListener("pointerdown", onDown);
+      node.removeEventListener("pointermove", onMove);
+      node.removeEventListener("pointerup", onUp);
+      node.removeEventListener("pointercancel", onUp);
+    };
+  }, []);
 
   const closeScene360 = () => {
     setScene360Open(false);
-    setActiveSceneId(null);
-    if (listBefore360Ref.current) setListOpen(true);
+    // Keep the strip open so the user can pick another scene.
   };
 
-  const activeScene = tour.scenes360.find((s) => s.id === activeSceneId) || tour.scenes360[0] || null;
+  const activeScene = tour.scenes360.find((s) => s.id === activeSceneId) || null;
 
   const openUnit = (u: Unit) => {
     void pickUnit(u);
   };
 
   return (
-    <div className={`app${toolsOpen ? " tools-on" : ""}${layoutReady ? " layout-ready" : ""}${scene360Open ? " scene360-mode" : ""}`}>
+    <div className={`app${toolsOpen ? " tools-on" : ""}${layoutReady ? " layout-ready" : ""}${filtersOpen ? " filters-open" : ""}${scene360Strip ? " strip360-on" : ""}${scene360Open ? " scene360-mode" : ""}`}>
       {!ready && (
         <div className="boot">
           {tour.logoUrl ? <img src={tour.logoUrl} alt={tour.name} /> : <p>{tour.name}</p>}
@@ -444,7 +554,17 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
         </div>
       )}
       <aside className={`panel ${listOpen && !scene360Open ? "open" : ""} ${formOpen ? "form-wide" : ""} ${filtersOpen ? "filters-on" : ""}`}>
-        <button className="peek" type="button" onClick={() => setListOpen((v) => !v)} aria-label="Toggle list">
+        <button
+          className="peek"
+          type="button"
+          onClick={() => {
+            setListOpen((v) => {
+              if (v) setFiltersOpen(false);
+              return !v;
+            });
+          }}
+          aria-label={listOpen ? "Ranger la liste" : "Ouvrir la liste"}
+        >
           {listOpen ? "‹" : "›"}
         </button>
         <div className={`panel-inner ${formOpen ? "form-mode" : ""}`}>
@@ -457,7 +577,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
               <span className="agency-logo panel-agency-logo">
                 <img
                   src={tour.logoUrl || COMPLEX.logoPath}
-                  alt={tour.name}
+                  alt=""
                   onError={(e) => {
                     const img = e.currentTarget;
                     if (img.dataset.fallback === "1") return;
@@ -466,101 +586,33 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
                   }}
                 />
               </span>
-              <div className="panel-brand-copy">
-                <b>{tour.name}</b>
-                <span>{filtered.length} units</span>
-              </div>
+              {tour.projectLogoUrl ? (
+                <span className="panel-project-logo">
+                  <img src={tour.projectLogoUrl} alt={tour.name} />
+                </span>
+              ) : (
+                <div className="panel-brand-copy">
+                  <b>{tour.name}</b>
+                </div>
+              )}
             </div>
             <button type="button" className="panel-x" onClick={() => setListOpen(false)} aria-label="Close">×</button>
           </header>
           <div className="panel-toolbar">
             <div className="panel-actions-ring">
               <button type="button" className={`tool-fab heart-fab ${favOnly ? "on" : ""}`} onClick={() => setFavOnly((v) => !v)} title="Favorites" aria-label="Favorites">
-                <IconHeart size={16} filled={favOnly || favs.length > 0} />
+                <IconHeart size={18} filled={favOnly} />
+                {favs.length > 0 ? <span className="fav-count">{favs.length}</span> : null}
               </button>
               <button type="button" className={`tool-fab filter-fab ${filtersOpen ? "on" : ""}`} onClick={() => setFiltersOpen((v) => !v)} title="Filters" aria-label="Filters">
                 <IconFilters size={16} />
               </button>
             </div>
           </div>
-          {filtersOpen && (
-            <div className="filters-flyout" dir="rtl">
-              <header className="filters-head">
-                <h2>Filtres</h2>
-                <button type="button" className="filters-back" onClick={() => setFiltersOpen(false)} aria-label="Close filters">›</button>
-              </header>
-              <div className="filters filters-rich">
-                <section>
-                  <h3>الحالة</h3>
-                  <div className="status-pills">
-                    {(["available", "reserved", "sold"] as UnitStatus[]).map((s) => (
-                      <button
-                        key={s}
-                        type="button"
-                        className={`status-pill ${s} ${status === s ? "on" : ""}`}
-                        onClick={() => setStatus((v) => (v === s ? "all" : s))}
-                      >
-                        <span className="status-dot-mark" aria-hidden />
-                        <span className="status-label">{STATUS_AR[s]}</span>
-                        <span className="status-count">{statusCounts[s]}</span>
-                      </button>
-                    ))}
-                  </div>
-                </section>
-                <section className="filter-area">
-                  <div className="filter-area-head">
-                    <h3>المساحة</h3>
-                    <em className="range-readout">
-                      {Math.round(bounds.areaMin)} – {Math.round(areaMax)} m²
-                    </em>
-                  </div>
-                  <label className="range-single" dir="ltr">
-                    <span className="sr-only">Max area</span>
-                    <input
-                      type="range"
-                      min={bounds.areaMin}
-                      max={Math.max(bounds.areaMax, bounds.areaMin + 1)}
-                      step={1}
-                      value={Math.min(areaMax, Math.max(bounds.areaMax, bounds.areaMin + 1))}
-                      onInput={(e) => setAreaMax(Number((e.target as HTMLInputElement).value))}
-                      onChange={(e) => setAreaMax(Number(e.target.value))}
-                      style={{
-                        ["--range-fill" as string]: `${
-                          ((Math.min(areaMax, Math.max(bounds.areaMax, bounds.areaMin + 1)) - bounds.areaMin) /
-                            Math.max(1, Math.max(bounds.areaMax, bounds.areaMin + 1) - bounds.areaMin)) *
-                          100
-                        }%`,
-                      }}
-                    />
-                  </label>
-                </section>
-                <section>
-                  <h3>عدد الغرف</h3>
-                  <div className="chip-row">
-                    {bounds.rooms.map((n) => (
-                      <button key={n} type="button" className={`filter-chip ${selectedRooms.includes(n) ? "on" : ""}`} onClick={() => toggleRoom(n)}>
-                        {n}
-                      </button>
-                    ))}
-                  </div>
-                </section>
-                <section>
-                  <h3>النموذج</h3>
-                  <div className="chip-row">
-                    {bounds.types.map((n) => (
-                      <button key={n} type="button" className={`filter-chip ${selectedTypes.includes(n) ? "on" : ""}`} onClick={() => toggleType(n)}>
-                        {COMPLEX.typeLabels[n] ?? n}
-                      </button>
-                    ))}
-                  </div>
-                </section>
-                <button type="button" className="filters-reset-btn" onClick={resetFilters}>Reset</button>
-              </div>
-            </div>
-          )}
           <div className="units cards">
             {filtered.map((u) => {
               const photo = cardPhoto(tour, u);
+              const liked = favs.includes(u.id);
               return (
               <button
                 key={u.id}
@@ -570,22 +622,27 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
                 onMouseEnter={() => engineRef.current?.setPreview(u.id)}
                 onMouseLeave={() => engineRef.current?.setPreview(null)}
               >
-                <div className="card-copy">
-                  <strong>
-                    {u.displayId}
-                    <span className={`status-dot ${u.status} dot ${u.status}`} />
-                  </strong>
-                  <span className="meta-area"><small>Area</small><b>{u.surface} m²</b></span>
-                  <span className="meta-floor"><small>Floor</small><b>{u.floor}</b></span>
-                  <span className="meta-rooms"><small>Rooms</small><b>{u.rooms}</b></span>
-                  <span className={favs.includes(u.id) ? "heart on" : "heart"} onClick={(e) => { e.stopPropagation(); toggleFav(u.id); }}>
-                    <IconHeart size={14} filled={favs.includes(u.id)} />
-                  </span>
-                </div>
                 <div className="card-side">
                   {photo ? <img src={photo} alt="" /> : <span className="card-img-fallback" />}
+                  <span
+                    className={liked ? "heart on" : "heart"}
+                    onClick={(e) => { e.stopPropagation(); toggleFav(u.id); }}
+                  >
+                    <IconHeart size={15} filled={liked} />
+                  </span>
                 </div>
-                <em className={`badge ${u.status}`}>{STATUS_LABEL[u.status]}</em>
+                <div className="card-copy">
+                  <div className="card-top">
+                    <strong>{u.displayId}</strong>
+                    <em className={`badge ${u.status}`}>{STATUS_AR[u.status]}</em>
+                  </div>
+                  <span className="card-price">{formatSar(unitPrice(u))}</span>
+                  <div className="card-specs">
+                    <span><b>{u.rooms}</b><small>غرف النوم</small></span>
+                    <span><b>{u.surface}</b><small>المساحة</small></span>
+                    <span><b>{u.floor}</b><small>الطوابق</small></span>
+                  </div>
+                </div>
               </button>
               );
             })}
@@ -594,6 +651,123 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
           )}
         </div>
       </aside>
+
+      {filtersOpen && !scene360Open && (
+        <div className="filters-flyout" dir="rtl" onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
+          <header className="filters-head">
+            <h2><IconFilters size={16} /> تصفية النتائج</h2>
+            <button type="button" className="filters-back" onClick={() => setFiltersOpen(false)} aria-label="Close filters">
+              <IconClose size={18} />
+            </button>
+          </header>
+          <div className="filters filters-rich">
+            <section>
+              <h3>حالة الوحدة</h3>
+              <div className="status-pills">
+                <button
+                  type="button"
+                  className={`status-pill all ${status === "all" ? "on" : ""}`}
+                  onClick={() => setStatus("all")}
+                >
+                  <span className="status-label">كل الوحدات</span>
+                </button>
+                {(["available", "reserved", "sold"] as UnitStatus[]).map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    className={`status-pill ${s} ${status === s ? "on" : ""}`}
+                    onClick={() => setStatus(s)}
+                  >
+                    <span className="status-label">{STATUS_AR[s]}</span>
+                  </button>
+                ))}
+              </div>
+            </section>
+            <section className="filter-area">
+              <div className="filter-area-head">
+                <h3>المساحة</h3>
+                <em className="range-readout" dir="ltr">
+                  {Math.round(areaMax).toLocaleString("en-US")}
+                </em>
+              </div>
+              <label className="range-single" dir="rtl">
+                <span className="sr-only">Max area</span>
+                <input
+                  type="range"
+                  min={bounds.areaMin}
+                  max={Math.max(bounds.areaMax, bounds.areaMin + 1)}
+                  step={1}
+                  value={Math.min(areaMax, Math.max(bounds.areaMax, bounds.areaMin + 1))}
+                  onInput={(e) => setAreaMax(Number((e.target as HTMLInputElement).value))}
+                  onChange={(e) => setAreaMax(Number(e.target.value))}
+                  style={{
+                    ["--range-fill" as string]: `${
+                      ((Math.min(areaMax, Math.max(bounds.areaMax, bounds.areaMin + 1)) - bounds.areaMin) /
+                        Math.max(1, Math.max(bounds.areaMax, bounds.areaMin + 1) - bounds.areaMin)) *
+                      100
+                    }%`,
+                  }}
+                />
+              </label>
+            </section>
+            <section className="filter-area">
+              <div className="filter-area-head">
+                <h3>السعر</h3>
+                <em className="range-readout" dir="ltr">
+                  {Math.round(priceMax).toLocaleString("en-US")} ر.س
+                </em>
+              </div>
+              <label className="range-single" dir="rtl">
+                <span className="sr-only">Max price</span>
+                <input
+                  type="range"
+                  min={bounds.priceMin}
+                  max={Math.max(bounds.priceMax, bounds.priceMin + 1)}
+                  step={1000}
+                  value={Math.min(priceMax, Math.max(bounds.priceMax, bounds.priceMin + 1))}
+                  onInput={(e) => setPriceMax(Number((e.target as HTMLInputElement).value))}
+                  onChange={(e) => setPriceMax(Number(e.target.value))}
+                  style={{
+                    ["--range-fill" as string]: `${
+                      ((Math.min(priceMax, Math.max(bounds.priceMax, bounds.priceMin + 1)) - bounds.priceMin) /
+                        Math.max(1, Math.max(bounds.priceMax, bounds.priceMin + 1) - bounds.priceMin)) *
+                      100
+                    }%`,
+                  }}
+                />
+              </label>
+            </section>
+            <section>
+              <h3>عدد الغرف</h3>
+              <div className="chip-row">
+                <button
+                  type="button"
+                  className={`filter-chip ${selectedRooms.length === 0 ? "on" : ""}`}
+                  onClick={() => setSelectedRooms([])}
+                >
+                  الكل
+                </button>
+                {bounds.rooms.map((n) => (
+                  <button key={n} type="button" className={`filter-chip ${selectedRooms.includes(n) ? "on" : ""}`} onClick={() => toggleRoom(n)}>
+                    {n}
+                  </button>
+                ))}
+              </div>
+            </section>
+            <section>
+              <h3>النموذج</h3>
+              <div className="chip-row">
+                {bounds.models.map((code) => (
+                  <button key={code} type="button" className={`filter-chip ${selectedModels.includes(code) ? "on" : ""}`} onClick={() => toggleModel(code)}>
+                    {code}
+                  </button>
+                ))}
+              </div>
+            </section>
+            <button type="button" className="filters-reset-btn" onClick={resetFilters}>إعادة تعيين</button>
+          </div>
+        </div>
+      )}
 
       <div className="stage" ref={stageRef}>
         <canvas ref={bgRef} className="layer bg" />
@@ -653,7 +827,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
             </button>
             <button
               type="button"
-              className={`compact-filter${listOpen && filtersOpen ? " on" : ""}`}
+              className={`compact-filter${filtersOpen ? " on" : ""}`}
               title="Filters"
               onClick={openFilters}
             >
@@ -663,48 +837,99 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
         )}
 
         <nav className={`rail${scene360Open ? " is-hidden" : ""}`} aria-label="Tools" onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
-          <button
-            type="button"
-            className={`rail-fab project-toggle open${railInvite ? " invite" : ""}`}
-            onClick={openProjectList}
-            title="مشروع"
-          >
-            <span className="rail-name">مشروع</span>
-            <span className="rail-ico project"><IconApps size={20} /></span>
-          </button>
-          <button type="button" className="rail-fab" onClick={() => { setFormOpen(true); setListOpen(true); }}>
-            <span className="rail-name">تواصل</span>
-            <span className="rail-ico glass"><IconMail size={16} /></span>
-          </button>
-          <button type="button" className="rail-fab" onClick={() => setGalleryOpen(true)}>
-            <span className="rail-name">المعرض</span>
-            <span className="rail-ico glass"><IconGallery size={16} /></span>
-          </button>
-          <button type="button" className="rail-fab" onClick={() => setLocationOpen(true)}>
-            <span className="rail-name">الموقع</span>
-            <span className="rail-ico glass"><IconPin size={16} /></span>
-          </button>
-          <button type="button" className="rail-fab" onClick={() => setHelpOpen(true)}>
-            <span className="rail-name">مساعدة</span>
-            <span className="rail-ico glass"><IconHelp size={16} /></span>
-          </button>
+          <div className="rail-stack">
+            <button
+              type="button"
+              className={`rail-fab project-toggle open${toolsOpen ? " is-expanded" : ""}`}
+              onClick={openProjectList}
+              title="مشروع"
+            >
+              <span className="rail-name">مشروع</span>
+              <span className="rail-ico project"><IconApps size={16} /></span>
+              <span className="rail-hint" aria-hidden>
+                <IconChevronDown size={14} />
+                <IconChevronDown size={14} />
+              </span>
+            </button>
+            <button type="button" className="rail-fab" onClick={() => { setFormOpen(true); setListOpen(true); }}>
+              <span className="rail-name">تواصل</span>
+              <span className="rail-ico glass"><IconMail size={15} /></span>
+            </button>
+            <button type="button" className="rail-fab" onClick={() => setGalleryOpen(true)}>
+              <span className="rail-name">المعرض</span>
+              <span className="rail-ico glass"><IconGallery size={15} /></span>
+            </button>
+            <button type="button" className="rail-fab" onClick={() => setLocationOpen(true)}>
+              <span className="rail-name">الموقع</span>
+              <span className="rail-ico glass"><IconPin size={15} /></span>
+            </button>
+            <button type="button" className="rail-fab" onClick={() => setHelpOpen(true)}>
+              <span className="rail-name">مساعدة</span>
+              <span className="rail-ico glass"><IconHelp size={15} /></span>
+            </button>
+          </div>
         </nav>
 
         {!scene360Open && (
-          <div className="hud" onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
-            <button type="button" className="hud-360" title="360" onClick={openScene360} aria-label="Open 360 scenes">
-              <Icon360 size={40} />
+          <div
+            className={`hud${scene360Strip ? " strip360-on" : ""}`}
+            onPointerDown={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            {scene360Strip && (
+              <div className="scene360-strip-dock open">
+                <div className="scene360-strip" role="list" dir="ltr" ref={stripRef}>
+                  {tour.scenes360.length ? (
+                    tour.scenes360.map((scene) => (
+                      <button
+                        key={scene.id}
+                        type="button"
+                        role="listitem"
+                        className={`scene360-thumb${activeScene?.id === scene.id ? " on" : ""}`}
+                        onClick={() => openScene360View(scene.id)}
+                        aria-label={scene.label || "360 scene"}
+                      >
+                        <img src={scene.thumbUrl || scene.url} alt="" draggable={false} />
+                      </button>
+                    ))
+                  ) : (
+                    <p className="scene360-strip-empty">360 scenes will appear here once uploaded in admin.</p>
+                  )}
+                </div>
+              </div>
+            )}
+            <button
+              type="button"
+              className={`hud-360${scene360Strip ? " is-back" : ""}`}
+              title={scene360Strip ? "Retour" : "360"}
+              onClick={openScene360}
+              aria-label={scene360Strip ? "Close 360 scenes" : "Open 360 scenes"}
+            >
+              {scene360Strip ? <IconChevronDown size={22} /> : <Icon360 size={40} />}
             </button>
             <div className="hud-tools">
               <button
                 type="button"
-                title="Fullscreen"
+                className={isFullscreen ? "on" : ""}
+                title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
                 onClick={() => {
                   if (document.fullscreenElement) void document.exitFullscreen?.();
                   else void document.documentElement.requestFullscreen?.();
                 }}
               >
-                <IconFullscreen size={17} />
+                {isFullscreen ? <IconFullscreenExit size={17} /> : <IconFullscreen size={17} />}
+              </button>
+              <button
+                type="button"
+                className={`hud-eye-in-tools ${overlayOn ? "on" : ""}`}
+                title="Show units"
+                onClick={() => {
+                  const v = !overlayOn;
+                  setOverlayOn(v);
+                  engineRef.current?.setOverlayVisible(v);
+                }}
+              >
+                {overlayOn ? <IconEye size={17} /> : <IconEyeOff size={17} />}
               </button>
               <span className="hud-sep" aria-hidden />
               <button
@@ -717,26 +942,13 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
                   engineRef.current?.setPanMode(v);
                 }}
               >
-                <IconPan size={17} />
+                {panMode ? <IconPanClosed size={17} /> : <IconPan size={17} />}
               </button>
               <button type="button" title="Zoom out" onClick={() => engineRef.current?.zoomBy(-COMPLEX.zoomStep)}>
                 <IconMinus size={17} />
               </button>
               <button type="button" title="Zoom in" onClick={() => engineRef.current?.zoomBy(COMPLEX.zoomStep)}>
                 <IconPlus size={17} />
-              </button>
-              <span className="hud-sep hud-sep-eye" aria-hidden />
-              <button
-                type="button"
-                className={`hud-eye-in-tools ${overlayOn ? "on" : ""}`}
-                title="Show units"
-                onClick={() => {
-                  const v = !overlayOn;
-                  setOverlayOn(v);
-                  engineRef.current?.setOverlayVisible(v);
-                }}
-              >
-                {overlayOn ? <IconEye size={17} /> : <IconEyeOff size={17} />}
               </button>
             </div>
             <div className="hud-compass-row">
@@ -804,8 +1016,13 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
               <IconBack size={22} />
             </button>
             {activeScene?.url ? (
-              <div className="scene360-view" aria-live="polite">
-                <img src={activeScene.url} alt={activeScene.label || "360 scene"} />
+              <div
+                className="scene360-view"
+                aria-live="polite"
+                onPointerDown={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
+              >
+                <PanoramaViewer key={activeScene.id} src={activeScene.url} className="scene360-pano" />
                 {activeScene.label ? <span className="scene360-view-label">{activeScene.label}</span> : null}
               </div>
             ) : (
@@ -814,18 +1031,20 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
               </div>
             )}
             <div className="scene360-bar" onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
-              <div className="scene360-strip" role="list">
+              <div className="scene360-strip" role="list" dir="ltr" ref={stripRef}>
                 {tour.scenes360.map((scene) => (
                   <button
                     key={scene.id}
                     type="button"
                     role="listitem"
                     className={`scene360-thumb${activeScene?.id === scene.id ? " on" : ""}`}
-                    onClick={() => setActiveSceneId(scene.id)}
+                    onClick={() => {
+                      if (stripDragRef.current) return;
+                      setActiveSceneId(scene.id);
+                    }}
                     aria-label={scene.label || "360 scene"}
                   >
-                    <img src={scene.url} alt="" />
-                    {scene.label ? <span>{scene.label}</span> : null}
+                    <img src={scene.thumbUrl || scene.url} alt="" draggable={false} />
                   </button>
                 ))}
               </div>
@@ -834,41 +1053,46 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
         )}
       </div>
 
-      {!scene360Open && (
-        <div className="dock" onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
-          {filtered.map((u) => {
-            const photo = cardPhoto(tour, u);
-            return (
-              <button
-                key={u.id}
-                type="button"
-                className={`dock-card ${u.status} ${selected?.id === u.id ? "sel" : ""}`}
-                onMouseEnter={() => engineRef.current?.setPreview(u.id)}
-                onMouseLeave={() => engineRef.current?.setPreview(null)}
-                onClick={() => openUnit(u)}
-              >
-                <span className="dock-photo">
-                  {photo ? <img src={photo} alt="" /> : <span className="card-img-fallback" />}
+      <div
+        className={`dock${scene360Strip || scene360Open ? " tuck" : ""}`}
+        onPointerDown={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+        aria-hidden={scene360Strip || scene360Open}
+      >
+        {filtered.map((u) => {
+          const photo = cardPhoto(tour, u);
+          const liked = favs.includes(u.id);
+          return (
+            <button
+              key={u.id}
+              type="button"
+              className={`dock-card ${u.status} ${selected?.id === u.id ? "sel" : ""}`}
+              onMouseEnter={() => engineRef.current?.setPreview(u.id)}
+              onMouseLeave={() => engineRef.current?.setPreview(null)}
+              onClick={() => openUnit(u)}
+              tabIndex={scene360Strip || scene360Open ? -1 : 0}
+            >
+              <span className="dock-photo">
+                {photo ? <img src={photo} alt="" /> : <span className="card-img-fallback" />}
+                <span className={liked ? "heart on" : "heart"} onClick={(e) => { e.stopPropagation(); toggleFav(u.id); }}>
+                  <IconHeart size={14} filled={liked} />
                 </span>
-                <span className="dock-copy">
-                  <span className="dock-title">
-                    <strong>{u.displayId}</strong>
-                    <em className={u.status}>{STATUS_LABEL[u.status]}</em>
-                  </span>
-                  <span className="dock-stats">
-                    <span><small>Area</small><b>{u.surface} m²</b></span>
-                    <span><small>Floor</small><b>{u.floor}</b></span>
-                    <span><small>Rooms</small><b>{u.rooms}</b></span>
-                  </span>
+              </span>
+              <span className="dock-copy">
+                <span className="dock-title">
+                  <strong>{u.displayId}</strong>
+                  <em className={u.status}>{STATUS_LABEL[u.status]}</em>
                 </span>
-                <span className={favs.includes(u.id) ? "heart on" : "heart"} onClick={(e) => { e.stopPropagation(); toggleFav(u.id); }}>
-                  <IconHeart size={14} filled={favs.includes(u.id)} />
+                <span className="dock-stats">
+                  <span><small>Area</small><b>{u.surface} m²</b></span>
+                  <span><small>Floor</small><b>{u.floor}</b></span>
+                  <span><small>Rooms</small><b>{u.rooms}</b></span>
                 </span>
-              </button>
-            );
-          })}
-        </div>
-      )}
+              </span>
+            </button>
+          );
+        })}
+      </div>
 
       {helpOpen && <HelpPage tour={tour} onClose={() => setHelpOpen(false)} />}
       {locationOpen && <LocationPage tour={tour} onClose={() => setLocationOpen(false)} />}
@@ -1171,7 +1395,7 @@ function VillaTour({ unit, onClose }: { unit: Unit; onClose: () => void }) {
             <div><span>Area</span><b>{unit.surface} m²</b></div>
             <div><span>Rooms</span><b>{unit.rooms}</b></div>
             <div><span>Floor</span><b>{unit.floor}</b></div>
-            <div><span>Building</span><b>T{unit.type}</b></div>
+            <div><span>Model</span><b>{modelOf(unit)}</b></div>
           </div>
           <div className="plan-wrap">
             {mediaSrc(tourPlanUrl(tour, unit)) ? <img src={tourPlanUrl(tour, unit)} alt="" /> : null}

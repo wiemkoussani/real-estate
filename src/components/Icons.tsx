@@ -59,6 +59,14 @@ export const IconFullscreen = (p: Props) => (
     <path d="M16 21h3a2 2 0 0 0 2-2v-3" />
   </Svg>
 );
+export const IconFullscreenExit = (p: Props) => (
+  <Svg {...p}>
+    <path d="M8 3v3a2 2 0 0 1-2 2H3" />
+    <path d="M16 3v3a2 2 0 0 0 2 2h3" />
+    <path d="M8 21v-3a2 2 0 0 0-2-2H3" />
+    <path d="M16 21v-3a2 2 0 0 1 2-2h3" />
+  </Svg>
+);
 export const IconRotateL = (p: Props) => (
   <Svg {...p}><path d="M3 12a9 9 0 1 0 3-6.7L3 8" /><path d="M3 3v5h5" /></Svg>
 );
@@ -77,6 +85,15 @@ export const IconTriR = (p: Props) => (
 );
 export const IconPan = (p: Props) => (
   <Svg {...p}><path d="M18 11V6a2 2 0 0 0-4 0v5M14 10V4a2 2 0 0 0-4 0v6M10 11V6a2 2 0 0 0-4 0v8a8 8 0 0 0 8 8h1a6 6 0 0 0 6-6v-5a2 2 0 0 0-4 0" /></Svg>
+);
+/** Closed / tightened hand when pan mode is on */
+export const IconPanClosed = (p: Props) => (
+  <Svg {...p}>
+    <path d="M9 11V8.5a1.5 1.5 0 0 1 3 0V11" />
+    <path d="M12 11V7.5a1.5 1.5 0 0 1 3 0V11" />
+    <path d="M15 11V8.8a1.5 1.5 0 0 1 3 0V13a5 5 0 0 1-5 5h-1a6 6 0 0 1-6-6v-2.2a1.5 1.5 0 0 1 3 0V11" />
+    <path d="M8 12.5V11" />
+  </Svg>
 );
 export const Icon360 = ({ size = 40, className }: Props) => (
   <svg className={className} width={size} height={size} viewBox="0 0 48 48" fill="none" aria-hidden>
@@ -130,4 +147,10 @@ export const IconChevron = (p: Props) => (
 );
 export const IconBack = (p: Props) => (
   <Svg {...p}><path d="M19 12H5" /><path d="M12 19l-7-7 7-7" /></Svg>
+);
+export const IconChevronDown = (p: Props) => (
+  <Svg {...p}><path d="M6 9l6 6 6-6" /></Svg>
+);
+export const IconClose = (p: Props) => (
+  <Svg {...p}><path d="M18 6 6 18M6 6l12 12" /></Svg>
 );

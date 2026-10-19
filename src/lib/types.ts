@@ -51,10 +51,12 @@ export type UnitRow = {
   mesh_id: string;
   display_id: string;
   type: number;
+  model: string | null;
   status: UnitStatus;
   surface: number;
   rooms: number;
   floor: number;
+  price: number;
   plan_path: string | null;
 };
 

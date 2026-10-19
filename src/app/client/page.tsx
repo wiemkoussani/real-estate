@@ -76,7 +76,7 @@ export default function ClientHome() {
     };
     const villa = tally(cxLeads.map((l) => l.unit_display_id || "Unknown").filter(Boolean));
     const rooms = tally(linked.map((u) => `${u.rooms} rooms`));
-    const types = tally(linked.map((u) => `Type ${u.type}`));
+    const types = tally(linked.map((u) => u.model || `T${u.type}`));
     const surfaces = tally(linked.map((u) => {
       if (u.surface < 180) return "Under 180 m²";
       if (u.surface < 280) return "180–280 m²";
@@ -185,7 +185,7 @@ export default function ClientHome() {
                         <tr key={u.id}>
                           <td>{u.display_id}</td>
                           <td>{u.surface} m²</td>
-                          <td>T{u.type}</td>
+                          <td>{u.model || `T${u.type}`}</td>
                           <td>{u.rooms}</td>
                           <td>
                             <select value={u.status} onChange={(e) => void setStatus(u.id, e.target.value as UnitStatus)}>

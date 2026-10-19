@@ -4,7 +4,10 @@ import type { AssetKind, AssetRow, ComplexRow } from "@/lib/types";
 export type TourScene360 = {
   id: string;
   label: string;
+  /** Equirectangular panorama (look-around). */
   url: string;
+  /** Optional strip thumbnail; falls back to url. */
+  thumbUrl?: string;
 };
 
 export type TourMedia = {
@@ -15,7 +18,10 @@ export type TourMedia = {
   locationLng: number;
   contactEmail: string;
   contactTel: string;
+  /** Agency mark (sidebar left) */
   logoUrl: string;
+  /** Project wordmark (sidebar right of agency) */
+  projectLogoUrl: string;
   glbUrl: string;
   units: Unit[];
   totalFrames: number;
@@ -99,6 +105,17 @@ function sceneSortKey(raw: string) {
   return Number.isFinite(n) ? n : Number.POSITIVE_INFINITY;
 }
 
+function isThumbPath(path: string) {
+  return /thumb|thumbnail|_sm|_small/i.test(path);
+}
+
+function isPanoramaPreferred(path: string) {
+  // Prefer full equirect files over tiny thumbs / cube tiles.
+  if (isThumbPath(path)) return false;
+  if (/\/[fbudlr]\//i.test(path)) return false;
+  return true;
+}
+
 /** One scene per top-level folder (cover = first image), or one scene per flat file. */
 export function buildScenes360(paths: string[]): TourScene360[] {
   const groups = new Map<string, string[]>();
@@ -113,11 +130,31 @@ export function buildScenes360(paths: string[]): TourScene360[] {
   }
   return [...groups.entries()]
     .sort((a, b) => sceneSortKey(a[0]) - sceneSortKey(b[0]) || a[0].localeCompare(b[0]))
-    .map(([key, list]) => ({
-      id: key.toLowerCase().replace(/\s+/g, "-"),
-      label: humanizeSceneLabel(key),
-      url: list[0],
-    }));
+    .map(([key, list]) => {
+      const sorted = [...list].sort((a, b) => Number(isPanoramaPreferred(b)) - Number(isPanoramaPreferred(a)));
+      const url = sorted.find(isPanoramaPreferred) || sorted[0];
+      const thumb = list.find(isThumbPath) || url;
+      return {
+        id: key.toLowerCase().replace(/\s+/g, "-"),
+        label: humanizeSceneLabel(key),
+        url,
+        thumbUrl: thumb,
+      };
+    });
+}
+
+export function localScenes360Fallback(slug: string): TourScene360[] {
+  // Dev / file-mode fallback: public/complexes/<slug>/scene_360/{n}.jpg
+  if (slug !== COMPLEX.slug) return [];
+  return Array.from({ length: 12 }, (_, i) => {
+    const n = i + 1;
+    return {
+      id: String(n),
+      label: "",
+      url: `/complexes/${slug}/scene_360/${n}.jpg`,
+      thumbUrl: `/complexes/${slug}/scene_360/${n}-thumb.png`,
+    };
+  });
 }
 
 function emptyShell(slug: string, name?: string): TourMedia {
@@ -130,6 +167,7 @@ function emptyShell(slug: string, name?: string): TourMedia {
     contactEmail: COMPLEX.contactEmail,
     contactTel: COMPLEX.contactTel,
     logoUrl: "",
+    projectLogoUrl: "",
     glbUrl: "",
     units: [],
     totalFrames: 0,
@@ -167,15 +205,21 @@ export function buildTour(payload: Payload, slug: string): TourMedia {
   sortAssets(assets, "villa_360").forEach((a) => {
     villa360[relAfterKind("villa_360", a.path)] = a.path;
   });
-  const scenes360 = buildScenes360(urls(assets, "scene_360"));
+  const scenes360Db = buildScenes360(urls(assets, "scene_360"));
+  const scenes360 = scenes360Db.length ? scenes360Db : localScenes360Fallback(cx?.slug || slug);
 
   const storedFrames = framesLow.length || framesHigh.length;
-  const logo =
-    branding.find((u) => /logo/i.test(u)) ||
+  const agencyLogo =
+    branding.find((u) => /\/agency\./i.test(u) || /agency\./i.test(u.split("/").pop() || "")) ||
+    branding.find((u) => /logo/i.test(u) && !/project/i.test(u)) ||
     branding[0] ||
     (cx?.logo_path && String(cx.logo_path).startsWith("http") ? cx.logo_path : "") ||
     COMPLEX.logoPath ||
     "";
+  const projectLogo =
+    branding.find((u) => /\/project\./i.test(u) || /^project\./i.test(u.split("/").pop() || "")) ||
+    branding.find((u) => /project/i.test(u) && u !== agencyLogo) ||
+    (branding.length > 1 ? branding.find((u) => u !== agencyLogo) || "" : "");
   const glbUrl =
     glb[0] || (cx?.glb_path && String(cx.glb_path).startsWith("http") ? String(cx.glb_path) : "") || "";
 
@@ -187,7 +231,8 @@ export function buildTour(payload: Payload, slug: string): TourMedia {
     locationLng: COMPLEX.locationLng,
     contactEmail: COMPLEX.contactEmail,
     contactTel: COMPLEX.contactTel,
-    logoUrl: logo,
+    logoUrl: agencyLogo,
+    projectLogoUrl: projectLogo || "",
     glbUrl,
     units: payload.units ?? [],
     totalFrames: storedFrames,

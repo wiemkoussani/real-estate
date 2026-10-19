@@ -13,24 +13,62 @@ import { assetFileLabel, assetRelSegments } from "@/lib/asset-path";
 import { IconEye, IconFolder, IconTrash } from "@/components/Icons";
 import { useConfirm } from "@/components/ConfirmDialog";
 
+type BrandSlot = "agency" | "project";
+
 const UPLOAD_STEPS: {
   id: AssetKind;
+  key: string;
   title: string;
   why: string;
   where: string;
   pick: "folder" | "files";
   action: string;
+  brandSlot?: BrandSlot;
 }[] = [
-  { id: "branding", title: "Logo", why: "Shown when the tour starts.", where: "branding → logo.png", pick: "files", action: "Add logo" },
-  { id: "glb", title: "3D model", why: "Lets visitors tap a villa.", where: "models → building.glb", pick: "files", action: "Add model" },
-  { id: "frame_low", title: "Orbit photos", why: "The aerial while turning. Auto-resized on upload (~1280px).", where: "panorama → frames_low", pick: "folder", action: "Add folder" },
-  { id: "gallery", title: "Gallery", why: "One cover photo at the root, then exterior/ and interior/ folders. Auto-capped (~2048px).", where: "gallery → cover + exterior + interior", pick: "folder", action: "Add folder" },
-  { id: "scene_360", title: "Site 360 scenes", why: "Amenity stills shown when visitors tap 360 (Lobby, Lounge, Pool…). One folder per scene, or flat files named by scene. Auto-capped (~2048px).", where: "scene_360 → Lobby/ · Lounge/ · …", pick: "folder", action: "Add folder" },
-  { id: "plan", title: "Plans", why: "Types and floors", where: "plans → types , plans → floors", pick: "folder", action: "Add folder" },
-  { id: "villa_360", title: "Inside 360", why: "Each type: RDC, floors, whole villa. Auto-capped (~2048px).", where: "villa-types", pick: "folder", action: "Add folder" },
-  { id: "frame_high", title: "Sharp aerials", why: "Last step — auto-capped to ~4096px WebP (not full 13k).", where: "panorama → frames", pick: "folder", action: "Add folder" },
-  { id: "document", title: "Private", why: "Contracts. Not on the tour.", where: "Any PDF", pick: "files", action: "Add files" },
+  {
+    id: "branding",
+    key: "branding-agency",
+    title: "Agency logo",
+    why: "Left mark in the tour sidebar (أجياد العربية…).",
+    where: "branding → agency.png",
+    pick: "files",
+    action: "Add agency logo",
+    brandSlot: "agency",
+  },
+  {
+    id: "branding",
+    key: "branding-project",
+    title: "Project logo",
+    why: "Wordmark next to it in the sidebar (أجياد سديم…).",
+    where: "branding → project.png",
+    pick: "files",
+    action: "Add project logo",
+    brandSlot: "project",
+  },
+  { id: "glb", key: "glb", title: "3D model", why: "Lets visitors tap a villa.", where: "models → building.glb", pick: "files", action: "Add model" },
+  { id: "frame_low", key: "frame_low", title: "Orbit photos", why: "The aerial while turning. Auto-resized on upload (~1280px).", where: "panorama → frames_low", pick: "folder", action: "Add folder" },
+  { id: "gallery", key: "gallery", title: "Gallery", why: "One cover photo at the root, then exterior/ and interior/ folders. Auto-capped (~2048px).", where: "gallery → cover + exterior + interior", pick: "folder", action: "Add folder" },
+  {
+    id: "scene_360",
+    key: "scene_360",
+    title: "Site 360 scenes",
+    why: "Equirectangular panoramas (2:1, e.g. 14000×7000). Tap a thumb → drag to look around inside. Name files 1.jpg…12.jpg (or folders). Do not upload the 3DVista cube export. Auto-capped (~4096px wide).",
+    where: "scene_360 → 1.jpg · 2.jpg · …",
+    pick: "folder",
+    action: "Add panoramas",
+  },
+  { id: "plan", key: "plan", title: "Plans", why: "Types and floors", where: "plans → types , plans → floors", pick: "folder", action: "Add folder" },
+  { id: "villa_360", key: "villa_360", title: "Inside 360", why: "Each type: RDC, floors, whole villa. Auto-capped (~2048px).", where: "villa-types", pick: "folder", action: "Add folder" },
+  { id: "frame_high", key: "frame_high", title: "Sharp aerials", why: "Last step — auto-capped to ~4096px WebP (not full 13k).", where: "panorama → frames", pick: "folder", action: "Add folder" },
+  { id: "document", key: "document", title: "Private", why: "Contracts. Not on the tour.", where: "Any PDF", pick: "files", action: "Add files" },
 ];
+
+function brandingSlotOf(path: string): BrandSlot | "" {
+  const name = path.split("?")[0].split("/").pop()?.toLowerCase() || "";
+  if (name.startsWith("agency.")) return "agency";
+  if (name.startsWith("project.")) return "project";
+  return "";
+}
 
 async function pool<T>(items: T[], width: number, fn: (item: T) => Promise<void>) {
   let i = 0;
@@ -273,9 +311,9 @@ export default function ComplexAdminPage() {
     }
   };
 
-  const upload = async (files: File[], nextKind: AssetKind) => {
+  const upload = async (files: File[], nextKind: AssetKind, brandSlot?: BrandSlot) => {
     if (!cx) return;
-    const list = filesForKind(files, nextKind);
+    const list = filesForKind(files, nextKind).slice(0, brandSlot ? 1 : undefined);
     if (!list.length) {
       setErr("No usable files in that selection");
       return;
@@ -293,13 +331,16 @@ export default function ComplexAdminPage() {
     let lastErr = "";
     await pool(list, nextKind === "frame_high" ? 2 : 3, async (raw) => {
       const file = await optimizeUploadFile(raw, nextKind);
+      const rel = brandSlot
+        ? `${brandSlot}.${(file.name.split(".").pop() || "webp").toLowerCase()}`
+        : relativeUploadPath(file);
       const prepRes = await fetch("/api/admin/assets/prepare", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           complexId: cx.id,
           kind: nextKind,
-          relativePath: relativeUploadPath(file),
+          relativePath: rel,
           contentType: file.type,
         }),
       });
@@ -433,14 +474,15 @@ export default function ComplexAdminPage() {
           <div className="table-wrap units-table">
           <table>
             <thead>
-              <tr><th>ID</th><th>Area</th><th>Type</th><th>Floor</th><th>Rooms</th><th>Status</th><th /></tr>
+              <tr><th>ID</th><th>Area</th><th>Type</th><th>Price</th><th>Floor</th><th>Rooms</th><th>Status</th><th /></tr>
             </thead>
             <tbody>
               {units.map((u) => (
                 <tr key={u.id}>
                   <td className="unit-id">{u.display_id}</td>
                   <td>{u.surface} m²</td>
-                  <td><span className="type-pill">T{u.type}</span></td>
+                  <td><span className="type-pill">{u.model || (u.type === 1 ? "1A" : u.type === 2 ? "2A" : u.type === 3 ? "3A" : `T${u.type}`)}</span></td>
+                  <td>{(u.price || 0).toLocaleString("en-US")} ر.س</td>
                   <td>{u.floor}</td>
                   <td>{u.rooms}</td>
                   <td>
@@ -474,12 +516,18 @@ export default function ComplexAdminPage() {
           <p className="muted">Use each card in order. Only open the folder named on that card.</p>
           <div className="upload-grid">
             {UPLOAD_STEPS.map((step) => {
-              const rows = assets.filter((a) => a.kind === step.id || (step.id === "document" && a.kind === "other"));
+              const rows = assets.filter((a) => {
+                if (step.id === "document") return a.kind === "document" || a.kind === "other";
+                if (step.id !== a.kind) return false;
+                if (!step.brandSlot) return true;
+                const slot = brandingSlotOf(a.path);
+                return slot === step.brandSlot || (!slot && step.brandSlot === "agency" && !assets.some((x) => x.kind === "branding" && brandingSlotOf(x.path) === "agency"));
+              });
               const n = rows.length;
-              const preview = step.id === "branding" ? rows.find((a) => a.path.startsWith("http")) : undefined;
+              const preview = step.brandSlot ? rows.find((a) => a.path.startsWith("http")) : undefined;
               const folderPick = step.pick === "folder";
               return (
-                <article key={step.id} className="upload-card">
+                <article key={step.key} className="upload-card">
                   <header>
                     <div className="upload-title">
                       {preview ? <img className="logo-preview" src={preview.path} alt="" /> : null}
@@ -492,7 +540,22 @@ export default function ComplexAdminPage() {
                       <button className="icon-btn" type="button" disabled={!n} title="View files" aria-label="View files" onClick={() => { setFilesKind(step.id); setFilesDir([]); }}>
                         <IconEye size={16} />
                       </button>
-                      <button className="icon-btn danger" type="button" disabled={!n} title="Remove all" aria-label="Remove all" onClick={() => void clearKind(step.id)}>
+                      <button
+                        className="icon-btn danger"
+                        type="button"
+                        disabled={!n}
+                        title={step.brandSlot ? "Remove this logo" : "Remove all"}
+                        aria-label={step.brandSlot ? "Remove this logo" : "Remove all"}
+                        onClick={() => {
+                          if (step.brandSlot) {
+                            void (async () => {
+                              for (const row of rows) await removeAsset(row);
+                            })();
+                            return;
+                          }
+                          void clearKind(step.id);
+                        }}
+                      >
                         <IconTrash size={16} />
                       </button>
                     </div>
@@ -513,10 +576,10 @@ export default function ComplexAdminPage() {
                       onChange={(e) => {
                         const list = Array.from(e.target.files ?? []);
                         e.target.value = "";
-                        void upload(list, step.id);
+                        void upload(list, step.id, step.brandSlot);
                       }}
                     />
-                    <span>{busyKind === step.id ? (busyProgress ? `Adding ${busyProgress}` : "Adding…") : step.action}</span>
+                    <span>{busyKind === step.id && (!step.brandSlot || busyProgress) ? (busyProgress ? `Adding ${busyProgress}` : "Adding…") : step.action}</span>
                   </label>
                 </article>
               );
