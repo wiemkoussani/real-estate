@@ -494,30 +494,43 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
       e.preventDefault();
       node.scrollLeft += e.deltaY + e.deltaX;
     };
+    let tracking = false;
     let dragging = false;
     let startX = 0;
     let startScroll = 0;
+    let activePointer: number | null = null;
     const onDown = (e: PointerEvent) => {
       if (e.button !== 0) return;
-      dragging = true;
+      tracking = true;
+      dragging = false;
       stripDragRef.current = false;
+      activePointer = e.pointerId;
       startX = e.clientX;
       startScroll = node.scrollLeft;
-      node.setPointerCapture(e.pointerId);
-      node.classList.add("is-dragging");
     };
     const onMove = (e: PointerEvent) => {
-      if (!dragging) return;
+      if (!tracking || e.pointerId !== activePointer) return;
       const dx = e.clientX - startX;
-      if (Math.abs(dx) > 5) stripDragRef.current = true;
+      if (!dragging) {
+        if (Math.abs(dx) < 8) return;
+        dragging = true;
+        stripDragRef.current = true;
+        node.setPointerCapture(e.pointerId);
+        node.classList.add("is-dragging");
+      }
       node.scrollLeft = startScroll - dx;
     };
-    const onUp = () => {
-      dragging = false;
-      node.classList.remove("is-dragging");
-      window.setTimeout(() => {
-        stripDragRef.current = false;
-      }, 40);
+    const onUp = (e: PointerEvent) => {
+      if (activePointer !== null && e.pointerId !== activePointer) return;
+      tracking = false;
+      activePointer = null;
+      if (dragging) {
+        dragging = false;
+        node.classList.remove("is-dragging");
+        window.setTimeout(() => {
+          stripDragRef.current = false;
+        }, 40);
+      }
     };
     node.addEventListener("wheel", onWheel, { passive: false });
     node.addEventListener("pointerdown", onDown);
