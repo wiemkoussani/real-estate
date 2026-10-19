@@ -628,7 +628,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
                     className={liked ? "heart on" : "heart"}
                     onClick={(e) => { e.stopPropagation(); toggleFav(u.id); }}
                   >
-                    <IconHeart size={15} filled={liked} />
+                    <IconHeart size={11} filled={liked} />
                   </span>
                 </div>
                 <div className="card-copy">
@@ -714,7 +714,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
               <div className="filter-area-head">
                 <h3>السعر</h3>
                 <em className="range-readout" dir="ltr">
-                  {Math.round(priceMax).toLocaleString("en-US")} ر.س
+                  ر.س {Math.round(priceMax).toLocaleString("en-US")}
                 </em>
               </div>
               <label className="range-single" dir="rtl">
@@ -1075,7 +1075,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
               <span className="dock-photo">
                 {photo ? <img src={photo} alt="" /> : <span className="card-img-fallback" />}
                 <span className={liked ? "heart on" : "heart"} onClick={(e) => { e.stopPropagation(); toggleFav(u.id); }}>
-                  <IconHeart size={14} filled={liked} />
+                  <IconHeart size={11} filled={liked} />
                 </span>
               </span>
               <span className="dock-copy">

@@ -95,7 +95,7 @@ export const COMPLEX = {
 };
 
 export function formatSar(n: number) {
-  return `${Math.round(n).toLocaleString("en-US")} ر.س`;
+  return `ر.س ${Math.round(n).toLocaleString("en-US")}`;
 }
 
 export function frameUrl(index: number, quality: "low" | "high") {

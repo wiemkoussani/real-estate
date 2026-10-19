@@ -392,8 +392,8 @@ body {
 }
 .range-readout {
   font-style: normal;
-  font-size: 13px;
-  font-weight: 400;
+  font-size: 12.5px;
+  font-weight: 600;
   color: #111;
   direction: ltr;
   unicode-bidi: isolate;
@@ -502,9 +502,9 @@ body {
   border: 0;
   border-radius: 999px;
   background: rgba(59, 125, 216, 0.18);
-  color: var(--teal-deep);
+  color: #111;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 515;
   cursor: pointer;
 }
 .filters-reset-btn:hover {
@@ -704,24 +704,31 @@ body {
 .units.cards .unit .heart,
 .units.cards .unit .heart.on {
   position: absolute;
-  top: 5px;
-  left: 5px;
-  width: 22px;
-  height: 22px;
+  top: 4px;
+  left: 4px;
+  width: 20px;
+  height: 20px;
   border: 0 !important;
-  border-radius: 50% !important;
+  border-radius: 6px !important;
   display: grid;
   place-items: center;
-  color: #64748b !important;
-  background: rgba(226, 232, 240, 0.92) !important;
+  color: #111 !important;
+  background: rgba(232, 238, 245, 0.72) !important;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   box-shadow: none !important;
   margin: 0;
   padding: 0;
   filter: none;
 }
+.units.cards .unit .heart svg {
+  width: 12px;
+  height: 12px;
+  stroke-width: 2.2;
+}
 .units.cards .unit .heart.on {
   color: var(--teal) !important;
-  background: rgba(226, 232, 240, 0.92) !important;
+  background: rgba(232, 238, 245, 0.72) !important;
 }
 .units.cards .card-top {
   display: flex;
@@ -766,6 +773,9 @@ body {
   font-weight: 500;
   line-height: 1;
   margin: 2px 0 0;
+  direction: ltr;
+  unicode-bidi: isolate;
+  display: inline-block;
 }
 .units.cards .card-specs {
   display: flex;
@@ -1156,7 +1166,7 @@ body {
   width: 1px;
   height: 20px;
   margin: 0 8px;
-  background: rgba(31, 44, 56, 0.18);
+  background: rgba(31, 44, 56, 0.35);
   flex: none;
 }
 .hud-tools button,
@@ -1359,7 +1369,7 @@ body {
   text-align: center;
 }
 .scene360-bar {
-  --s360-w: 118px;
+  --s360-w: 126px;
   --s360-gap: 10px;
   position: absolute;
   left: 16px;
@@ -1408,7 +1418,7 @@ body {
 .scene360-thumb {
   position: relative;
   flex: none;
-  width: 118px;
+  width: 126px;
   height: 88px;
   border: 2px solid transparent;
   border-radius: 14px;
@@ -1486,7 +1496,7 @@ body {
 }
 .scene360-strip-dock.open {
   /* 5 thumbs + peek, sitting in the HUD row right before the arrow */
-  --s360-w: 118px;
+  --s360-w: 126px;
   --s360-gap: 10px;
   --s360-peek: 28px;
   --s360-visible: calc(5 * var(--s360-w) + 4 * var(--s360-gap) + var(--s360-peek));
@@ -1513,7 +1523,7 @@ body {
   overflow: hidden;
 }
 .scene360-strip-dock .scene360-thumb {
-  width: var(--s360-w, 118px);
+  width: var(--s360-w, 126px);
   height: 88px;
   border: 2px solid transparent;
   border-radius: 14px;
@@ -2877,22 +2887,29 @@ body {
   }
   .dock-photo .heart {
     position: absolute;
-    top: 6px;
-    left: 6px;
-    width: 22px;
-    height: 22px;
-    border-radius: 0 !important;
-    background: transparent !important;
-    color: #fff !important;
+    top: 4px;
+    left: 4px;
+    width: 20px;
+    height: 20px;
+    border-radius: 6px !important;
+    background: rgba(232, 238, 245, 0.72) !important;
+    color: #111 !important;
     display: grid;
     place-items: center;
     box-shadow: none !important;
-    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45));
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    filter: none;
+  }
+  .dock-photo .heart svg {
+    width: 12px;
+    height: 12px;
+    stroke-width: 2.2;
   }
   .dock-photo .heart.on {
-    background: transparent !important;
+    background: rgba(232, 238, 245, 0.72) !important;
     color: var(--teal) !important;
-    filter: drop-shadow(0 1px 2px rgba(255, 255, 255, 0.9));
+    filter: none;
   }
   .dock-copy { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
   .dock-title {
