@@ -2859,21 +2859,16 @@ body {
       transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
       max-height 0.28s ease;
   }
-  .rail-stack .rail-fab:not(.project-toggle) .rail-name {
-    display: none;
-  }
   .app.tools-on .rail-stack .rail-fab:not(.project-toggle) {
     opacity: 1;
     transform: translateY(0);
     max-height: 48px;
     pointer-events: auto;
   }
-  /* Show tool labels to the left, like PC hover */
+  /* Phone: icons only — no تواصل / المعرض / الموقع / مساعدة labels */
+  .rail-stack .rail-fab:not(.project-toggle) .rail-name,
   .app.tools-on .rail-stack .rail-fab:not(.project-toggle) .rail-name {
-    display: flex;
-    max-width: 280px;
-    opacity: 1;
-    padding: 0 30px 0 16px;
+    display: none !important;
   }
   .app.tools-on .rail-stack .rail-fab:not(.project-toggle):nth-child(2) { transition-delay: 0.02s; }
   .app.tools-on .rail-stack .rail-fab:not(.project-toggle):nth-child(3) { transition-delay: 0.05s; }
