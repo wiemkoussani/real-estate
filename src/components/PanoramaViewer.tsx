@@ -8,7 +8,7 @@ type Props = {
   className?: string;
 };
 
-/** Equirectangular 360 look-around — drag only while pointer is held. */
+/** Equirectangular 360 — rotate only while holding and dragging (not after a single click). */
 export default function PanoramaViewer({ src, className }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
 
@@ -73,6 +73,13 @@ export default function PanoramaViewer({ src, className }: Props) {
       renderer.setSize(w, h, false);
     };
 
+    const endDrag = () => {
+      if (!dragging) return;
+      dragging = false;
+      pointerId = null;
+      renderer.domElement.style.cursor = "grab";
+    };
+
     const onDown = (e: PointerEvent) => {
       if (e.button !== 0) return;
       dragging = true;
@@ -88,6 +95,11 @@ export default function PanoramaViewer({ src, className }: Props) {
     };
     const onMove = (e: PointerEvent) => {
       if (!dragging || (pointerId !== null && e.pointerId !== pointerId)) return;
+      // Mouse: if button released without a clean pointerup, stop (no free-look after one click).
+      if (e.pointerType === "mouse" && (e.buttons & 1) === 0) {
+        endDrag();
+        return;
+      }
       const dx = e.clientX - lastX;
       const dy = e.clientY - lastY;
       lastX = e.clientX;
@@ -97,9 +109,7 @@ export default function PanoramaViewer({ src, className }: Props) {
     };
     const onUp = (e: PointerEvent) => {
       if (pointerId !== null && e.pointerId !== pointerId) return;
-      dragging = false;
-      pointerId = null;
-      renderer.domElement.style.cursor = "grab";
+      endDrag();
     };
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
@@ -112,6 +122,7 @@ export default function PanoramaViewer({ src, className }: Props) {
     el.addEventListener("pointermove", onMove);
     el.addEventListener("pointerup", onUp);
     el.addEventListener("pointercancel", onUp);
+    window.addEventListener("pointerup", onUp);
     el.addEventListener("wheel", onWheel, { passive: false });
 
     const ro = new ResizeObserver(resize);
@@ -136,10 +147,12 @@ export default function PanoramaViewer({ src, className }: Props) {
       disposed = true;
       cancelAnimationFrame(raf);
       ro.disconnect();
+      endDrag();
       el.removeEventListener("pointerdown", onDown);
       el.removeEventListener("pointermove", onMove);
       el.removeEventListener("pointerup", onUp);
       el.removeEventListener("pointercancel", onUp);
+      window.removeEventListener("pointerup", onUp);
       el.removeEventListener("wheel", onWheel);
       mat.map?.dispose();
       mat.dispose();

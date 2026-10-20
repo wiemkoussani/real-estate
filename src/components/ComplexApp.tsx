@@ -632,7 +632,14 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
         </button>
         <div className={`panel-inner ${formOpen ? "form-mode" : ""}`}>
           {formOpen ? (
-            <ContactSidebar unit={selected} onBack={() => setFormOpen(false)} />
+            <ContactSidebar
+              unit={selected}
+              onBack={() => {
+                setFormOpen(false);
+                // Phone/tablet: leave the contact form for the map, not the unit list.
+                if (window.matchMedia("(max-width: 1100px)").matches) setListOpen(false);
+              }}
+            />
           ) : (
             <>
           <header className="panel-brand">
