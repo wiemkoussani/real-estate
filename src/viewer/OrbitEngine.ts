@@ -475,6 +475,7 @@ export class OrbitEngine {
       }
       const img = existing ?? new Image();
       img.decoding = "async";
+      img.crossOrigin = "anonymous";
       this.lowImages[idx] = img;
       if (img.complete && img.naturalWidth) {
         if (decode) void this.warmLow(idx);
@@ -936,6 +937,7 @@ export class OrbitEngine {
         return;
       }
       highImg = new Image();
+      highImg.crossOrigin = "anonymous";
       this.highImages[index] = highImg;
       highImg.onload = () => decode(highImg!);
       highImg.onerror = finish;
@@ -1009,6 +1011,7 @@ export class OrbitEngine {
     let highImg = this.highImages[index];
     if (!highImg) {
       highImg = new Image();
+      highImg.crossOrigin = "anonymous";
       this.highImages[index] = highImg;
       highImg.onload = () => {
         if (this.currentFrame === index) this.fadeToHigh(index);
