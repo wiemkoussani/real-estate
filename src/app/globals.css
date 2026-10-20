@@ -192,6 +192,10 @@ body {
   padding: 0;
   transition: color 0.15s ease, transform 0.15s ease;
 }
+.tool-fab.heart-fab,
+.tool-fab.filter-fab {
+  color: #3b7dd8;
+}
 .tool-fab.heart-fab { margin-inline-end: auto; }
 .tool-fab.filter-fab { margin-inline-start: auto; }
 .tool-fab:hover {
@@ -199,17 +203,31 @@ body {
   transform: none;
   color: #5f6d7c;
 }
-.tool-fab.on,
-.tool-fab.filter-fab.on,
-.tool-fab.heart-fab.on {
+.tool-fab.heart-fab:hover,
+.tool-fab.filter-fab:hover,
+.tool-fab.heart-fab.on,
+.tool-fab.filter-fab.on {
   background: transparent;
-  color: var(--teal);
+  color: #2b5fad;
   border: 0;
   box-shadow: none;
 }
+/* Outline stroke — blue border for heart + filter icons */
+.tool-fab.heart-fab svg,
+.tool-fab.filter-fab svg {
+  fill: none !important;
+  stroke: #3b7dd8 !important;
+  color: #3b7dd8 !important;
+}
+.tool-fab.heart-fab:hover svg,
+.tool-fab.filter-fab:hover svg,
+.tool-fab.heart-fab.on svg,
 .tool-fab.filter-fab.on svg {
-  fill: currentColor;
-  stroke: currentColor;
+  stroke: #2b5fad !important;
+  color: #2b5fad !important;
+}
+.tool-fab.heart-fab.on svg {
+  fill: #3b7dd8 !important;
 }
 .tool-fab .fav-count {
   font-size: 14px;
@@ -2725,11 +2743,16 @@ body {
     border-radius: 50%;
     border: 1px solid rgba(255, 255, 255, 0.9);
     background: rgba(255, 255, 255, 0.96);
-    color: #8b98a8;
+    color: #3b7dd8;
     display: grid;
     place-items: center;
     cursor: pointer;
     box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
+  }
+  .phone-top .compact-filter svg {
+    fill: none !important;
+    stroke: #3b7dd8 !important;
+    color: #3b7dd8 !important;
   }
 
   .rail {
