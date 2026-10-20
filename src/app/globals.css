@@ -2803,7 +2803,7 @@ body {
     -webkit-backdrop-filter: none;
     padding: 0;
   }
-  /* No glass column around مشروع — icons drop from the same right side */
+  /* Phone: no glass until مشروع is open; then frosted column wraps the icons */
   .rail-stack {
     opacity: 1;
     max-height: none;
@@ -2812,12 +2812,33 @@ body {
     min-width: 44px;
     padding: 0;
     gap: 8px;
-    align-items: flex-end;
+    align-items: center;
     background: transparent;
     border: 0;
     box-shadow: none;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
+    border-radius: 999px;
+    transition:
+      background 0.28s ease,
+      border-color 0.28s ease,
+      box-shadow 0.28s ease,
+      padding 0.28s ease,
+      width 0.28s ease;
+  }
+  .app.tools-on .rail-stack {
+    width: 52px;
+    padding: 7px 6px 10px;
+    gap: 7px;
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.48) 0%,
+      rgba(255, 255, 255, 0.22) 100%
+    );
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.14);
+    backdrop-filter: blur(16px) saturate(120%);
+    -webkit-backdrop-filter: blur(16px) saturate(120%);
   }
   .rail-stack .rail-fab:not(.project-toggle) {
     opacity: 0;
@@ -2826,7 +2847,7 @@ body {
     margin: 0;
     overflow: hidden;
     pointer-events: none;
-    align-self: flex-end;
+    align-self: center;
     transition:
       opacity 0.28s ease,
       transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
@@ -2840,6 +2861,10 @@ body {
     transform: translateY(0);
     max-height: 48px;
     pointer-events: auto;
+  }
+  .app.tools-on .rail-stack .rail-fab.project-toggle.open {
+    align-self: center;
+    margin-inline-end: 0;
   }
   .app.tools-on .rail-stack .rail-fab:not(.project-toggle):nth-child(2) { transition-delay: 0.02s; }
   .app.tools-on .rail-stack .rail-fab:not(.project-toggle):nth-child(3) { transition-delay: 0.05s; }
