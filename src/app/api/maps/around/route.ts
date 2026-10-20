@@ -146,12 +146,21 @@ async function overpassPlaces(
       .join("\n"),
   ).join("\n");
   const overpass = `[out:json][timeout:${opts.timeout}];(\n${filters}\n);out center;`;
-  const endpoints = ["https://overpass.kumi.systems/api/interpreter", "https://overpass-api.de/api/interpreter"];
+  // FR mirror is the most reliable right now; DE/kumi often 406 / timeout / capacity.
+  const endpoints = [
+    "https://overpass.openstreetmap.fr/api/interpreter",
+    "https://lz4.overpass-api.de/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
+  ];
   for (const url of endpoints) {
     try {
       const poiRes = await fetch(url, {
         method: "POST",
-        headers: { ...UA, "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8" },
+        headers: {
+          ...UA,
+          Accept: "application/json",
+          "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+        },
         body: `data=${encodeURIComponent(overpass)}`,
         signal: AbortSignal.timeout(opts.signalMs),
       });
@@ -194,18 +203,32 @@ function mergePlaces(a: PoiPlace[], b: PoiPlace[]) {
   return out.slice(0, 400);
 }
 
-/** English search — reliable when Overpass is slow/empty. Light = fewer/faster queries. */
+/** Pull a city/area hint so Photon finds local places (bare "restaurant" returns global junk). */
+function cityHint(address?: string) {
+  if (!address) return "Khamis Mushait";
+  const parts = address
+    .replace(PLUS_CODE, " ")
+    .split(",")
+    .map((p) => p.replace(/\d+/g, " ").replace(/\s+/g, " ").trim())
+    .filter((p) => p.length >= 3);
+  return parts.find((p) => /mushait|khamis|abha|riyadh|jeddah|saudi/i.test(p)) || parts[0] || "Khamis Mushait";
+}
+
+/** Photon + city name — Overpass is often slow; widen radius so SA suburbs still pin. */
 async function photonPlacesLight(
   lat: number,
   lng: number,
-  opts?: { timeoutMs?: number; limit?: number; kinds?: number },
+  opts?: { timeoutMs?: number; limit?: number; kinds?: number; city?: string; radiusKm?: number },
 ): Promise<PoiPlace[]> {
   const timeoutMs = opts?.timeoutMs ?? 4500;
   const limit = opts?.limit ?? 15;
+  const radiusKm = opts?.radiusKm ?? 12;
+  const city = opts?.city || "Khamis Mushait";
   const filters = opts?.kinds ? POI_FILTERS.slice(0, opts.kinds) : POI_FILTERS;
   const queries = filters.map((f) => ({
     kind: f.id as PoiKind,
-    q: f.search,
+    // City in the query beats lat/lon bias alone for sparse OSM regions.
+    q: `${f.search} ${city}`,
     fallback: f.en,
   }));
   const near = await Promise.all(
@@ -225,7 +248,7 @@ async function photonPlacesLight(
             if (!coords || coords.length < 2) return null;
             const plng = coords[0];
             const plat = coords[1];
-            if (!withinKm(lat, lng, plat, plng, 5)) return null;
+            if (!withinKm(lat, lng, plat, plng, radiusKm)) return null;
             return {
               id: `ph-${kind}-${feat.properties?.osm_id || `${plat}-${plng}`}`,
               kind,
@@ -246,28 +269,32 @@ async function photonPlacesLight(
 /** ~16 km cells so nearby pin sets can be reused when the home pin moves slightly. */
 function regionKey(lat: number, lng: number, light: boolean) {
   const cell = (v: number) => (Math.round(v / 0.15) * 0.15).toFixed(2);
-  return `v11r:${cell(lat)}:${cell(lng)}${light ? ":l" : ""}`;
+  return `v12r:${cell(lat)}:${cell(lng)}${light ? ":l" : ""}`;
 }
 
-async function loadPlaces(lat: number, lng: number, light: boolean): Promise<PoiPlace[]> {
+async function loadPlaces(lat: number, lng: number, light: boolean, address?: string): Promise<PoiPlace[]> {
+  const city = cityHint(address);
   const overP = overpassPlaces(
     lat,
     lng,
-    light ? { timeout: 4, radius: 3500, signalMs: 4200 } : { timeout: 10, radius: 5000, signalMs: 11000 },
+    light ? { timeout: 12, radius: 7000, signalMs: 14000 } : { timeout: 18, radius: 9000, signalMs: 18000 },
   );
-  const photonP = photonPlacesLight(
-    lat,
-    lng,
-    light ? { timeoutMs: 2200, limit: 10, kinds: 8 } : { timeoutMs: 4500, limit: 15 },
-  );
+  const photonP = photonPlacesLight(lat, lng, {
+    city,
+    radiusKm: 14,
+    timeoutMs: light ? 3500 : 5000,
+    limit: light ? 12 : 18,
+    // Include hospital + core amenities even in light mode.
+    kinds: light ? 10 : undefined,
+  });
 
   // Photon is usually fast — don't wait the full Overpass budget when pins are already good.
   const photon = await photonP;
-  if (photon.length >= 5) {
+  if (photon.length >= 4) {
     const over = await Promise.race([
       overP,
       new Promise<PoiPlace[]>((resolve) => {
-        setTimeout(() => resolve([]), light ? 1600 : 2800);
+        setTimeout(() => resolve([]), light ? 3500 : 6000);
       }),
     ]);
     return mergePlaces(photon, over);
@@ -298,7 +325,7 @@ export async function GET(req: Request) {
   let address = sp.get("address") || "";
 
   if (q && q.length >= 2) {
-    const qkey = `v11:${q.toLowerCase()}${light ? ":l" : ""}`;
+    const qkey = `v12:${q.toLowerCase()}${light ? ":l" : ""}`;
     const hit = cached(qkey, 30 * 60_000);
     if (hit && !fast) return jsonOk(hit);
 
@@ -314,7 +341,7 @@ export async function GET(req: Request) {
     return jsonOk({ lat, lng, address: address || q || "", places: [] }, 300);
   }
 
-  const pkey = `v11p:${lat.toFixed(4)}:${lng.toFixed(4)}${light ? ":l" : ""}`;
+  const pkey = `v12p:${lat.toFixed(4)}:${lng.toFixed(4)}${light ? ":l" : ""}`;
   const rkey = regionKey(lat, lng, light);
   const phit = cached(pkey, 30 * 60_000) as { places?: PoiPlace[] } | null;
   if (phit?.places?.length) return jsonOk({ ...phit, lat, lng, address: address || (phit as { address?: string }).address || "" });
@@ -326,13 +353,13 @@ export async function GET(req: Request) {
     return jsonOk(body);
   }
 
-  const places = await loadPlaces(lat, lng, light);
+  const places = await loadPlaces(lat, lng, light, address || q || "");
   const body = { lat, lng, address, places };
   // Never cache empty POI sets — that blocks pins for 30 minutes.
   if (places.length) {
     putCache(pkey, body);
     putCache(rkey, body);
-    if (q && q.length >= 2) putCache(`v11:${q.toLowerCase()}${light ? ":l" : ""}`, body);
+    if (q && q.length >= 2) putCache(`v12:${q.toLowerCase()}${light ? ":l" : ""}`, body);
   }
   return jsonOk(body);
 }
