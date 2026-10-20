@@ -675,7 +675,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
                 {favs.length > 0 ? <span className="fav-count">{favs.length}</span> : null}
               </button>
               <button type="button" className={`tool-fab filter-fab ${filtersOpen ? "on" : ""}`} onClick={() => setFiltersOpen((v) => !v)} title="Filters" aria-label="Filters">
-                <IconFilters size={16} />
+                <IconFilters size={16} filled={filtersOpen} />
               </button>
             </div>
           </div>

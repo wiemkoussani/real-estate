@@ -28,8 +28,21 @@ export const IconHeart = (p: Props & { filled?: boolean }) => (
     <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21.2l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z" />
   </svg>
 );
-export const IconFilters = (p: Props) => (
-  <Svg {...p}><path d="M22 3H2l8 9.5V19l4 2v-8.5L22 3z" /></Svg>
+export const IconFilters = (p: Props & { filled?: boolean }) => (
+  <svg
+    className={p.className}
+    width={p.size ?? 18}
+    height={p.size ?? 18}
+    viewBox="0 0 24 24"
+    fill={p.filled ? "currentColor" : "none"}
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden
+  >
+    <path d="M22 3H2l8 9.5V19l4 2v-8.5L22 3z" />
+  </svg>
 );
 export const IconCards = (p: Props) => (
   <Svg {...p}><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></Svg>

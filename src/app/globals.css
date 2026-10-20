@@ -226,7 +226,8 @@ body {
   stroke: #2b5fad !important;
   color: #2b5fad !important;
 }
-.tool-fab.heart-fab.on svg {
+.tool-fab.heart-fab.on svg,
+.tool-fab.filter-fab.on svg {
   fill: #3b7dd8 !important;
 }
 .tool-fab .fav-count {
