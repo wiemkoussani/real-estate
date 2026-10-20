@@ -214,7 +214,9 @@ body {
 }
 /* Outline stroke — blue border for heart + filter icons */
 .tool-fab.heart-fab svg,
-.tool-fab.filter-fab svg {
+.tool-fab.filter-fab svg,
+.tool-fab.heart-fab svg path,
+.tool-fab.filter-fab svg path {
   fill: none !important;
   stroke: #3b7dd8 !important;
   color: #3b7dd8 !important;
@@ -2741,7 +2743,7 @@ body {
     width: 44px;
     height: 44px;
     border-radius: 50%;
-    border: 1px solid rgba(255, 255, 255, 0.9);
+    border: 1.5px solid #3b7dd8;
     background: rgba(255, 255, 255, 0.96);
     color: #3b7dd8;
     display: grid;
@@ -2749,7 +2751,8 @@ body {
     cursor: pointer;
     box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
   }
-  .phone-top .compact-filter svg {
+  .phone-top .compact-filter svg,
+  .phone-top .compact-filter svg path {
     fill: none !important;
     stroke: #3b7dd8 !important;
     color: #3b7dd8 !important;
