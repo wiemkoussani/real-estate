@@ -183,7 +183,7 @@ async function overpassPlaces(
           } as PoiPlace;
         })
         .filter((p): p is PoiPlace => Boolean(p));
-      if (places.length) return places.slice(0, 400);
+      if (places.length) return places.slice(0, 120);
     } catch {
       /* next */
     }
@@ -191,16 +191,21 @@ async function overpassPlaces(
   return [];
 }
 
-function mergePlaces(a: PoiPlace[], b: PoiPlace[]) {
+function mergePlaces(a: PoiPlace[], b: PoiPlace[], perKind = 4, maxTotal = 48) {
   const seen = new Set<string>();
+  const counts = new Map<string, number>();
   const out: PoiPlace[] = [];
   for (const p of [...a, ...b]) {
     const key = `${p.kind}-${p.lat.toFixed(5)}-${p.lng.toFixed(5)}`;
     if (seen.has(key)) continue;
+    const n = counts.get(p.kind) || 0;
+    if (n >= perKind) continue;
     seen.add(key);
+    counts.set(p.kind, n + 1);
     out.push(p);
+    if (out.length >= maxTotal) break;
   }
-  return out.slice(0, 400);
+  return out;
 }
 
 /** Pull a city/area hint so Photon finds local places (bare "restaurant" returns global junk). */
@@ -222,7 +227,7 @@ async function photonPlacesLight(
 ): Promise<PoiPlace[]> {
   const timeoutMs = opts?.timeoutMs ?? 4500;
   const limit = opts?.limit ?? 15;
-  const radiusKm = opts?.radiusKm ?? 12;
+  const radiusKm = opts?.radiusKm ?? 2.5;
   const city = opts?.city || "Khamis Mushait";
   const filters = opts?.kinds ? POI_FILTERS.slice(0, opts.kinds) : POI_FILTERS;
   const queries = filters.map((f) => ({
@@ -269,22 +274,22 @@ async function photonPlacesLight(
 /** ~16 km cells so nearby pin sets can be reused when the home pin moves slightly. */
 function regionKey(lat: number, lng: number, light: boolean) {
   const cell = (v: number) => (Math.round(v / 0.15) * 0.15).toFixed(2);
-  return `v12r:${cell(lat)}:${cell(lng)}${light ? ":l" : ""}`;
+  return `v13r:${cell(lat)}:${cell(lng)}${light ? ":l" : ""}`;
 }
 
 async function loadPlaces(lat: number, lng: number, light: boolean, address?: string): Promise<PoiPlace[]> {
   const city = cityHint(address);
+  // ~2.5 km — enough nearby amenities without flooding the map.
   const overP = overpassPlaces(
     lat,
     lng,
-    light ? { timeout: 12, radius: 7000, signalMs: 14000 } : { timeout: 18, radius: 9000, signalMs: 18000 },
+    light ? { timeout: 10, radius: 2500, signalMs: 12000 } : { timeout: 15, radius: 3000, signalMs: 16000 },
   );
   const photonP = photonPlacesLight(lat, lng, {
     city,
-    radiusKm: 14,
+    radiusKm: 2.5,
     timeoutMs: light ? 3500 : 5000,
-    limit: light ? 12 : 18,
-    // Include hospital + core amenities even in light mode.
+    limit: light ? 8 : 10,
     kinds: light ? 10 : undefined,
   });
 
@@ -325,7 +330,7 @@ export async function GET(req: Request) {
   let address = sp.get("address") || "";
 
   if (q && q.length >= 2) {
-    const qkey = `v12:${q.toLowerCase()}${light ? ":l" : ""}`;
+    const qkey = `v13:${q.toLowerCase()}${light ? ":l" : ""}`;
     const hit = cached(qkey, 30 * 60_000);
     if (hit && !fast) return jsonOk(hit);
 
@@ -341,7 +346,7 @@ export async function GET(req: Request) {
     return jsonOk({ lat, lng, address: address || q || "", places: [] }, 300);
   }
 
-  const pkey = `v12p:${lat.toFixed(4)}:${lng.toFixed(4)}${light ? ":l" : ""}`;
+  const pkey = `v13p:${lat.toFixed(4)}:${lng.toFixed(4)}${light ? ":l" : ""}`;
   const rkey = regionKey(lat, lng, light);
   const phit = cached(pkey, 30 * 60_000) as { places?: PoiPlace[] } | null;
   if (phit?.places?.length) return jsonOk({ ...phit, lat, lng, address: address || (phit as { address?: string }).address || "" });
@@ -359,7 +364,7 @@ export async function GET(req: Request) {
   if (places.length) {
     putCache(pkey, body);
     putCache(rkey, body);
-    if (q && q.length >= 2) putCache(`v12:${q.toLowerCase()}${light ? ":l" : ""}`, body);
+    if (q && q.length >= 2) putCache(`v13:${q.toLowerCase()}${light ? ":l" : ""}`, body);
   }
   return jsonOk(body);
 }

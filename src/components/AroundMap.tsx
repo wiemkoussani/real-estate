@@ -53,7 +53,7 @@ export function AroundMap({
   useEffect(() => {
     let stop = false;
     const hasExact = Number.isFinite(lat) && Number.isFinite(lng);
-    const key = hasExact ? `poi-map-v7:${lat!.toFixed(5)},${lng!.toFixed(5)}` : `poi-map-v7:${query}`;
+    const key = hasExact ? `poi-map-v8:${lat!.toFixed(5)},${lng!.toFixed(5)}` : `poi-map-v8:${query}`;
     const aroundUrl = (extra: string) =>
       hasExact
         ? `/api/maps/around?lat=${lat}&lng=${lng}&address=${encodeURIComponent(query)}&${extra}`
@@ -61,9 +61,7 @@ export function AroundMap({
     let hadGoodCache = false;
     try {
       const tryKeys = [key];
-      // Reuse older session caches so pins appear instantly after coord fixes.
-      if (query) tryKeys.push(`poi-map-v6:${query}`, `poi-map-v7:${query}`);
-      if (hasExact) tryKeys.push(`poi-map-v6:${lat!.toFixed(5)},${lng!.toFixed(5)}`);
+      // Only reuse same-version cache — older v7 packs were too dense (~14 km).
       for (const k of tryKeys) {
         const raw = sessionStorage.getItem(k);
         if (!raw) continue;
