@@ -183,16 +183,83 @@ export class OrbitEngine {
         best = i;
       }
     });
-    if (best === this.currentFrame) return;
+    void this.goToFrame(best);
+  }
+
+  /** Shortest-path jump to an orbit frame (phone longitude). */
+  async goToFrame(index: number) {
     const n = this.tour.totalFrames;
-    const dir: 1 | -1 = best > this.currentFrame ? 1 : -1;
-    const go = () => {
-      if (this.disposed || !this.frameReady(best)) return;
-      this.commitFrame(best, dir);
-    };
-    if (this.frameReady(best)) go();
-    else void this.loadOne(best).then(go);
-    void n;
+    if (!n || index < 0 || index >= n || index === this.currentFrame) return;
+    const forward = (index - this.currentFrame + n) % n;
+    const backward = (this.currentFrame - index + n) % n;
+    const dir: 1 | -1 = forward <= backward ? 1 : -1;
+    if (!this.frameReady(index)) await this.loadOne(index);
+    if (this.disposed || !this.frameReady(index)) return;
+    this.commitFrame(index, dir);
+  }
+
+  /** Frame where the unit sits closest to screen center (visible longitude). */
+  bestFrameForUnit(id: string) {
+    const mesh = this.unitMeshes[id];
+    if (!mesh) return this.currentFrame;
+    const center = new THREE.Box3().setFromObject(mesh).getCenter(new THREE.Vector3());
+    const n = this.tour.totalFrames;
+    const probe = new THREE.PerspectiveCamera();
+    let best = this.currentFrame;
+    let bestScore = -Infinity;
+    for (let i = 0; i < n; i++) {
+      const src = this.glbCameras[i];
+      if (!src) continue;
+      src.updateMatrixWorld(true);
+      probe.copy(src as THREE.PerspectiveCamera);
+      probe.aspect = 1;
+      probe.updateProjectionMatrix();
+      probe.updateMatrixWorld(true);
+      const p = center.clone().project(probe);
+      if (p.z < 0 || p.z > 1) continue;
+      const radial = p.x * p.x + p.y * p.y;
+      const hop = Math.min(Math.abs(i - this.currentFrame), n - Math.abs(i - this.currentFrame));
+      const score = -radial * 12 - hop * 0.01;
+      if (score > bestScore) {
+        bestScore = score;
+        best = i;
+      }
+    }
+    return best;
+  }
+
+  /**
+   * Color the unit and rotate the orbit so it is in view (phone often hides
+   * houses that sit on another longitude).
+   */
+  async faceUnit(id: string) {
+    if (!this.unitMeshes[id] || this.disposed) return;
+    this.setPreview(id);
+    const best = this.bestFrameForUnit(id);
+    if (best !== this.currentFrame) await this.goToFrame(best);
+    if (this.disposed) return;
+    this.panUnitIntoView(id);
+  }
+
+  /** Soft pan/crop so the highlighted house sits in the phone viewport. */
+  private panUnitIntoView(id: string) {
+    const mesh = this.unitMeshes[id];
+    if (!mesh) return;
+    const box = this.projectUnit(mesh);
+    if (!box) return;
+    const { dw, dh, cw, ch } = box;
+    const baseX = Math.round((cw - dw) / 2);
+    const baseY = Math.round((ch - dh) / 2);
+    const limitX = Math.max(0, Math.round((dw - cw) / 2));
+    const limitY = Math.max(0, Math.round((dh - ch) / 2));
+    this.cropX = Math.min(limitX, Math.max(-limitX, Math.round(cw / 2 - box.cx - baseX)));
+    this.cropY = Math.min(limitY, Math.max(-limitY, Math.round(ch / 2 - box.cy - baseY)));
+    this.zoom = 1;
+    this.panX = 0;
+    this.panY = 0;
+    this.syncCamera();
+    this.applyTransform();
+    this.paintCurrent();
   }
 
   setOverlayVisible(v: boolean) {
@@ -610,6 +677,12 @@ export class OrbitEngine {
     this.approaching = true;
     this.isNavigating = false;
     this.highlight(id);
+    const best = this.bestFrameForUnit(id);
+    if (best !== this.currentFrame) {
+      await this.goToFrame(best);
+      if (this.disposed) return;
+      this.highlight(id);
+    }
     const box = this.projectUnit(mesh);
     if (!box) {
       this.approaching = false;

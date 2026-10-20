@@ -73,7 +73,25 @@ export default function PanoramaViewer({ src, className }: Props) {
       renderer.setSize(w, h, false);
     };
 
+    const endDrag = (id?: number) => {
+      if (!dragging) return;
+      if (id !== undefined && pointerId !== null && id !== pointerId) return;
+      const captured = pointerId;
+      dragging = false;
+      pointerId = null;
+      renderer.domElement.style.cursor = "grab";
+      if (captured !== null) {
+        try {
+          renderer.domElement.releasePointerCapture(captured);
+        } catch {
+          /* already released */
+        }
+      }
+    };
+
     const onDown = (e: PointerEvent) => {
+      if (e.button !== 0) return;
+      e.preventDefault();
       dragging = true;
       pointerId = e.pointerId;
       lastX = e.clientX;
@@ -87,6 +105,11 @@ export default function PanoramaViewer({ src, className }: Props) {
     };
     const onMove = (e: PointerEvent) => {
       if (!dragging || (pointerId !== null && e.pointerId !== pointerId)) return;
+      // Mouse must stay pressed — a lone click must not keep look-around active.
+      if (e.pointerType === "mouse" && (e.buttons & 1) === 0) {
+        endDrag(e.pointerId);
+        return;
+      }
       const dx = e.clientX - lastX;
       const dy = e.clientY - lastY;
       lastX = e.clientX;
@@ -95,10 +118,10 @@ export default function PanoramaViewer({ src, className }: Props) {
       lat = Math.max(-85, Math.min(85, lat + dy * 0.15));
     };
     const onUp = (e: PointerEvent) => {
-      if (pointerId !== null && e.pointerId !== pointerId) return;
-      dragging = false;
-      pointerId = null;
-      renderer.domElement.style.cursor = "grab";
+      endDrag(e.pointerId);
+    };
+    const onLostCapture = () => {
+      endDrag();
     };
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
@@ -111,6 +134,7 @@ export default function PanoramaViewer({ src, className }: Props) {
     el.addEventListener("pointermove", onMove);
     el.addEventListener("pointerup", onUp);
     el.addEventListener("pointercancel", onUp);
+    el.addEventListener("lostpointercapture", onLostCapture);
     el.addEventListener("wheel", onWheel, { passive: false });
 
     const ro = new ResizeObserver(resize);
@@ -135,10 +159,12 @@ export default function PanoramaViewer({ src, className }: Props) {
       disposed = true;
       cancelAnimationFrame(raf);
       ro.disconnect();
+      endDrag();
       el.removeEventListener("pointerdown", onDown);
       el.removeEventListener("pointermove", onMove);
       el.removeEventListener("pointerup", onUp);
       el.removeEventListener("pointercancel", onUp);
+      el.removeEventListener("lostpointercapture", onLostCapture);
       el.removeEventListener("wheel", onWheel);
       mat.map?.dispose();
       mat.dispose();

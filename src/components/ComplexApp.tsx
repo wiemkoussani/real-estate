@@ -189,6 +189,8 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
   const [activeSceneId, setActiveSceneId] = useState<string | null>(null);
   const rotateHoldRef = useRef<number | null>(null);
   const stripDragRef = useRef(false);
+  const dockRef = useRef<HTMLDivElement>(null);
+  const dockFacedIdRef = useRef<string | null>(null);
   const [status, setStatus] = useState<"all" | UnitStatus>("all");
   const [selectedModels, setSelectedModels] = useState<string[]>([]);
   const [selectedRooms, setSelectedRooms] = useState<number[]>([]);
@@ -369,6 +371,54 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
       .filter((u) => !favOnly || favs.includes(u.id))
       .sort((a, b) => a.displayId.localeCompare(b.displayId, undefined, { numeric: true }));
   }, [units, areaMax, floorMax, priceMin, priceMax, status, selectedModels, selectedRooms, favOnly, favs]);
+
+  // Phone dock: color the villa for the centered card and rotate longitude if needed.
+  useEffect(() => {
+    const dock = dockRef.current;
+    if (!dock || !ready) return;
+    dockFacedIdRef.current = null;
+    let timer: number | null = null;
+    let facing = false;
+
+    const syncFacedUnit = () => {
+      if (facing) return;
+      if (typeof window === "undefined") return;
+      if (!window.matchMedia("(max-width: 1100px)").matches) return;
+      if (scene360Strip || scene360Open || tourUnit) return;
+      const mid = dock.scrollLeft + dock.clientWidth / 2;
+      let bestId: string | null = null;
+      let bestDist = Infinity;
+      dock.querySelectorAll<HTMLElement>(".unit[data-unit-id]").forEach((el) => {
+        const center = el.offsetLeft + el.offsetWidth / 2;
+        const d = Math.abs(center - mid);
+        if (d < bestDist) {
+          bestDist = d;
+          bestId = el.dataset.unitId ?? null;
+        }
+      });
+      if (!bestId || bestId === dockFacedIdRef.current) return;
+      dockFacedIdRef.current = bestId;
+      const en = engineRef.current;
+      if (!en) return;
+      facing = true;
+      void en.faceUnit(bestId).finally(() => {
+        facing = false;
+      });
+    };
+
+    const onScroll = () => {
+      if (timer) window.clearTimeout(timer);
+      timer = window.setTimeout(syncFacedUnit, 140);
+    };
+
+    dock.addEventListener("scroll", onScroll, { passive: true });
+    const boot = window.setTimeout(syncFacedUnit, 80);
+    return () => {
+      dock.removeEventListener("scroll", onScroll);
+      window.clearTimeout(boot);
+      if (timer) window.clearTimeout(timer);
+    };
+  }, [ready, filtered, scene360Strip, scene360Open, tourUnit]);
 
   const toggleFav = (id: string) => {
     setFavs((prev) => {
@@ -813,40 +863,51 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
         )}
 
         {!scene360Open && (
-          <div className="compact-top" onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
-            <button
-              type="button"
-              className="compact-logo"
-              title={tour.name}
-              aria-label={tour.name}
-              onClick={() => {
-                setFormOpen(false);
-                setFiltersOpen(false);
-                setListOpen(true);
-              }}
-            >
-              <span className="agency-logo compact-agency-logo">
-                <img
-                  src={tour.logoUrl || COMPLEX.logoPath}
-                  alt=""
-                  onError={(e) => {
-                    const img = e.currentTarget;
-                    if (img.dataset.fallback === "1") return;
-                    img.dataset.fallback = "1";
-                    img.src = COMPLEX.logoPath;
-                  }}
-                />
-              </span>
-            </button>
-            <button
-              type="button"
-              className={`compact-filter${filtersOpen ? " on" : ""}`}
-              title="Filters"
-              onClick={openFilters}
-            >
-              <IconFilters size={17} />
-            </button>
-          </div>
+          <header className="phone-top" onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
+            <div className="phone-top-bar">
+              <button
+                type="button"
+                className="compact-logo"
+                title={tour.name}
+                aria-label={tour.name}
+                onClick={() => {
+                  setFormOpen(false);
+                  setFiltersOpen(false);
+                  setListOpen(true);
+                }}
+              >
+                <span className="agency-logo compact-agency-logo">
+                  <img
+                    src={tour.logoUrl || COMPLEX.logoPath}
+                    alt=""
+                    onError={(e) => {
+                      const img = e.currentTarget;
+                      if (img.dataset.fallback === "1") return;
+                      img.dataset.fallback = "1";
+                      img.src = COMPLEX.logoPath;
+                    }}
+                  />
+                </span>
+              </button>
+              <div className="compact-project">
+                {tour.projectLogoUrl ? (
+                  <img src={tour.projectLogoUrl} alt={tour.name} className="compact-project-logo" />
+                ) : (
+                  <b className="compact-project-name">{tour.name}</b>
+                )}
+              </div>
+            </div>
+            {!filtersOpen && (
+              <button
+                type="button"
+                className="compact-filter"
+                title="Filters"
+                onClick={openFilters}
+              >
+                <IconFilters size={17} />
+              </button>
+            )}
+          </header>
         )}
 
         <nav className={`rail${scene360Open ? " is-hidden" : ""}`} aria-label="Tools" onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
@@ -1067,7 +1128,8 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
       </div>
 
       <div
-        className={`dock${scene360Strip || scene360Open ? " tuck" : ""}`}
+        ref={dockRef}
+        className={`dock units cards${scene360Strip || scene360Open ? " tuck" : ""}`}
         onPointerDown={(e) => e.stopPropagation()}
         onMouseDown={(e) => e.stopPropagation()}
         aria-hidden={scene360Strip || scene360Open}
@@ -1079,29 +1141,34 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
             <button
               key={u.id}
               type="button"
-              className={`dock-card ${u.status} ${selected?.id === u.id ? "sel" : ""}`}
+              data-unit-id={u.id}
+              className={`unit ${selected?.id === u.id ? "sel" : ""}`}
               onMouseEnter={() => engineRef.current?.setPreview(u.id)}
               onMouseLeave={() => engineRef.current?.setPreview(null)}
               onClick={() => openUnit(u)}
               tabIndex={scene360Strip || scene360Open ? -1 : 0}
             >
-              <span className="dock-photo">
+              <div className="card-side">
                 {photo ? <img src={photo} alt="" /> : <span className="card-img-fallback" />}
-                <span className={liked ? "heart on" : "heart"} onClick={(e) => { e.stopPropagation(); toggleFav(u.id); }}>
+                <span
+                  className={liked ? "heart on" : "heart"}
+                  onClick={(e) => { e.stopPropagation(); toggleFav(u.id); }}
+                >
                   <IconHeart size={11} filled={liked} />
                 </span>
-              </span>
-              <span className="dock-copy">
-                <span className="dock-title">
+              </div>
+              <div className="card-copy">
+                <div className="card-top">
                   <strong>{u.displayId}</strong>
-                  <em className={u.status}>{STATUS_LABEL[u.status]}</em>
-                </span>
-                <span className="dock-stats">
-                  <span><small>Area</small><b>{u.surface} m²</b></span>
-                  <span><small>Floor</small><b>{u.floor}</b></span>
-                  <span><small>Rooms</small><b>{u.rooms}</b></span>
-                </span>
-              </span>
+                  <em className={`badge ${u.status}`}>{STATUS_AR[u.status]}</em>
+                </div>
+                <span className="card-price">{formatSar(unitPrice(u))}</span>
+                <div className="card-specs">
+                  <span><b>{u.rooms}</b><small>غرف النوم</small></span>
+                  <span><b>{u.surface}</b><small>المساحة</small></span>
+                  <span><b>{u.floor}</b><small>الطوابق</small></span>
+                </div>
+              </div>
             </button>
           );
         })}

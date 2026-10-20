@@ -775,7 +775,10 @@ body {
   margin: 2px 0 0;
   direction: ltr;
   unicode-bidi: isolate;
-  display: inline-block;
+  display: inline-flex;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 4px;
 }
 .units.cards .card-specs {
   display: flex;
@@ -836,7 +839,9 @@ body {
   cursor: pointer;
   place-items: center;
 }
-.compact-top { display: none; }
+.compact-top,
+.phone-top { display: none; }
+.compact-project { display: none; }
 .dock { display: none; }
 
 .stage {
@@ -1485,6 +1490,7 @@ body {
   display: none !important;
 }
 .app.scene360-mode .dock,
+.app.scene360-mode .phone-top,
 .app.scene360-mode .compact-top,
 .app.scene360-mode .hud,
 .app.scene360-mode .rail,
@@ -2597,9 +2603,12 @@ body {
   }
 
   .stage {
-    flex: 1;
-    min-height: 0;
+    position: absolute;
+    inset: 0;
+    flex: none;
     width: 100%;
+    height: 100%;
+    min-height: 0;
   }
   .panel {
     display: none;
@@ -2631,25 +2640,39 @@ body {
   .panel-x { display: grid; }
   .app.layout-ready:has(.panel.open) .hud,
   .app.layout-ready:has(.panel.open) .dock,
-  .app.layout-ready:has(.panel.open) .compact-top,
+  .app.layout-ready:has(.panel.open) .phone-top,
   .app.layout-ready:has(.panel.open) .rail {
     visibility: hidden;
   }
 
-  .compact-top {
-    display: flex;
-    flex-direction: column;
+  /* Mock phone header: white bar (agency + project), then filter over the map */
+  .phone-top {
+    display: block;
     position: absolute;
-    top: max(12px, env(safe-area-inset-top, 0px));
-    left: max(12px, env(safe-area-inset-left, 0px));
-    z-index: 6;
-    gap: 10px;
-    align-items: center;
-    max-width: none;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 9;
+    pointer-events: none;
   }
-  .compact-top .compact-logo {
+  .phone-top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    pointer-events: auto;
+    background: #fff;
+    border-bottom: 2px solid #3b7dd8;
+    padding:
+      max(10px, env(safe-area-inset-top, 0px))
+      max(14px, env(safe-area-inset-right, 0px))
+      10px
+      max(14px, env(safe-area-inset-left, 0px));
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+  }
+  .phone-top .compact-logo {
     width: auto;
-    height: 48px;
+    height: 52px;
     padding: 0;
     border: 0;
     border-radius: 0;
@@ -2658,40 +2681,55 @@ body {
     display: grid;
     place-items: center;
     cursor: pointer;
+    flex: none;
   }
   .compact-agency-logo {
     width: auto;
-    height: 48px;
+    height: 52px;
     border-radius: 0;
     background: transparent;
     box-shadow: none;
   }
   .compact-agency-logo img {
     width: auto;
-    height: 48px;
-    max-width: 64px;
+    height: 52px;
+    max-width: 72px;
     object-fit: contain;
   }
-  .compact-top .compact-filter {
+  .phone-top .compact-project {
+    display: flex;
+    max-width: min(58vw, 220px);
+    justify-content: flex-end;
+    pointer-events: none;
+  }
+  .compact-project-logo {
+    height: 44px;
+    width: auto;
+    max-width: 100%;
+    object-fit: contain;
+  }
+  .compact-project-name {
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1.15;
+    color: #c9a227;
+    text-align: end;
+  }
+  .phone-top .compact-filter {
+    pointer-events: auto;
+    position: absolute;
+    top: calc(100% + 12px);
+    left: max(14px, env(safe-area-inset-left, 0px));
     width: 44px;
     height: 44px;
     border-radius: 50%;
-    border: 1px solid rgba(255, 255, 255, 0.8);
-    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.96);
     color: #8b98a8;
     display: grid;
     place-items: center;
     cursor: pointer;
     box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
-  }
-  .compact-top .compact-filter.on {
-    background: rgba(255, 255, 255, 0.95);
-    color: var(--teal);
-    border-color: rgba(59, 125, 216, 0.55);
-  }
-  .compact-top .compact-filter.on svg {
-    fill: currentColor;
-    stroke: currentColor;
   }
 
   .rail {
@@ -2699,7 +2737,7 @@ body {
     flex-direction: column;
     align-items: flex-end;
     gap: 0;
-    top: max(12px, env(safe-area-inset-top, 0px));
+    top: calc(74px + env(safe-area-inset-top, 0px));
     right: max(10px, env(safe-area-inset-right, 0px));
     background: transparent;
     border: 0;
@@ -2773,177 +2811,141 @@ body {
   .hud-tools { display: none; }
   .hud-eye-solo { display: grid; }
   .hud {
+    left: max(12px, env(safe-area-inset-left, 0px));
     right: max(12px, env(safe-area-inset-right, 0px));
-    bottom: max(14px, calc(12px + env(safe-area-inset-bottom, 0px)));
-    left: auto;
+    bottom: calc(118px + env(safe-area-inset-bottom, 0px));
     transform: none;
-    z-index: 6;
+    justify-content: center;
+    gap: 10px;
+    z-index: 8;
   }
 
-  /* Separate bottom band: aerial stops above; cards sit on solid chrome */
+  /* Floating cards over full-bleed map (mock) — no solid chrome band */
   .dock {
     display: flex;
-    position: relative;
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
     flex: none;
     width: 100%;
-    left: auto;
-    right: auto;
-    bottom: auto;
     z-index: 7;
     gap: 10px;
     overflow-x: auto;
-    padding: 10px 12px calc(12px + env(safe-area-inset-bottom, 0px));
+    padding: 0 12px calc(14px + env(safe-area-inset-bottom, 0px));
     scroll-snap-type: x mandatory;
     scrollbar-width: none;
     touch-action: pan-x;
-    background: var(--bg);
-    border-top: 1px solid rgba(27, 54, 93, 0.1);
-    box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.06);
-    transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.35s ease, max-height 0.4s ease, padding 0.4s ease, border 0.3s ease;
-    max-height: 220px;
+    background: transparent;
+    border-top: 0;
+    box-shadow: none;
+    transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.35s ease;
+    max-height: none;
+    pointer-events: none;
   }
+  .dock > * { pointer-events: auto; }
   .dock.tuck {
     transform: translateY(110%);
     opacity: 0;
-    max-height: 0;
-    padding-top: 0;
-    padding-bottom: 0;
-    border-top-color: transparent;
-    box-shadow: none;
     pointer-events: none;
-    overflow: hidden;
   }
+  /* 360 strip mode (phone): bottom panoramic strip + chevron only — match mock */
   .hud.strip360-on {
-    left: 10px;
-    right: 10px;
-    bottom: max(14px, calc(12px + env(safe-area-inset-bottom, 0px)));
-    gap: 6px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    gap: 0;
+    padding: 0;
+    justify-content: stretch;
+    align-items: stretch;
+    flex-direction: column;
+    pointer-events: none;
+  }
+  .hud.strip360-on .hud-compass-row,
+  .hud.strip360-on .hud-tools {
+    display: none !important;
+  }
+  .hud.strip360-on .hud-360 {
+    pointer-events: auto;
+    position: absolute;
+    right: max(14px, env(safe-area-inset-right, 0px));
+    bottom: calc(118px + env(safe-area-inset-bottom, 0px));
+    z-index: 2;
   }
   .scene360-strip-dock.open {
-    --s360-w: 96px;
-    --s360-gap: 8px;
-    --s360-peek: 22px;
-    --s360-visible: calc(5 * var(--s360-w) + 4 * var(--s360-gap) + var(--s360-peek));
+    --s360-w: min(200px, calc((100vw - 40px) / 2));
+    --s360-gap: 10px;
+    --s360-peek: 36px;
+    --s360-visible: 100%;
+    pointer-events: auto;
     position: relative;
     left: auto;
     right: auto;
     bottom: auto;
-    width: min(var(--s360-visible), calc(100% - 120px));
-    max-width: min(var(--s360-visible), calc(100% - 120px));
+    width: 100%;
+    max-width: none;
     height: auto;
-    padding: 0;
+    padding: 10px 12px calc(12px + env(safe-area-inset-bottom, 0px));
     background: transparent;
     border: 0;
     border-radius: 0;
+    overflow: hidden;
     z-index: 1;
+    flex: none;
   }
   .hud {
     z-index: 8;
   }
   .scene360-strip-dock .scene360-thumb,
   .scene360-thumb {
-    width: var(--s360-w, 96px);
-    height: 76px;
-    border-radius: 12px;
+    width: var(--s360-w, min(200px, calc((100vw - 40px) / 2)));
+    height: 104px;
+    border-radius: 14px;
     border: 2px solid transparent;
     background: transparent;
   }
+  .scene360-strip-dock .scene360-thumb.on {
+    border-color: #3b7dd8;
+  }
   .scene360-strip-dock .scene360-thumb img,
   .scene360-thumb img {
-    border-radius: 10px;
+    border-radius: 12px;
     border: 0;
+    object-fit: cover;
   }
   .dock::-webkit-scrollbar { display: none; }
-  .dock-card {
-    flex: 0 0 min(78vw, 300px);
+  /* Same PC unit cards, laid out as a horizontal phone carousel */
+  .dock.units.cards {
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0 12px calc(14px + env(safe-area-inset-bottom, 0px));
+  }
+  .dock.units.cards .unit {
+    flex: 0 0 min(82vw, 320px);
+    width: min(82vw, 320px);
+    max-width: min(82vw, 320px);
+    margin: 0;
     scroll-snap-align: start;
-    display: grid;
-    grid-template-columns: 74px minmax(0, 1fr);
-    column-gap: 10px;
-    align-items: center;
-    background: #fff;
-    border: 0;
-    border-radius: 18px;
-    padding: 10px 12px;
-    text-align: start;
-    color: inherit;
-    cursor: pointer;
-    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.1);
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.16);
+    backdrop-filter: blur(14px) saturate(120%);
+    -webkit-backdrop-filter: blur(14px) saturate(120%);
   }
-  .dock-card.sel { outline: 2px solid var(--teal); }
-  .dock-photo {
-    position: relative;
-    width: 74px;
-    height: 74px;
+  .dock.units.cards .unit.sel {
+    outline: 2px solid var(--teal);
+    border-color: #fff;
   }
-  .dock-photo img,
-  .dock-photo .card-img-fallback {
-    width: 74px;
-    height: 74px;
-    object-fit: cover;
-    border-radius: 14px;
-    display: block;
-    background: #e8eef3;
-  }
-  .dock-photo .heart {
-    position: absolute;
-    top: 4px;
-    left: 4px;
-    width: 20px;
-    height: 20px;
-    border-radius: 6px !important;
-    background: rgba(232, 238, 245, 0.72) !important;
-    color: #111 !important;
-    display: grid;
-    place-items: center;
-    box-shadow: none !important;
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-    filter: none;
-  }
-  .dock-photo .heart svg {
-    width: 12px;
-    height: 12px;
-    stroke-width: 2.2;
-  }
-  .dock-photo .heart.on {
-    background: rgba(232, 238, 245, 0.72) !important;
-    color: var(--teal) !important;
-    filter: none;
-  }
-  .dock-copy { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-  .dock-title {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    min-width: 0;
-  }
-  .dock-title strong { font-size: 16px; line-height: 1; }
-  .dock-title em {
-    font-style: normal;
-    font-size: 12px;
-    font-weight: 700;
-    line-height: 1;
-    white-space: nowrap;
-  }
-  .dock-title em.available { color: var(--green); }
-  .dock-title em.reserved { color: #c48400; }
-  .dock-title em.sold { color: var(--red); }
-  .dock-stats { display: flex; gap: 12px; }
-  .dock-stats span { display: flex; flex-direction: column; gap: 1px; }
-  .dock-stats small { font-size: 10px; color: var(--muted); font-weight: 600; }
-  .dock-stats b { font-size: 13px; }
 
   .tip {
     left: 10px;
     max-width: min(220px, calc(100vw - 96px));
-    bottom: max(16px, calc(14px + env(safe-area-inset-bottom, 0px)));
+    bottom: calc(132px + env(safe-area-inset-bottom, 0px));
   }
 
   .filters-flyout {
     position: fixed;
-    top: max(118px, calc(env(safe-area-inset-top, 0px) + 108px));
+    top: calc(86px + env(safe-area-inset-top, 0px));
     left: max(12px, env(safe-area-inset-left, 0px));
     right: auto;
     width: min(300px, calc(100vw - 24px));
@@ -2961,15 +2963,14 @@ body {
   /* Keep map chrome visible while floating filter is open */
   .app.layout-ready.filters-open:not(:has(.panel.open)) .hud,
   .app.layout-ready.filters-open:not(:has(.panel.open)) .dock,
-  .app.layout-ready.filters-open:not(:has(.panel.open)) .compact-top,
+  .app.layout-ready.filters-open:not(:has(.panel.open)) .phone-top,
   .app.layout-ready.filters-open:not(:has(.panel.open)) .rail {
     visibility: visible;
   }
   .hud-compass-row { gap: 6px; }
   .hud-eye-solo,
   .hud-360 { width: 44px; height: 44px; }
-  .scene360-thumb { width: var(--s360-w, 96px); height: 76px; border-radius: 12px; }
-  .scene360-view-label { bottom: 96px; left: 12px; }
+  .scene360-view-label { bottom: 126px; left: 12px; }
   .app.scene360-mode .panel.open,
   .app.scene360-mode .panel.open.form-wide,
   .app.layout-ready.scene360-mode .panel.open,

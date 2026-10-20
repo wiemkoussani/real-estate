@@ -95,7 +95,8 @@ export const COMPLEX = {
 };
 
 export function formatSar(n: number) {
-  return `ر.س ${Math.round(n).toLocaleString("en-US")}`;
+  // Currency first (left), number second — keep as one LTR run so RTL UI does not flip it.
+  return `\u200Eر.س\u00A0${Math.round(n).toLocaleString("en-US")}`;
 }
 
 export function frameUrl(index: number, quality: "low" | "high") {
