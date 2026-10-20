@@ -2977,16 +2977,16 @@ body {
     max-width: min(82vw, 320px);
     margin: 0;
     scroll-snap-align: start;
-    /* Match mock: soft frosted glass, not ultra-clear */
-    background: rgba(232, 238, 245, 0.72);
-    border: 1px solid rgba(255, 255, 255, 0.7);
-    box-shadow: 0 10px 26px rgba(15, 23, 42, 0.14);
-    backdrop-filter: blur(18px) saturate(130%);
-    -webkit-backdrop-filter: blur(18px) saturate(130%);
+    /* Matte frosted (mock) — less shine than bright glass */
+    background: rgba(210, 218, 228, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.1);
+    backdrop-filter: blur(14px) saturate(100%);
+    -webkit-backdrop-filter: blur(14px) saturate(100%);
   }
   .dock.units.cards .unit.sel {
     outline: 2px solid var(--teal);
-    border-color: #fff;
+    border-color: rgba(255, 255, 255, 0.45);
   }
 
   .tip {
