@@ -95,8 +95,15 @@ export const COMPLEX = {
 };
 
 export function formatSar(n: number) {
-  // Currency first (left), number second — keep as one LTR run so RTL UI does not flip it.
-  return `\u200Eر.س\u00A0${Math.round(n).toLocaleString("en-US")}`;
+  return Math.round(n).toLocaleString("en-US");
+}
+
+/** ر.س LEFT of amount — LRM marks stop RTL from flipping the pair. */
+export function sarParts(n: number) {
+  return {
+    currency: "\u200Eر.س\u200E",
+    amount: `\u200E${Math.round(n).toLocaleString("en-US")}\u200E`,
+  };
 }
 
 export function frameUrl(index: number, quality: "low" | "high") {

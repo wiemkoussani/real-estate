@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useContext, useEffect, useMemo, useRef, useState, createContext } from "react";
-import { COMPLEX, UNIT_MODELS, formatSar, modelOf, type Unit, type UnitStatus } from "@/lib/complex";
+import { COMPLEX, UNIT_MODELS, modelOf, sarParts, type Unit, type UnitStatus } from "@/lib/complex";
 import { buildTour, emptyTour, tourPlanUrl, tourVillaUrl, type TourMedia } from "@/lib/tour";
 import type { OrbitEngine as OrbitEngineType } from "@/viewer/OrbitEngine";
 import {
@@ -683,6 +683,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
             {filtered.map((u) => {
               const photo = cardPhoto(tour, u);
               const liked = favs.includes(u.id);
+              const price = sarParts(unitPrice(u));
               return (
               <button
                 key={u.id}
@@ -706,7 +707,10 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
                     <strong>{u.displayId}</strong>
                     <em className={`badge ${u.status}`}>{STATUS_AR[u.status]}</em>
                   </div>
-                  <span className="card-price">{formatSar(unitPrice(u))}</span>
+                  <span className="card-price" dir="ltr" lang="en">
+                    <span className="sar-cur">{price.currency}</span>
+                    <span className="sar-num">{price.amount}</span>
+                  </span>
                   <div className="card-specs">
                     <span><b>{u.rooms}</b><small>غرف النوم</small></span>
                     <span><b>{u.surface}</b><small>المساحة</small></span>
@@ -1144,6 +1148,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
         {filtered.map((u) => {
           const photo = cardPhoto(tour, u);
           const liked = favs.includes(u.id);
+          const price = sarParts(unitPrice(u));
           return (
             <button
               key={u.id}
@@ -1169,7 +1174,10 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
                   <strong>{u.displayId}</strong>
                   <em className={`badge ${u.status}`}>{STATUS_AR[u.status]}</em>
                 </div>
-                <span className="card-price">{formatSar(unitPrice(u))}</span>
+                <span className="card-price" dir="ltr" lang="en">
+                  <span className="sar-cur">{price.currency}</span>
+                  <span className="sar-num">{price.amount}</span>
+                </span>
                 <div className="card-specs">
                   <span><b>{u.rooms}</b><small>غرف النوم</small></span>
                   <span><b>{u.surface}</b><small>المساحة</small></span>
