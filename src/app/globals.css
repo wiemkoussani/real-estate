@@ -2691,7 +2691,7 @@ body {
     background: #fff;
     border: 0;
     border-top: 0;
-    border-bottom: 3px solid #7eb6ef;
+    border-bottom: 4px solid #7eb6ef;
     border-radius: 0 0 16px 16px;
     padding:
       max(6px, env(safe-area-inset-top, 0px))
