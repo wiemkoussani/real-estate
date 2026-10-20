@@ -571,6 +571,10 @@ body {
   place-items: center;
   padding: 0;
 }
+/* Hide the panel peek ‹ while filters are open; it comes back when filters close */
+.app.filters-open .peek {
+  display: none;
+}
 .panel-head { padding: 10px 12px 8px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .unit-count { font-size: 16px; font-weight: 700; }
 .panel-head h1 { font-size: 18px; }

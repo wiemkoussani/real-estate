@@ -230,8 +230,8 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
     if (!q) return;
     const hasExact = Number.isFinite(tour.locationLat) && Number.isFinite(tour.locationLng);
     const key = hasExact
-      ? `poi-map-v8:${tour.locationLat.toFixed(5)},${tour.locationLng.toFixed(5)}`
-      : `poi-map-v8:${q}`;
+      ? `poi-map-v10:${tour.locationLat.toFixed(5)},${tour.locationLng.toFixed(5)}`
+      : `poi-map-v10:${q}`;
     try {
       const raw = sessionStorage.getItem(key);
       if (raw) {
