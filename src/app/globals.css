@@ -529,13 +529,13 @@ body {
 .filters-reset-btn {
   justify-self: stretch;
   margin-top: 2px;
-  height: 46px;
+  height: 42px;
   border: 0;
   border-radius: 999px;
   background: rgba(59, 125, 216, 0.18);
   color: #111;
-  font-size: 18px;
-  font-weight: 650;
+  font-size: 14px;
+  font-weight: 700;
   cursor: pointer;
 }
 .filters-reset-btn:hover {
@@ -690,16 +690,16 @@ body {
 .units.table .unit .heart { justify-self: end; }
 .units.cards .unit {
   display: grid;
-  grid-template-columns: 68px minmax(0, 1fr);
-  column-gap: 10px;
+  grid-template-columns: 76px minmax(0, 1fr);
+  column-gap: 11px;
   align-items: center;
-  width: calc(100% - 16px);
-  max-width: calc(100% - 16px);
-  margin: 0 8px 8px;
+  width: calc(100% - 10px);
+  max-width: calc(100% - 10px);
+  margin: 0 5px 8px;
   min-width: 0;
   border: 1px solid #eef2f6;
   border-radius: 16px;
-  padding: 6px 12px 10px;
+  padding: 7px 12px 10px;
   background: #fff;
   position: relative;
   box-shadow: 0 1px 2px rgba(24, 39, 56, 0.04);
@@ -724,13 +724,13 @@ body {
 }
 .units.cards .card-side {
   position: relative;
-  width: 68px;
-  height: 72px;
+  width: 76px;
+  height: 80px;
 }
 .units.cards .unit img,
 .units.cards .unit .card-img-fallback {
-  width: 68px;
-  height: 72px;
+  width: 76px;
+  height: 80px;
   object-fit: cover;
   border-radius: 10px;
   background: #e8eef3;
@@ -2761,7 +2761,7 @@ body {
   }
   .phone-top .compact-logo {
     width: auto;
-    height: 58px;
+    height: 50px;
     padding: 0;
     border: 0;
     border-radius: 0;
@@ -2774,25 +2774,25 @@ body {
   }
   .compact-agency-logo {
     width: auto;
-    height: 58px;
+    height: 50px;
     border-radius: 0;
     background: transparent;
     box-shadow: none;
   }
   .compact-agency-logo img {
     width: auto;
-    height: 58px;
-    max-width: 96px;
+    height: 50px;
+    max-width: 80px;
     object-fit: contain;
   }
   .phone-top .compact-project {
     display: flex;
-    max-width: min(62vw, 230px);
+    max-width: min(58vw, 210px);
     justify-content: flex-end;
     pointer-events: none;
   }
   .compact-project-logo {
-    height: 56px;
+    height: 48px;
     width: auto;
     max-width: 100%;
     object-fit: contain;
@@ -2808,7 +2808,7 @@ body {
     pointer-events: auto;
     position: absolute;
     /* Same level as مشروع, with a small gap under the white header */
-    top: calc(80px + env(safe-area-inset-top, 0px));
+    top: calc(72px + env(safe-area-inset-top, 0px));
     left: max(6px, env(safe-area-inset-left, 0px));
     width: 38px;
     height: 38px;
@@ -2833,7 +2833,7 @@ body {
     flex-direction: column;
     align-items: flex-end;
     gap: 0;
-    top: calc(80px + env(safe-area-inset-top, 0px));
+    top: calc(72px + env(safe-area-inset-top, 0px));
     right: max(4px, env(safe-area-inset-right, 0px));
     background: transparent;
     border: 0;
@@ -2953,7 +2953,7 @@ body {
     align-items: center;
     gap: 0;
     position: absolute;
-    top: calc(100% + 10px);
+    top: calc(100% + 14px);
     left: 50%;
     right: auto;
     width: auto;
@@ -2967,19 +2967,19 @@ body {
   }
   .rail-hint i {
     display: block;
-    width: 9px;
-    height: 9px;
+    width: 8px;
+    height: 8px;
     margin: 0;
-    border-right: 3.5px solid #fff;
-    border-bottom: 3.5px solid #fff;
+    border-right: 2.2px solid #fff;
+    border-bottom: 2.2px solid #fff;
     transform: rotate(45deg);
     box-sizing: border-box;
     filter:
       drop-shadow(0 0 1px #0b3a8c)
-      drop-shadow(0 1px 2px rgba(11, 58, 140, 0.75));
+      drop-shadow(0 1px 2px rgba(11, 58, 140, 0.65));
   }
   .rail-hint i + i {
-    margin-top: -6px; /* closer together */
+    margin-top: -1px; /* a bit more space between the two */
   }
   .rail-fab.project-toggle.is-expanded .rail-hint {
     opacity: 0;
