@@ -1652,6 +1652,10 @@ body {
   -webkit-overflow-scrolling: touch;
   pointer-events: auto;
   scrollbar-width: none;
+  outline: none;
+}
+.scene360-bar .scene360-strip {
+  outline: none;
 }
 .scene360-strip-dock .scene360-strip::-webkit-scrollbar { display: none; }
 .scene360-strip-empty {
@@ -2956,31 +2960,31 @@ body {
   .rail-hint svg {
     display: block;
     opacity: 1;
-    width: 14px;
-    height: 14px;
+    width: 11px;
+    height: 11px;
     color: #0a3278;
     stroke: #0a3278;
-    stroke-width: 2.2;
+    stroke-width: 2.1;
     stroke-linecap: round;
     stroke-linejoin: round;
   }
   .rail-hint svg:last-child {
-    margin-top: -8px;
+    margin-top: -7px;
   }
   .rail-hint svg:first-child {
-    animation: rail-chevron 1.2s ease-in-out infinite;
+    animation: rail-chevron 1.1s ease-in-out infinite;
   }
   .rail-hint svg:last-child {
-    animation: rail-chevron 1.2s ease-in-out infinite 0.2s;
+    animation: rail-chevron 1.1s ease-in-out infinite 0.15s;
   }
   .rail-fab.project-toggle.is-expanded .rail-hint {
     opacity: 0;
     visibility: hidden;
   }
   @keyframes rail-chevron {
-    0%, 100% { opacity: 0.7; transform: translateY(0); }
-    40% { opacity: 1; transform: translateY(1.5px); }
-    70% { opacity: 0.85; transform: translateY(2.5px); }
+    0%, 100% { opacity: 0.65; transform: translateY(0); }
+    45% { opacity: 1; transform: translateY(1px); }
+    75% { opacity: 0.8; transform: translateY(2px); }
   }
 
   .hud-tools { display: none; }

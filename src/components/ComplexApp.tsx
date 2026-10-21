@@ -519,6 +519,11 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
       if (phone) setListOpen(false);
       setScene360Open(false);
       setActiveSceneId(tour.scenes360[0]?.id ?? null);
+      // Drop focus from the 360 button so arrow keys reach the strip handler.
+      window.setTimeout(() => {
+        (document.activeElement as HTMLElement | null)?.blur?.();
+        stripElRef.current?.focus({ preventScroll: true });
+      }, 30);
       return true;
     });
   };
@@ -599,30 +604,53 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
 
   const activeScene = tour.scenes360.find((s) => s.id === activeSceneId) || null;
 
+  const scenes360Ref = useRef(tour.scenes360);
+  const activeSceneIdRef = useRef(activeSceneId);
+  scenes360Ref.current = tour.scenes360;
+  activeSceneIdRef.current = activeSceneId;
+
+  const stepScene360 = useCallback((dir: 1 | -1) => {
+    const list = scenes360Ref.current;
+    if (!list.length) return;
+    const cur = Math.max(0, list.findIndex((s) => s.id === activeSceneIdRef.current));
+    const next = (cur + dir + list.length) % list.length;
+    const scene = list[next];
+    if (!scene) return;
+    setActiveSceneId(scene.id);
+    requestAnimationFrame(() => {
+      const strip = stripElRef.current;
+      if (!strip) return;
+      const thumb = strip.querySelector<HTMLElement>(`[data-scene-id="${scene.id}"]`);
+      if (!thumb) {
+        const step = Math.max(120, Math.round(strip.clientWidth * 0.55));
+        strip.scrollBy({ left: dir * step, behavior: "smooth" });
+        return;
+      }
+      const s = strip.getBoundingClientRect();
+      const t = thumb.getBoundingClientRect();
+      const delta = t.left + t.width / 2 - (s.left + s.width / 2);
+      strip.scrollBy({ left: delta, behavior: "smooth" });
+    });
+  }, []);
+
   // Keyboard ← → switches 360 thumbs (strip open on first click, and full view).
   useEffect(() => {
-    if (!scene360Strip || !tour.scenes360.length) return;
+    if (!scene360Strip) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.metaKey || e.ctrlKey || e.altKey || e.repeat) return;
       const t = e.target as HTMLElement | null;
       if (t?.closest("input, textarea, select, [contenteditable='true']")) return;
-      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      const right = e.key === "ArrowRight" || e.code === "ArrowRight" || e.key === "Right";
+      const left = e.key === "ArrowLeft" || e.code === "ArrowLeft" || e.key === "Left";
+      if (!right && !left) return;
+      if (!scenes360Ref.current.length) return;
       e.preventDefault();
-      const list = tour.scenes360;
-      const cur = Math.max(0, list.findIndex((s) => s.id === activeSceneId));
-      const next = e.key === "ArrowRight"
-        ? (cur + 1) % list.length
-        : (cur - 1 + list.length) % list.length;
-      const scene = list[next];
-      if (!scene) return;
-      setActiveSceneId(scene.id);
-      const strip = stripElRef.current;
-      const thumb = strip?.querySelector<HTMLElement>(`[data-scene-id="${CSS.escape(scene.id)}"]`);
-      thumb?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+      e.stopPropagation();
+      stepScene360(right ? 1 : -1);
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [scene360Strip, activeSceneId, tour.scenes360]);
+    document.addEventListener("keydown", onKey, true);
+    return () => document.removeEventListener("keydown", onKey, true);
+  }, [scene360Strip, stepScene360]);
 
   const openUnit = (u: Unit) => {
     void pickUnit(u);
@@ -955,8 +983,8 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
               <span className="rail-name">مشروع</span>
               <span className="rail-ico project"><IconApps size={22} /></span>
               <span className="rail-hint" aria-hidden>
-                <IconChevronDown size={14} />
-                <IconChevronDown size={14} />
+                <IconChevronDown size={11} />
+                <IconChevronDown size={11} />
               </span>
             </button>
             <button type="button" className="rail-fab" onClick={() => { setFormOpen(true); setListOpen(true); }}>
@@ -986,7 +1014,20 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
           >
             {scene360Strip && (
               <div className="scene360-strip-dock open">
-                <div className="scene360-strip" role="list" dir="ltr" ref={stripRef}>
+                <div
+                  className="scene360-strip"
+                  role="list"
+                  dir="ltr"
+                  ref={stripRef}
+                  tabIndex={0}
+                  aria-label="360 scenes"
+                  onKeyDown={(e) => {
+                    if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+                      e.preventDefault();
+                      stepScene360(e.key === "ArrowRight" ? 1 : -1);
+                    }
+                  }}
+                >
                   {tour.scenes360.length ? (
                     tour.scenes360.map((scene) => (
                       <button
@@ -1140,7 +1181,20 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
               </div>
             )}
             <div className="scene360-bar" onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
-              <div className="scene360-strip" role="list" dir="ltr" ref={stripRef}>
+              <div
+                className="scene360-strip"
+                role="list"
+                dir="ltr"
+                ref={stripRef}
+                tabIndex={0}
+                aria-label="360 scenes"
+                onKeyDown={(e) => {
+                  if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+                    e.preventDefault();
+                    stepScene360(e.key === "ArrowRight" ? 1 : -1);
+                  }
+                }}
+              >
                 {tour.scenes360.map((scene) => (
                   <button
                     key={scene.id}
