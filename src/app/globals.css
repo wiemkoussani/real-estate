@@ -2953,7 +2953,7 @@ body {
     align-items: center;
     gap: 0;
     position: absolute;
-    top: calc(100% + 14px);
+    top: calc(100% + 8px);
     left: 50%;
     right: auto;
     width: auto;
