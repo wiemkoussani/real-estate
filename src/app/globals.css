@@ -241,7 +241,7 @@ body {
   position: fixed;
   top: 16px;
   left: calc(min(304px, 86vw) + 14px);
-  width: min(290px, 42vw);
+  width: min(288px, 42vw);
   height: auto;
   max-height: min(68vh, 520px);
   z-index: 22;
