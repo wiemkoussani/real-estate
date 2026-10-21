@@ -690,12 +690,12 @@ body {
 .units.table .unit .heart { justify-self: end; }
 .units.cards .unit {
   display: grid;
-  grid-template-columns: 76px minmax(0, 1fr);
+  grid-template-columns: 80px minmax(0, 1fr);
   column-gap: 11px;
   align-items: center;
-  width: calc(100% - 10px);
-  max-width: calc(100% - 10px);
-  margin: 0 5px 8px;
+  width: calc(100% - 6px);
+  max-width: calc(100% - 6px);
+  margin: 0 3px 8px;
   min-width: 0;
   border: 1px solid #eef2f6;
   border-radius: 16px;
@@ -724,13 +724,13 @@ body {
 }
 .units.cards .card-side {
   position: relative;
-  width: 76px;
-  height: 80px;
+  width: 80px;
+  height: 84px;
 }
 .units.cards .unit img,
 .units.cards .unit .card-img-fallback {
-  width: 76px;
-  height: 80px;
+  width: 80px;
+  height: 84px;
   object-fit: cover;
   border-radius: 10px;
   background: #e8eef3;
