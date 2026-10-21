@@ -372,16 +372,14 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
       .sort((a, b) => a.displayId.localeCompare(b.displayId, undefined, { numeric: true }));
   }, [units, areaMax, floorMax, priceMin, priceMax, status, selectedModels, selectedRooms, favOnly, favs]);
 
-  // Phone dock: color the villa for the centered card and rotate longitude if needed.
+  // Phone dock: only highlight the centered villa — do not rotate the aerial to face it.
   useEffect(() => {
     const dock = dockRef.current;
     if (!dock || !ready) return;
     dockFacedIdRef.current = null;
     let timer: number | null = null;
-    let facing = false;
 
-    const syncFacedUnit = () => {
-      if (facing) return;
+    const syncPreviewUnit = () => {
       if (typeof window === "undefined") return;
       if (!window.matchMedia("(max-width: 1100px)").matches) return;
       if (scene360Strip || scene360Open || tourUnit) return;
@@ -398,21 +396,16 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
       });
       if (!bestId || bestId === dockFacedIdRef.current) return;
       dockFacedIdRef.current = bestId;
-      const en = engineRef.current;
-      if (!en) return;
-      facing = true;
-      void en.faceUnit(bestId).finally(() => {
-        facing = false;
-      });
+      engineRef.current?.setPreview(bestId);
     };
 
     const onScroll = () => {
       if (timer) window.clearTimeout(timer);
-      timer = window.setTimeout(syncFacedUnit, 140);
+      timer = window.setTimeout(syncPreviewUnit, 140);
     };
 
     dock.addEventListener("scroll", onScroll, { passive: true });
-    const boot = window.setTimeout(syncFacedUnit, 80);
+    const boot = window.setTimeout(syncPreviewUnit, 80);
     return () => {
       dock.removeEventListener("scroll", onScroll);
       window.clearTimeout(boot);
@@ -930,7 +923,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
               title="مشروع"
             >
               <span className="rail-name">مشروع</span>
-              <span className="rail-ico project"><IconApps size={16} /></span>
+              <span className="rail-ico project"><IconApps size={22} /></span>
               <span className="rail-hint" aria-hidden>
                 <IconChevronDown size={14} />
                 <IconChevronDown size={14} />
@@ -938,19 +931,19 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
             </button>
             <button type="button" className="rail-fab" onClick={() => { setFormOpen(true); setListOpen(true); }}>
               <span className="rail-name">تواصل</span>
-              <span className="rail-ico glass"><IconMail size={15} /></span>
+              <span className="rail-ico glass"><IconMail size={20} /></span>
             </button>
             <button type="button" className="rail-fab" onClick={() => setGalleryOpen(true)}>
               <span className="rail-name">المعرض</span>
-              <span className="rail-ico glass"><IconGallery size={15} /></span>
+              <span className="rail-ico glass"><IconGallery size={20} /></span>
             </button>
             <button type="button" className="rail-fab" onClick={() => setLocationOpen(true)}>
               <span className="rail-name">الموقع</span>
-              <span className="rail-ico glass"><IconPin size={15} /></span>
+              <span className="rail-ico glass"><IconPin size={20} /></span>
             </button>
             <button type="button" className="rail-fab" onClick={() => setHelpOpen(true)}>
               <span className="rail-name">مساعدة</span>
-              <span className="rail-ico glass"><IconHelp size={15} /></span>
+              <span className="rail-ico glass"><IconHelp size={20} /></span>
             </button>
           </div>
         </nav>

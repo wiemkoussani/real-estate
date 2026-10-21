@@ -54,15 +54,15 @@ body {
   transition: width 0.32s ease;
   z-index: 4;
 }
-.panel.open { width: min(300px, 86vw); background: #f4f7fb; }
-.panel.open.form-wide { width: min(300px, 86vw); }
+.panel.open { width: min(328px, 86vw); background: #f4f7fb; }
+.panel.open.form-wide { width: min(328px, 86vw); }
 .panel.open.filters-on { z-index: 12; }
 .panel-inner {
   position: absolute;
   top: 0;
   bottom: 0;
   left: 0;
-  width: min(300px, 86vw);
+  width: min(328px, 86vw);
   height: 100%;
   margin: 0;
   background: #f4f7fb;
@@ -76,7 +76,7 @@ body {
   transition: transform 0.32s ease;
 }
 .panel.open .panel-inner { transform: translateX(0); }
-.panel.open.form-wide .panel-inner { width: min(300px, 86vw); }
+.panel.open.form-wide .panel-inner { width: min(328px, 86vw); }
 .panel.open.filters-on .panel-inner {
   overflow: visible;
 }
@@ -92,8 +92,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding: 8px 14px;
+  gap: 10px;
+  padding: 10px 16px;
   border-radius: 18px;
   background: #fff;
   border: 0;
@@ -103,7 +103,7 @@ body {
 }
 .panel-agency-logo {
   width: auto;
-  height: 36px;
+  height: 46px;
   flex-shrink: 0;
   border-radius: 0;
   background: transparent;
@@ -112,22 +112,22 @@ body {
 }
 .panel-agency-logo img {
   width: auto;
-  height: 36px;
-  max-width: 64px;
+  height: 46px;
+  max-width: 80px;
   object-fit: contain;
   object-position: left center;
 }
 .panel-project-logo {
   flex: none;
   min-width: 0;
-  height: 36px;
+  height: 46px;
   margin-inline-start: auto;
   display: flex;
   align-items: center;
   justify-content: flex-end;
 }
 .panel-project-logo img {
-  max-width: 128px;
+  max-width: 168px;
   max-height: 100%;
   width: auto;
   height: 100%;
@@ -240,7 +240,7 @@ body {
 .filters-flyout {
   position: fixed;
   top: 16px;
-  left: calc(min(300px, 86vw) + 14px);
+  left: calc(min(328px, 86vw) + 14px);
   width: min(280px, 40vw);
   height: auto;
   max-height: min(68vh, 520px);
@@ -257,7 +257,7 @@ body {
   transform-origin: top left;
 }
 .app:has(.panel.open.form-wide) .filters-flyout {
-  left: calc(min(300px, 86vw) + 14px);
+  left: calc(min(328px, 86vw) + 14px);
 }
 @keyframes filters-in {
   from { opacity: 0; transform: translate(-12px, -8px) scale(0.97); }
@@ -761,7 +761,7 @@ body {
   line-height: 1;
 }
 .units.cards .unit strong {
-  font-size: 15px;
+  font-size: 13.5px;
   display: block;
   margin: 0;
   color: #1b2430;
@@ -838,7 +838,7 @@ body {
   flex: 0 0 auto;
 }
 .units.cards .card-specs b {
-  font-size: 14px;
+  font-size: 12px;
   color: #243044;
   font-weight: 500;
   line-height: 1;
@@ -1027,9 +1027,9 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 7px;
-  width: 52px;
-  padding: 7px 6px 10px;
+  gap: 9px;
+  width: 64px;
+  padding: 9px 8px 12px;
   border-radius: 999px;
   background: linear-gradient(
     180deg,
@@ -1047,21 +1047,21 @@ body {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  width: 38px;
-  height: 38px;
+  width: 46px;
+  height: 46px;
   padding: 0;
   border: 0;
   background: transparent;
   cursor: pointer;
   color: #fff;
 }
-.rail-fab.open { cursor: pointer; width: auto; min-width: 38px; }
+.rail-fab.open { cursor: pointer; width: auto; min-width: 46px; }
 .rail-fab.project-toggle.open {
   width: auto;
-  height: 38px;
+  height: 43px;
   min-width: 0;
-  padding: 0 9px 0 14px;
-  gap: 8px;
+  padding: 0 11px 0 15px;
+  gap: 9px;
   border-radius: 999px;
   background: var(--teal);
   box-shadow: 0 6px 16px rgba(59, 125, 216, 0.38);
@@ -1083,17 +1083,21 @@ body {
   color: #fff;
   box-shadow: none;
   border-radius: 0;
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 700;
 }
 .rail-fab.project-toggle.open .rail-ico.project {
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   border-radius: 0;
   background: transparent;
   box-shadow: none;
   border: 0;
   color: #fff;
+}
+.rail-fab.project-toggle.open .rail-ico.project svg {
+  width: 20px;
+  height: 20px;
 }
 @keyframes rail-invite {
   0%, 100% { transform: translateX(0); }
@@ -1115,15 +1119,15 @@ body {
 .rail-fab.project-toggle { overflow: visible; }
 .rail-name {
   position: absolute;
-  right: 22px;
+  right: 26px;
   top: 50%;
   transform: translateY(-50%);
-  height: 32px;
+  height: 38px;
   display: flex;
   align-items: center;
   background: rgba(236, 240, 243, 0.82);
   color: #3d4a55;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   white-space: nowrap;
   border-radius: 16px;
@@ -1149,8 +1153,8 @@ body {
   box-shadow: 0 4px 12px rgba(24, 39, 56, 0.1);
 }
 .rail-ico {
-  width: 34px;
-  height: 34px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   display: grid;
   place-items: center;
@@ -1162,6 +1166,15 @@ body {
   background: #fff;
   border: 0;
   backdrop-filter: none;
+}
+.rail-ico svg {
+  width: 20px;
+  height: 20px;
+  flex: none;
+}
+.rail-ico.project svg {
+  width: 22px;
+  height: 22px;
 }
 .rail-ico.project { background: transparent; color: #fff; border: 0; box-shadow: none; }
 .rail-ico.glass {
@@ -1183,9 +1196,16 @@ body {
 }
 .hud.strip360-on {
   left: 16px;
-  right: 28px;
-  gap: 8px;
+  /* Clear the bigger مشروع rail on the right */
+  right: 92px;
+  bottom: 28px;
+  gap: 10px;
   justify-content: flex-end;
+  align-items: flex-end;
+}
+@keyframes strip360-up {
+  from { transform: translateY(120%); opacity: 0.25; }
+  to { transform: translateY(0); opacity: 1; }
 }
 .hud-tools,
 .hud-nav {
@@ -1549,9 +1569,9 @@ body {
 }
 .scene360-strip-dock.open {
   /* 5 thumbs + peek, sitting in the HUD row right before the arrow */
-  --s360-w: 126px;
-  --s360-gap: 10px;
-  --s360-peek: 28px;
+  --s360-w: 148px;
+  --s360-gap: 12px;
+  --s360-peek: 36px;
   --s360-visible: calc(5 * var(--s360-w) + 4 * var(--s360-gap) + var(--s360-peek));
   position: relative;
   left: auto;
@@ -1559,8 +1579,8 @@ body {
   bottom: auto;
   display: flex;
   align-items: center;
-  width: min(var(--s360-visible), calc(100vw - 320px));
-  max-width: min(var(--s360-visible), calc(100% - 220px));
+  width: min(var(--s360-visible), calc(100vw - 380px));
+  max-width: min(var(--s360-visible), calc(100% - 280px));
   flex: 0 1 auto;
   height: auto;
   padding: 0;
@@ -1574,10 +1594,12 @@ body {
   z-index: 1;
   pointer-events: auto;
   overflow: hidden;
+  transform-origin: bottom center;
+  animation: strip360-up 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 .scene360-strip-dock .scene360-thumb {
-  width: var(--s360-w, 126px);
-  height: 88px;
+  width: var(--s360-w, 148px);
+  height: 100px;
   border: 2px solid transparent;
   border-radius: 14px;
   overflow: hidden;
@@ -2554,7 +2576,7 @@ body {
 .panel-brand .agency-logo,
 .panel-brand .panel-agency-logo {
   width: auto;
-  height: 36px;
+  height: 46px;
   background: transparent;
   border: 0;
   box-shadow: none;
@@ -2563,8 +2585,8 @@ body {
 .panel-brand .agency-logo img,
 .panel-brand .panel-agency-logo img {
   width: auto;
-  height: 36px;
-  max-width: 64px;
+  height: 46px;
+  max-width: 80px;
 }
 .agency-card .agency-logo img {
   width: auto;
@@ -2715,15 +2737,15 @@ body {
     border-bottom: 4px solid #7eb6ef;
     border-radius: 0 0 16px 16px;
     padding:
-      max(6px, env(safe-area-inset-top, 0px))
+      max(8px, env(safe-area-inset-top, 0px))
       max(12px, env(safe-area-inset-right, 0px))
-      6px
+      8px
       max(12px, env(safe-area-inset-left, 0px));
     box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
   }
   .phone-top .compact-logo {
     width: auto;
-    height: 36px;
+    height: 40px;
     padding: 0;
     border: 0;
     border-radius: 0;
@@ -2736,25 +2758,25 @@ body {
   }
   .compact-agency-logo {
     width: auto;
-    height: 36px;
+    height: 40px;
     border-radius: 0;
     background: transparent;
     box-shadow: none;
   }
   .compact-agency-logo img {
     width: auto;
-    height: 36px;
-    max-width: 56px;
+    height: 40px;
+    max-width: 64px;
     object-fit: contain;
   }
   .phone-top .compact-project {
     display: flex;
-    max-width: min(52vw, 180px);
+    max-width: min(54vw, 190px);
     justify-content: flex-end;
     pointer-events: none;
   }
   .compact-project-logo {
-    height: 32px;
+    height: 38px;
     width: auto;
     max-width: 100%;
     object-fit: contain;
@@ -2769,10 +2791,11 @@ body {
   .phone-top .compact-filter {
     pointer-events: auto;
     position: absolute;
-    top: calc(100% + 12px);
+    /* Same level as مشروع, with a small gap under the white header */
+    top: calc(62px + env(safe-area-inset-top, 0px));
     left: max(14px, env(safe-area-inset-left, 0px));
-    width: 44px;
-    height: 44px;
+    width: 38px;
+    height: 38px;
     border-radius: 50%;
     border: 1px solid rgba(255, 255, 255, 0.9);
     background: rgba(255, 255, 255, 0.96);
@@ -2794,7 +2817,7 @@ body {
     flex-direction: column;
     align-items: flex-end;
     gap: 0;
-    top: calc(58px + env(safe-area-inset-top, 0px));
+    top: calc(62px + env(safe-area-inset-top, 0px));
     right: max(12px, env(safe-area-inset-right, 0px));
     background: transparent;
     border: 0;
@@ -2803,7 +2826,7 @@ body {
     -webkit-backdrop-filter: none;
     padding: 0;
   }
-  /* Phone: glass column only when مشروع is open — same narrow PC look (icon column 52px, labels left) */
+  /* Phone: keep compact rail (PC sizes stay bigger above) */
   .rail-stack {
     opacity: 1;
     max-height: none;
@@ -2826,6 +2849,33 @@ body {
       border-color 0.28s ease,
       box-shadow 0.28s ease,
       padding 0.28s ease;
+  }
+  .rail-fab {
+    width: 38px;
+    height: 38px;
+  }
+  .rail-fab.open { min-width: 38px; }
+  .rail-fab.project-toggle.open {
+    height: 38px;
+    padding: 0 9px 0 14px;
+    gap: 8px;
+  }
+  .rail-fab.project-toggle.open .rail-name { font-size: 13px; }
+  .rail-fab.project-toggle.open .rail-ico.project {
+    width: 22px;
+    height: 22px;
+  }
+  .rail-ico {
+    width: 34px;
+    height: 34px;
+  }
+  .rail-ico svg {
+    width: 15px;
+    height: 15px;
+  }
+  .rail-ico.project svg {
+    width: 16px;
+    height: 16px;
   }
   .app.tools-on .rail-stack {
     padding: 7px 6px 10px;
@@ -2970,7 +3020,8 @@ body {
     pointer-events: auto;
     position: absolute;
     right: max(14px, env(safe-area-inset-right, 0px));
-    bottom: calc(118px + env(safe-area-inset-bottom, 0px));
+    /* Sit just above the rising strip (thumbs ~104px + padding) */
+    bottom: calc(132px + env(safe-area-inset-bottom, 0px));
     z-index: 2;
   }
   .scene360-strip-dock.open {
@@ -2993,6 +3044,8 @@ body {
     overflow: hidden;
     z-index: 1;
     flex: none;
+    transform-origin: bottom center;
+    animation: strip360-up 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
   .hud {
     z-index: 8;
