@@ -49,7 +49,8 @@ export class OrbitEngine {
   private cropY = 0;
   private panMode = false;
   private overlayVisible = false;
-  private statusFilter: "all" | UnitStatus = "all";
+  /** When set, eye / hover / click only apply to these unit ids (sidebar filter). */
+  private filterIds: Set<string> | null = null;
   private focusedId: string | null = null;
   private hoveredId: string | null = null;
   private previewId: string | null = null;
@@ -267,9 +268,13 @@ export class OrbitEngine {
     this.syncMeshVisibility();
   }
 
-  setStatusFilter(v: "all" | UnitStatus) {
-    this.statusFilter = v;
+  setFilterIds(ids: string[] | null) {
+    this.filterIds = ids ? new Set(ids) : null;
     this.syncMeshVisibility();
+  }
+
+  private unitInFilter(id: string) {
+    return !this.filterIds || this.filterIds.has(id);
   }
 
   setFocus(id: string | null) {
@@ -815,15 +820,15 @@ export class OrbitEngine {
         mesh.visible = false;
         return;
       }
-      const inFilter = this.statusFilter === "all" || unit.status === this.statusFilter;
-      const highlighted = this.focusedId === name || this.hoveredId === name || this.previewId === name;
+      const inFilter = this.unitInFilter(name);
       this.paintUnitColor(mesh, unit);
-      if (!inFilter && !highlighted) {
+      if (!inFilter) {
         mesh.visible = false;
         mesh.userData.targetOpacity = 0;
         mat.opacity = 0;
         return;
       }
+      const highlighted = this.focusedId === name || this.hoveredId === name || this.previewId === name;
       mesh.visible = this.overlayVisible || highlighted;
       if (highlighted) mesh.userData.targetOpacity = COMPLEX.hoverOverlayOpacity;
       else if (this.overlayVisible) mesh.userData.targetOpacity = COMPLEX.showAllOpacity;
@@ -1387,7 +1392,7 @@ export class OrbitEngine {
     const hits = this.raycaster.intersectObjects(this.clickable, false);
     for (const hit of hits) {
       const unit = this.units[hit.object.name];
-      if (unit) return unit;
+      if (unit && this.unitInFilter(unit.id)) return unit;
     }
     return null;
   }

@@ -340,10 +340,6 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
   }, [tour]);
 
   useEffect(() => {
-    engineRef.current?.setStatusFilter(status);
-  }, [status, ready]);
-
-  useEffect(() => {
     engineRef.current?.setPanMode(panMode);
   }, [panMode, ready]);
 
@@ -371,6 +367,11 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
       .filter((u) => !favOnly || favs.includes(u.id))
       .sort((a, b) => a.displayId.localeCompare(b.displayId, undefined, { numeric: true }));
   }, [units, areaMax, floorMax, priceMin, priceMax, status, selectedModels, selectedRooms, favOnly, favs]);
+
+  useEffect(() => {
+    if (!ready) return;
+    engineRef.current?.setFilterIds(filtered.map((u) => u.id));
+  }, [filtered, ready]);
 
   // Phone dock: only highlight the centered villa — do not rotate the aerial to face it.
   useEffect(() => {

@@ -1206,14 +1206,22 @@ body {
   align-items: center;
   z-index: 8;
 }
+/* PC: keep tools + 360 arrow exactly where they were; strip is absolute in the gap */
 .hud.strip360-on {
-  left: 16px;
-  /* Clear the bigger مشروع rail on the right */
-  right: 92px;
-  bottom: 28px;
-  gap: 10px;
-  justify-content: flex-end;
-  align-items: flex-end;
+  pointer-events: none;
+}
+.hud.strip360-on > * {
+  pointer-events: auto;
+}
+.hud.strip360-on .scene360-strip-dock.open {
+  position: absolute;
+  right: calc(100% + 10px);
+  left: auto;
+  bottom: 0;
+  width: calc(100vw - 28px - 100% - 10px - min(304px, 86vw) - 16px);
+  max-width: calc(100vw - 28px - 100% - 10px - min(304px, 86vw) - 16px);
+  flex: none;
+  min-width: 0;
 }
 @keyframes strip360-up {
   from { transform: translateY(120%); opacity: 0.25; }
@@ -1379,8 +1387,9 @@ body {
   background: rgba(255, 255, 255, 0.48);
 }
 .hud-360.is-back {
-  width: 40px;
-  height: 40px;
+  /* same footprint as .hud-360 so the tools cluster does not shift on PC */
+  width: 44px;
+  height: 44px;
 }
 .compact-top .hud-360,
 .compact-top .compact-360 {
@@ -1580,20 +1589,11 @@ body {
   display: none;
 }
 .scene360-strip-dock.open {
-  /* 5 thumbs + peek, sitting in the HUD row right before the arrow */
-  --s360-w: 148px;
+  /* PC: large thumbs, scroll inside the gap [sidebar … 360 arrow] — OK if < 5 visible */
+  --s360-w: 188px;
   --s360-gap: 12px;
-  --s360-peek: 36px;
-  --s360-visible: calc(5 * var(--s360-w) + 4 * var(--s360-gap) + var(--s360-peek));
-  position: relative;
-  left: auto;
-  right: auto;
-  bottom: auto;
   display: flex;
-  align-items: center;
-  width: min(var(--s360-visible), calc(100vw - 380px));
-  max-width: min(var(--s360-visible), calc(100% - 280px));
-  flex: 0 1 auto;
+  align-items: flex-end;
   height: auto;
   padding: 0;
   margin: 0;
@@ -1610,8 +1610,8 @@ body {
   animation: strip360-up 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 .scene360-strip-dock .scene360-thumb {
-  width: var(--s360-w, 148px);
-  height: 100px;
+  width: var(--s360-w, 188px);
+  height: 124px;
   border: 2px solid transparent;
   border-radius: 14px;
   overflow: hidden;
@@ -2757,7 +2757,7 @@ body {
   }
   .phone-top .compact-logo {
     width: auto;
-    height: 40px;
+    height: 50px;
     padding: 0;
     border: 0;
     border-radius: 0;
@@ -2770,25 +2770,25 @@ body {
   }
   .compact-agency-logo {
     width: auto;
-    height: 40px;
+    height: 50px;
     border-radius: 0;
     background: transparent;
     box-shadow: none;
   }
   .compact-agency-logo img {
     width: auto;
-    height: 40px;
-    max-width: 64px;
+    height: 50px;
+    max-width: 80px;
     object-fit: contain;
   }
   .phone-top .compact-project {
     display: flex;
-    max-width: min(54vw, 190px);
+    max-width: min(58vw, 210px);
     justify-content: flex-end;
     pointer-events: none;
   }
   .compact-project-logo {
-    height: 38px;
+    height: 48px;
     width: auto;
     max-width: 100%;
     object-fit: contain;
@@ -2804,8 +2804,8 @@ body {
     pointer-events: auto;
     position: absolute;
     /* Same level as مشروع, with a small gap under the white header */
-    top: calc(62px + env(safe-area-inset-top, 0px));
-    left: max(14px, env(safe-area-inset-left, 0px));
+    top: calc(72px + env(safe-area-inset-top, 0px));
+    left: max(6px, env(safe-area-inset-left, 0px));
     width: 38px;
     height: 38px;
     border-radius: 50%;
@@ -2829,8 +2829,8 @@ body {
     flex-direction: column;
     align-items: flex-end;
     gap: 0;
-    top: calc(62px + env(safe-area-inset-top, 0px));
-    right: max(12px, env(safe-area-inset-right, 0px));
+    top: calc(72px + env(safe-area-inset-top, 0px));
+    right: max(4px, env(safe-area-inset-right, 0px));
     background: transparent;
     border: 0;
     box-shadow: none;
@@ -2943,17 +2943,21 @@ body {
     align-items: center;
     gap: 0;
     position: absolute;
-    top: calc(100% + 2px);
+    top: calc(100% + 1px);
     left: 50%;
     transform: translateX(-50%);
-    color: rgba(255, 255, 255, 0.95);
-    filter: drop-shadow(0 2px 6px rgba(15, 23, 42, 0.35));
+    color: #1b4f9c;
+    filter: drop-shadow(0 1px 2px rgba(255, 255, 255, 0.85));
     pointer-events: none;
-    line-height: 0.55;
+    line-height: 0;
   }
   .rail-hint svg {
     display: block;
-    opacity: 0.35;
+    opacity: 1;
+    color: #1b4f9c;
+  }
+  .rail-hint svg:last-child {
+    margin-top: -9px;
   }
   .rail-hint svg:first-child {
     animation: rail-chevron 1.2s ease-in-out infinite;
@@ -2966,9 +2970,9 @@ body {
     visibility: hidden;
   }
   @keyframes rail-chevron {
-    0%, 100% { opacity: 0.25; transform: translateY(0); }
-    40% { opacity: 1; transform: translateY(3px); }
-    70% { opacity: 0.45; transform: translateY(5px); }
+    0%, 100% { opacity: 0.55; transform: translateY(0); }
+    40% { opacity: 1; transform: translateY(2px); }
+    70% { opacity: 0.75; transform: translateY(3px); }
   }
 
   .hud-tools { display: none; }
@@ -3024,6 +3028,9 @@ body {
     flex-direction: column;
     pointer-events: none;
   }
+  .hud.strip360-on > * {
+    pointer-events: auto;
+  }
   .hud.strip360-on .hud-compass-row,
   .hud.strip360-on .hud-tools {
     display: none !important;
@@ -3035,6 +3042,16 @@ body {
     /* Sit just above the rising strip (thumbs ~104px + padding) */
     bottom: calc(132px + env(safe-area-inset-bottom, 0px));
     z-index: 2;
+  }
+  .hud.strip360-on .scene360-strip-dock.open {
+    /* undo PC absolute gap layout */
+    position: relative;
+    right: auto;
+    left: auto;
+    bottom: auto;
+    flex: none;
+    width: 100%;
+    max-width: none;
   }
   .scene360-strip-dock.open {
     --s360-w: min(200px, calc((100vw - 40px) / 2));
@@ -3056,6 +3073,7 @@ body {
     overflow: hidden;
     z-index: 1;
     flex: none;
+    /* reset PC absolute anchoring */
     transform-origin: bottom center;
     animation: strip360-up 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
