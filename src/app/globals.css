@@ -54,15 +54,15 @@ body {
   transition: width 0.32s ease;
   z-index: 4;
 }
-.panel.open { width: min(328px, 86vw); background: #f4f7fb; }
-.panel.open.form-wide { width: min(328px, 86vw); }
+.panel.open { width: min(312px, 86vw); background: #f4f7fb; }
+.panel.open.form-wide { width: min(312px, 86vw); }
 .panel.open.filters-on { z-index: 12; }
 .panel-inner {
   position: absolute;
   top: 0;
   bottom: 0;
   left: 0;
-  width: min(328px, 86vw);
+  width: min(312px, 86vw);
   height: 100%;
   margin: 0;
   background: #f4f7fb;
@@ -76,7 +76,7 @@ body {
   transition: transform 0.32s ease;
 }
 .panel.open .panel-inner { transform: translateX(0); }
-.panel.open.form-wide .panel-inner { width: min(328px, 86vw); }
+.panel.open.form-wide .panel-inner { width: min(312px, 86vw); }
 .panel.open.filters-on .panel-inner {
   overflow: visible;
 }
@@ -240,8 +240,8 @@ body {
 .filters-flyout {
   position: fixed;
   top: 16px;
-  left: calc(min(328px, 86vw) + 14px);
-  width: min(280px, 40vw);
+  left: calc(min(312px, 86vw) + 14px);
+  width: min(290px, 42vw);
   height: auto;
   max-height: min(68vh, 520px);
   z-index: 22;
@@ -257,7 +257,7 @@ body {
   transform-origin: top left;
 }
 .app:has(.panel.open.form-wide) .filters-flyout {
-  left: calc(min(328px, 86vw) + 14px);
+  left: calc(min(312px, 86vw) + 14px);
 }
 @keyframes filters-in {
   from { opacity: 0; transform: translate(-12px, -8px) scale(0.97); }
@@ -274,7 +274,7 @@ body {
 }
 .filters-head h2 {
   margin: 0;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
   color: #1b365d;
   display: inline-flex;
@@ -316,7 +316,7 @@ body {
 }
 .filters-rich h3 {
   margin: 0;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   color: #243044;
   letter-spacing: 0;
@@ -332,13 +332,13 @@ body {
   align-items: center;
   justify-content: center;
   width: 100%;
-  min-height: 28px;
-  height: 28px;
+  min-height: 30px;
+  height: 30px;
   gap: 0;
   border: 1.5px solid #3b7dd8;
   border-radius: 999px;
   padding: 0 10px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
   color: #3b7dd8;
   cursor: pointer;
@@ -405,13 +405,13 @@ body {
 .filter-area-head h3 {
   margin: 0;
   text-align: start;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   color: #1b365d;
 }
 .range-readout {
   font-style: normal;
-  font-size: 12.5px;
+  font-size: 13.5px;
   font-weight: 600;
   color: #111;
   direction: ltr;
@@ -492,7 +492,7 @@ body {
   border: 1.5px solid #3b7dd8;
   background: #fff;
   color: #1b2430;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 400;
   line-height: 1;
   cursor: pointer;
