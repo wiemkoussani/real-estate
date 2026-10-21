@@ -928,8 +928,8 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
               <span className="rail-name">مشروع</span>
               <span className="rail-ico project"><IconApps size={22} /></span>
               <span className="rail-hint" aria-hidden>
-                <IconChevronDown size={14} />
-                <IconChevronDown size={14} />
+                <IconChevronDown size={22} />
+                <IconChevronDown size={22} />
               </span>
             </button>
             <button type="button" className="rail-fab" onClick={() => { setFormOpen(true); setListOpen(true); }}>

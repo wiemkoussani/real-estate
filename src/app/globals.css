@@ -2943,21 +2943,30 @@ body {
     align-items: center;
     gap: 0;
     position: absolute;
-    top: calc(100% + 1px);
+    top: calc(100% + 0px);
     left: 50%;
     transform: translateX(-50%);
-    color: #1b4f9c;
-    filter: drop-shadow(0 1px 2px rgba(255, 255, 255, 0.85));
+    color: #0a3278;
+    filter:
+      drop-shadow(0 0 1.5px #fff)
+      drop-shadow(0 0 3px rgba(255, 255, 255, 0.95))
+      drop-shadow(0 1px 2px rgba(15, 23, 42, 0.25));
     pointer-events: none;
     line-height: 0;
   }
   .rail-hint svg {
     display: block;
     opacity: 1;
-    color: #1b4f9c;
+    width: 22px;
+    height: 22px;
+    color: #0a3278;
+    stroke: #0a3278;
+    stroke-width: 4.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
   }
   .rail-hint svg:last-child {
-    margin-top: -9px;
+    margin-top: -13px;
   }
   .rail-hint svg:first-child {
     animation: rail-chevron 1.2s ease-in-out infinite;
@@ -2970,9 +2979,9 @@ body {
     visibility: hidden;
   }
   @keyframes rail-chevron {
-    0%, 100% { opacity: 0.55; transform: translateY(0); }
+    0%, 100% { opacity: 0.75; transform: translateY(0); }
     40% { opacity: 1; transform: translateY(2px); }
-    70% { opacity: 0.75; transform: translateY(3px); }
+    70% { opacity: 0.9; transform: translateY(3px); }
   }
 
   .hud-tools { display: none; }
