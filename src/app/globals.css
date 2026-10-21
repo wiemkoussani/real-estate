@@ -2949,42 +2949,38 @@ body {
     position: absolute;
     top: calc(100% + 0px);
     left: 50%;
-    transform: translateX(-50%);
     color: #0a3278;
     filter:
       drop-shadow(0 0 1px #fff)
-      drop-shadow(0 1px 2px rgba(255, 255, 255, 0.85));
+      drop-shadow(0 1px 1px rgba(255, 255, 255, 0.8));
     pointer-events: none;
     line-height: 0;
+    /* One animation for the pair — they never drift apart */
+    transform: translateX(-50%);
+    animation: rail-chevron 1.1s ease-in-out infinite;
   }
   .rail-hint svg {
     display: block;
     opacity: 1;
-    width: 11px;
-    height: 11px;
+    width: 9px;
+    height: 9px;
     color: #0a3278;
     stroke: #0a3278;
-    stroke-width: 2.1;
+    stroke-width: 1.7;
     stroke-linecap: round;
     stroke-linejoin: round;
   }
   .rail-hint svg:last-child {
-    margin-top: -7px;
-  }
-  .rail-hint svg:first-child {
-    animation: rail-chevron 1.1s ease-in-out infinite;
-  }
-  .rail-hint svg:last-child {
-    animation: rail-chevron 1.1s ease-in-out infinite 0.15s;
+    margin-top: -6px;
   }
   .rail-fab.project-toggle.is-expanded .rail-hint {
     opacity: 0;
     visibility: hidden;
+    animation: none;
   }
   @keyframes rail-chevron {
-    0%, 100% { opacity: 0.65; transform: translateY(0); }
-    45% { opacity: 1; transform: translateY(1px); }
-    75% { opacity: 0.8; transform: translateY(2px); }
+    0%, 100% { opacity: 0.7; transform: translateX(-50%) translateY(0); }
+    50% { opacity: 1; transform: translateX(-50%) translateY(2px); }
   }
 
   .hud-tools { display: none; }
