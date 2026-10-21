@@ -189,6 +189,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
   const [activeSceneId, setActiveSceneId] = useState<string | null>(null);
   const rotateHoldRef = useRef<number | null>(null);
   const stripDragRef = useRef(false);
+  const stripElRef = useRef<HTMLDivElement | null>(null);
   const dockRef = useRef<HTMLDivElement>(null);
   const dockFacedIdRef = useRef<string | null>(null);
   const [status, setStatus] = useState<"all" | UnitStatus>("all");
@@ -532,6 +533,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
   const stripRef = useCallback((node: HTMLDivElement | null) => {
     stripScrollCleanup.current?.();
     stripScrollCleanup.current = null;
+    stripElRef.current = node;
     if (!node) return;
     const onWheel = (e: WheelEvent) => {
       if (Math.abs(e.deltaY) <= Math.abs(e.deltaX) && e.deltaX === 0) return;
@@ -596,6 +598,31 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
   };
 
   const activeScene = tour.scenes360.find((s) => s.id === activeSceneId) || null;
+
+  // Keyboard ← → switches 360 thumbs (strip open on first click, and full view).
+  useEffect(() => {
+    if (!scene360Strip || !tour.scenes360.length) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t?.closest("input, textarea, select, [contenteditable='true']")) return;
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      e.preventDefault();
+      const list = tour.scenes360;
+      const cur = Math.max(0, list.findIndex((s) => s.id === activeSceneId));
+      const next = e.key === "ArrowRight"
+        ? (cur + 1) % list.length
+        : (cur - 1 + list.length) % list.length;
+      const scene = list[next];
+      if (!scene) return;
+      setActiveSceneId(scene.id);
+      const strip = stripElRef.current;
+      const thumb = strip?.querySelector<HTMLElement>(`[data-scene-id="${CSS.escape(scene.id)}"]`);
+      thumb?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [scene360Strip, activeSceneId, tour.scenes360]);
 
   const openUnit = (u: Unit) => {
     void pickUnit(u);
@@ -928,8 +955,8 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
               <span className="rail-name">مشروع</span>
               <span className="rail-ico project"><IconApps size={22} /></span>
               <span className="rail-hint" aria-hidden>
-                <IconChevronDown size={22} />
-                <IconChevronDown size={22} />
+                <IconChevronDown size={14} />
+                <IconChevronDown size={14} />
               </span>
             </button>
             <button type="button" className="rail-fab" onClick={() => { setFormOpen(true); setListOpen(true); }}>
@@ -966,6 +993,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
                         key={scene.id}
                         type="button"
                         role="listitem"
+                        data-scene-id={scene.id}
                         className={`scene360-thumb${activeScene?.id === scene.id ? " on" : ""}`}
                         onClick={() => openScene360View(scene.id)}
                         aria-label={scene.label || "360 scene"}
@@ -1118,6 +1146,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
                     key={scene.id}
                     type="button"
                     role="listitem"
+                    data-scene-id={scene.id}
                     className={`scene360-thumb${activeScene?.id === scene.id ? " on" : ""}`}
                     onClick={() => {
                       if (stripDragRef.current) return;
