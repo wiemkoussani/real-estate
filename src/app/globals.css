@@ -2758,15 +2758,15 @@ body {
     background: #fff;
     border: 0;
     border-top: 0;
-    border-bottom: 3px solid #7eb6ef;
-    border-radius: 0 0 14px 14px;
+    border-bottom: 2px solid #7eb6ef;
+    border-radius: 0 0 12px 12px;
     /* Shorter white bar — logos stay large */
     padding:
-      max(4px, env(safe-area-inset-top, 0px))
+      max(2px, env(safe-area-inset-top, 0px))
       max(12px, env(safe-area-inset-right, 0px))
-      4px
+      2px
       max(12px, env(safe-area-inset-left, 0px));
-    box-shadow: 0 3px 12px rgba(15, 23, 42, 0.05);
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05);
   }
   .phone-top .compact-logo {
     width: auto;
@@ -2822,7 +2822,7 @@ body {
     pointer-events: auto;
     position: absolute;
     /* Same level as مشروع, with a small gap under the white header */
-    top: calc(62px + env(safe-area-inset-top, 0px));
+    top: calc(58px + env(safe-area-inset-top, 0px));
     left: max(6px, env(safe-area-inset-left, 0px));
     width: 38px;
     height: 38px;
@@ -2847,7 +2847,7 @@ body {
     flex-direction: column;
     align-items: flex-end;
     gap: 0;
-    top: calc(62px + env(safe-area-inset-top, 0px));
+    top: calc(58px + env(safe-area-inset-top, 0px));
     right: max(4px, env(safe-area-inset-right, 0px));
     background: transparent;
     border: 0;
@@ -3010,8 +3010,8 @@ body {
   .hud {
     left: auto;
     right: max(12px, env(safe-area-inset-right, 0px));
-    /* Raise 360 / eye / compass a touch */
-    bottom: calc(128px + env(safe-area-inset-bottom, 0px));
+    /* 360 / eye / compass — nudged slightly lower */
+    bottom: calc(118px + env(safe-area-inset-bottom, 0px));
     transform: none;
     justify-content: flex-end;
     gap: 8px;
@@ -3167,7 +3167,7 @@ body {
 
   .filters-flyout {
     position: fixed;
-    top: calc(74px + env(safe-area-inset-top, 0px));
+    top: calc(68px + env(safe-area-inset-top, 0px));
     left: max(12px, env(safe-area-inset-left, 0px));
     right: auto;
     width: min(300px, calc(100vw - 24px));
