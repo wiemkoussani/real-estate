@@ -549,26 +549,14 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
     let dragging = false;
     let startX = 0;
     let startScroll = 0;
-    let lastX = 0;
-    let lastT = 0;
-    let velocity = 0;
-    let momentumId = 0;
     let activePointer: number | null = null;
-    const stopMomentum = () => {
-      if (momentumId) cancelAnimationFrame(momentumId);
-      momentumId = 0;
-    };
     const onDown = (e: PointerEvent) => {
       if (e.button !== 0) return;
-      stopMomentum();
       tracking = true;
       dragging = false;
       stripDragRef.current = false;
       activePointer = e.pointerId;
       startX = e.clientX;
-      lastX = e.clientX;
-      lastT = performance.now();
-      velocity = 0;
       startScroll = node.scrollLeft;
     };
     const onMove = (e: PointerEvent) => {
@@ -581,11 +569,8 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
         node.setPointerCapture(e.pointerId);
         node.classList.add("is-dragging");
       }
-      const now = performance.now();
-      const dt = Math.max(1, now - lastT);
-      velocity = ((e.clientX - lastX) / dt) * 16;
-      lastX = e.clientX;
-      lastT = now;
+      e.preventDefault();
+      // 1:1 with the pointer — no coast / push after release
       node.scrollLeft = startScroll - dx;
     };
     const onUp = (e: PointerEvent) => {
@@ -595,29 +580,16 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
       if (!dragging) return;
       dragging = false;
       node.classList.remove("is-dragging");
-      // Light coast only — avoid overscroll / excess glide after a short drag.
-      let v = -velocity * 5;
-      const tick = () => {
-        if (Math.abs(v) < 0.4) {
-          momentumId = 0;
-          window.setTimeout(() => {
-            stripDragRef.current = false;
-          }, 40);
-          return;
-        }
-        node.scrollLeft += v;
-        v *= 0.86;
-        momentumId = requestAnimationFrame(tick);
-      };
-      momentumId = requestAnimationFrame(tick);
+      window.setTimeout(() => {
+        stripDragRef.current = false;
+      }, 40);
     };
     node.addEventListener("wheel", onWheel, { passive: false });
     node.addEventListener("pointerdown", onDown);
-    node.addEventListener("pointermove", onMove);
+    node.addEventListener("pointermove", onMove, { passive: false });
     node.addEventListener("pointerup", onUp);
     node.addEventListener("pointercancel", onUp);
     stripScrollCleanup.current = () => {
-      stopMomentum();
       node.removeEventListener("wheel", onWheel);
       node.removeEventListener("pointerdown", onDown);
       node.removeEventListener("pointermove", onMove);

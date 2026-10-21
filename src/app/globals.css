@@ -1650,9 +1650,10 @@ body {
   background: transparent;
   border: 0;
   box-shadow: none;
-  /* Free smooth drag — no per-thumb snap on PC; only our pointer handler scrolls */
+  /* Free 1:1 drag — no snap, no momentum glide */
   scroll-snap-type: none;
-  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: none;
+  -webkit-overflow-scrolling: auto;
   touch-action: none;
   pointer-events: auto;
   scrollbar-width: none;
