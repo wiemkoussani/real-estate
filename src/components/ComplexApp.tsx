@@ -549,39 +549,67 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
     let dragging = false;
     let startX = 0;
     let startScroll = 0;
+    let lastX = 0;
+    let lastT = 0;
+    let velocity = 0;
+    let momentumId = 0;
     let activePointer: number | null = null;
+    const stopMomentum = () => {
+      if (momentumId) cancelAnimationFrame(momentumId);
+      momentumId = 0;
+    };
     const onDown = (e: PointerEvent) => {
       if (e.button !== 0) return;
+      stopMomentum();
       tracking = true;
       dragging = false;
       stripDragRef.current = false;
       activePointer = e.pointerId;
       startX = e.clientX;
+      lastX = e.clientX;
+      lastT = performance.now();
+      velocity = 0;
       startScroll = node.scrollLeft;
     };
     const onMove = (e: PointerEvent) => {
       if (!tracking || e.pointerId !== activePointer) return;
       const dx = e.clientX - startX;
       if (!dragging) {
-        if (Math.abs(dx) < 8) return;
+        if (Math.abs(dx) < 3) return;
         dragging = true;
         stripDragRef.current = true;
         node.setPointerCapture(e.pointerId);
         node.classList.add("is-dragging");
       }
+      const now = performance.now();
+      const dt = Math.max(1, now - lastT);
+      velocity = ((e.clientX - lastX) / dt) * 16;
+      lastX = e.clientX;
+      lastT = now;
       node.scrollLeft = startScroll - dx;
     };
     const onUp = (e: PointerEvent) => {
       if (activePointer !== null && e.pointerId !== activePointer) return;
       tracking = false;
       activePointer = null;
-      if (dragging) {
-        dragging = false;
-        node.classList.remove("is-dragging");
-        window.setTimeout(() => {
-          stripDragRef.current = false;
-        }, 40);
-      }
+      if (!dragging) return;
+      dragging = false;
+      node.classList.remove("is-dragging");
+      // Soft momentum so drag-scroll feels continuous, not snapped per thumb.
+      let v = -velocity * 14;
+      const tick = () => {
+        if (Math.abs(v) < 0.35) {
+          momentumId = 0;
+          window.setTimeout(() => {
+            stripDragRef.current = false;
+          }, 40);
+          return;
+        }
+        node.scrollLeft += v;
+        v *= 0.92;
+        momentumId = requestAnimationFrame(tick);
+      };
+      momentumId = requestAnimationFrame(tick);
     };
     node.addEventListener("wheel", onWheel, { passive: false });
     node.addEventListener("pointerdown", onDown);
@@ -589,6 +617,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
     node.addEventListener("pointerup", onUp);
     node.addEventListener("pointercancel", onUp);
     stripScrollCleanup.current = () => {
+      stopMomentum();
       node.removeEventListener("wheel", onWheel);
       node.removeEventListener("pointerdown", onDown);
       node.removeEventListener("pointermove", onMove);
@@ -927,21 +956,12 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
         {!scene360Open && (
           <header className="phone-top" onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
             <div className="phone-top-bar">
-              <button
-                type="button"
-                className="compact-logo"
-                title={tour.name}
-                aria-label={tour.name}
-                onClick={() => {
-                  setFormOpen(false);
-                  setFiltersOpen(false);
-                  setListOpen(true);
-                }}
-              >
+              <div className="compact-logo" title={tour.name} aria-hidden>
                 <span className="agency-logo compact-agency-logo">
                   <img
                     src={tour.logoUrl || COMPLEX.logoPath}
                     alt=""
+                    draggable={false}
                     onError={(e) => {
                       const img = e.currentTarget;
                       if (img.dataset.fallback === "1") return;
@@ -950,7 +970,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
                     }}
                   />
                 </span>
-              </button>
+              </div>
               <div className="compact-project">
                 {tour.projectLogoUrl ? (
                   <img src={tour.projectLogoUrl} alt={tour.name} className="compact-project-logo" />
