@@ -2941,46 +2941,45 @@ body {
   .app.tools-on .rail-stack .rail-fab:not(.project-toggle):nth-child(4) { transition-delay: 0.08s; }
   .app.tools-on .rail-stack .rail-fab:not(.project-toggle):nth-child(5) { transition-delay: 0.11s; }
 
-  /* Under the building icon only (right edge of the blue pill) — never centered */
-  .rail-fab.project-toggle {
-    overflow: visible;
+  /* Exactly under the building icon (right side of مشروع) */
+  .rail-fab.project-toggle,
+  .rail-ico.project {
+    overflow: visible !important;
+    position: relative;
   }
   .rail-hint {
     display: flex !important;
     flex-direction: column;
     align-items: center;
-    justify-content: flex-start;
     gap: 0;
     position: absolute;
-    top: calc(100% + 2px);
-    left: auto !important;
-    right: 6px !important;
-    width: 22px;
+    top: calc(100% + 3px);
+    left: 50%;
+    right: auto;
+    width: auto;
     margin: 0;
     padding: 0;
-    color: #062a6e;
-    filter:
-      drop-shadow(0 0 2px #fff)
-      drop-shadow(0 1px 2px rgba(255, 255, 255, 1));
+    z-index: 6;
     pointer-events: none;
     line-height: 0;
-    transform: translateY(0);
+    transform: translateX(-50%);
     animation: rail-chevron 1.05s ease-in-out infinite;
   }
-  .rail-hint svg {
+  .rail-hint i {
     display: block;
-    flex: none;
-    opacity: 1;
-    width: 14px !important;
-    height: 14px !important;
-    color: #062a6e;
-    stroke: #062a6e !important;
-    stroke-width: 3.6 !important;
-    stroke-linecap: round;
-    stroke-linejoin: round;
+    width: 9px;
+    height: 9px;
+    margin: 0;
+    border-right: 3.5px solid #fff;
+    border-bottom: 3.5px solid #fff;
+    transform: rotate(45deg);
+    box-sizing: border-box;
+    filter:
+      drop-shadow(0 0 1px #0b3a8c)
+      drop-shadow(0 1px 2px rgba(11, 58, 140, 0.75));
   }
-  .rail-hint svg + svg {
-    margin-top: -9px; /* almost touching — one block */
+  .rail-hint i + i {
+    margin-top: -3px; /* tiny gap, move as one block */
   }
   .rail-fab.project-toggle.is-expanded .rail-hint {
     opacity: 0;
@@ -2988,8 +2987,8 @@ body {
     animation: none;
   }
   @keyframes rail-chevron {
-    0%, 100% { opacity: 0.85; transform: translateY(0); }
-    50% { opacity: 1; transform: translateY(2px); }
+    0%, 100% { opacity: 0.9; transform: translateX(-50%) translateY(0); }
+    50% { opacity: 1; transform: translateX(-50%) translateY(2px); }
   }
 
   .hud-tools { display: none; }
