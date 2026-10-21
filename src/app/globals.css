@@ -2760,13 +2760,13 @@ body {
     background: #fff;
     border: 0;
     border-top: 0;
-    border-bottom: 2px solid #7eb6ef;
+    border-bottom: 3px solid #7eb6ef;
     border-radius: 0 0 12px 12px;
-    /* Shorter white bar — logos stay large */
+    /* Even thinner white bar — logos stay large; blue edge back to 3px */
     padding:
-      max(2px, env(safe-area-inset-top, 0px))
+      max(1px, env(safe-area-inset-top, 0px))
       max(12px, env(safe-area-inset-right, 0px))
-      2px
+      1px
       max(12px, env(safe-area-inset-left, 0px));
     box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05);
   }
