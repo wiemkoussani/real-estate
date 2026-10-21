@@ -54,15 +54,15 @@ body {
   transition: width 0.32s ease;
   z-index: 4;
 }
-.panel.open { width: min(312px, 86vw); background: #f4f7fb; }
-.panel.open.form-wide { width: min(312px, 86vw); }
+.panel.open { width: min(308px, 86vw); background: #f4f7fb; }
+.panel.open.form-wide { width: min(308px, 86vw); }
 .panel.open.filters-on { z-index: 12; }
 .panel-inner {
   position: absolute;
   top: 0;
   bottom: 0;
   left: 0;
-  width: min(312px, 86vw);
+  width: min(308px, 86vw);
   height: 100%;
   margin: 0;
   background: #f4f7fb;
@@ -76,7 +76,7 @@ body {
   transition: transform 0.32s ease;
 }
 .panel.open .panel-inner { transform: translateX(0); }
-.panel.open.form-wide .panel-inner { width: min(312px, 86vw); }
+.panel.open.form-wide .panel-inner { width: min(308px, 86vw); }
 .panel.open.filters-on .panel-inner {
   overflow: visible;
 }
@@ -240,7 +240,7 @@ body {
 .filters-flyout {
   position: fixed;
   top: 16px;
-  left: calc(min(312px, 86vw) + 14px);
+  left: calc(min(308px, 86vw) + 14px);
   width: min(290px, 42vw);
   height: auto;
   max-height: min(68vh, 520px);
@@ -257,7 +257,7 @@ body {
   transform-origin: top left;
 }
 .app:has(.panel.open.form-wide) .filters-flyout {
-  left: calc(min(312px, 86vw) + 14px);
+  left: calc(min(308px, 86vw) + 14px);
 }
 @keyframes filters-in {
   from { opacity: 0; transform: translate(-12px, -8px) scale(0.97); }
