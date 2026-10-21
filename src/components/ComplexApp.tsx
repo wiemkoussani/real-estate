@@ -595,10 +595,10 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
       if (!dragging) return;
       dragging = false;
       node.classList.remove("is-dragging");
-      // Soft momentum so drag-scroll feels continuous, not snapped per thumb.
-      let v = -velocity * 14;
+      // Light coast only — avoid overscroll / excess glide after a short drag.
+      let v = -velocity * 5;
       const tick = () => {
-        if (Math.abs(v) < 0.35) {
+        if (Math.abs(v) < 0.4) {
           momentumId = 0;
           window.setTimeout(() => {
             stripDragRef.current = false;
@@ -606,7 +606,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
           return;
         }
         node.scrollLeft += v;
-        v *= 0.92;
+        v *= 0.86;
         momentumId = requestAnimationFrame(tick);
       };
       momentumId = requestAnimationFrame(tick);

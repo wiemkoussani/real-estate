@@ -1217,8 +1217,8 @@ body {
   position: absolute;
   right: calc(100% + 10px);
   left: auto;
-  /* Center thumbs vertically on the 360→arrow button (44px) */
-  bottom: calc((44px - 124px) / 2);
+  /* Near-center on the 360→arrow; nudged slightly up from exact mid */
+  bottom: calc((44px - 124px) / 2 + 12px);
   width: calc(100vw - 28px - 100% - 10px - min(318px, 86vw) - 16px);
   max-width: calc(100vw - 28px - 100% - 10px - min(318px, 86vw) - 16px);
   flex: none;
@@ -1650,9 +1650,10 @@ body {
   background: transparent;
   border: 0;
   box-shadow: none;
-  /* Free smooth drag — no per-thumb snap on PC */
+  /* Free smooth drag — no per-thumb snap on PC; only our pointer handler scrolls */
   scroll-snap-type: none;
   -webkit-overflow-scrolling: touch;
+  touch-action: none;
   pointer-events: auto;
   scrollbar-width: none;
   outline: none;
