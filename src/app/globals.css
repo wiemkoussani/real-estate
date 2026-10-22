@@ -54,15 +54,15 @@ body {
   transition: width 0.32s ease;
   z-index: 4;
 }
-.panel.open { width: min(318px, 86vw); background: #f4f7fb; }
-.panel.open.form-wide { width: min(318px, 86vw); }
+.panel.open { width: min(360px, 86vw); background: #f4f7fb; }
+.panel.open.form-wide { width: min(360px, 86vw); }
 .panel.open.filters-on { z-index: 12; }
 .panel-inner {
   position: absolute;
   top: 0;
   bottom: 0;
   left: 0;
-  width: min(318px, 86vw);
+  width: min(360px, 86vw);
   height: 100%;
   margin: 0;
   background: #f4f7fb;
@@ -76,7 +76,7 @@ body {
   transition: transform 0.32s ease;
 }
 .panel.open .panel-inner { transform: translateX(0); }
-.panel.open.form-wide .panel-inner { width: min(318px, 86vw); }
+.panel.open.form-wide .panel-inner { width: min(360px, 86vw); }
 .panel.open.filters-on .panel-inner {
   overflow: visible;
 }
@@ -240,7 +240,7 @@ body {
 .filters-flyout {
   position: fixed;
   top: 16px;
-  left: calc(min(318px, 86vw) + 14px);
+  left: calc(min(360px, 86vw) + 14px);
   width: min(288px, 42vw);
   height: auto;
   max-height: min(68vh, 520px);
@@ -257,7 +257,7 @@ body {
   transform-origin: top left;
 }
 .app:has(.panel.open.form-wide) .filters-flyout {
-  left: calc(min(318px, 86vw) + 14px);
+  left: calc(min(360px, 86vw) + 14px);
 }
 @keyframes filters-in {
   from { opacity: 0; transform: translate(-12px, -8px) scale(0.97); }
@@ -690,16 +690,16 @@ body {
 .units.table .unit .heart { justify-self: end; }
 .units.cards .unit {
   display: grid;
-  grid-template-columns: 80px minmax(0, 1fr);
-  column-gap: 11px;
+  grid-template-columns: 88px minmax(0, 1fr);
+  column-gap: 12px;
   align-items: center;
-  width: calc(100% - 6px);
-  max-width: calc(100% - 6px);
-  margin: 0 3px 8px;
+  width: calc(100% - 16px);
+  max-width: calc(100% - 16px);
+  margin: 0 8px 10px;
   min-width: 0;
   border: 1px solid #eef2f6;
   border-radius: 16px;
-  padding: 7px 12px 10px;
+  padding: 8px 14px 12px;
   background: #fff;
   position: relative;
   box-shadow: 0 1px 2px rgba(24, 39, 56, 0.04);
@@ -724,13 +724,13 @@ body {
 }
 .units.cards .card-side {
   position: relative;
-  width: 80px;
-  height: 84px;
+  width: 88px;
+  height: 92px;
 }
 .units.cards .unit img,
 .units.cards .unit .card-img-fallback {
-  width: 80px;
-  height: 84px;
+  width: 88px;
+  height: 92px;
   object-fit: cover;
   border-radius: 10px;
   background: #e8eef3;
@@ -1219,8 +1219,8 @@ body {
   left: auto;
   /* Near-center on the 360→arrow; nudged slightly up from exact mid */
   bottom: calc((44px - 124px) / 2 + 12px);
-  width: calc(100vw - 28px - 100% - 10px - min(318px, 86vw) - 16px);
-  max-width: calc(100vw - 28px - 100% - 10px - min(318px, 86vw) - 16px);
+  width: calc(100vw - 28px - 100% - 10px - min(360px, 86vw) - 16px);
+  max-width: calc(100vw - 28px - 100% - 10px - min(360px, 86vw) - 16px);
   flex: none;
   min-width: 0;
 }
