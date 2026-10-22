@@ -690,16 +690,16 @@ body {
 .units.table .unit .heart { justify-self: end; }
 .units.cards .unit {
   display: grid;
-  grid-template-columns: 88px minmax(0, 1fr);
-  column-gap: 12px;
+  grid-template-columns: 72px minmax(0, 1fr);
+  column-gap: 10px;
   align-items: center;
-  width: calc(100% - 16px);
-  max-width: calc(100% - 16px);
-  margin: 0 8px 10px;
+  width: calc(100% - 20px);
+  max-width: calc(100% - 20px);
+  margin: 0 10px 8px;
   min-width: 0;
   border: 1px solid #eef2f6;
   border-radius: 16px;
-  padding: 8px 14px 12px;
+  padding: 6px 12px 8px;
   background: #fff;
   position: relative;
   box-shadow: 0 1px 2px rgba(24, 39, 56, 0.04);
@@ -724,13 +724,13 @@ body {
 }
 .units.cards .card-side {
   position: relative;
-  width: 88px;
-  height: 92px;
+  width: 72px;
+  height: 76px;
 }
 .units.cards .unit img,
 .units.cards .unit .card-img-fallback {
-  width: 88px;
-  height: 92px;
+  width: 72px;
+  height: 76px;
   object-fit: cover;
   border-radius: 10px;
   background: #e8eef3;
