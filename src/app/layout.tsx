@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Arimo, Bona_Nova, Saira } from "next/font/google";
+import { Arimo, Bona_Nova, Inter, Saira } from "next/font/google";
 import "./globals.css";
 
 const arimo = Arimo({
@@ -23,6 +23,13 @@ const saira = Saira({
   display: "swap",
 });
 
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["700"],
+  variable: "--font-inter",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: "AXIS",
   description: "Interactive complex tours",
@@ -38,7 +45,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${arimo.variable} ${bonaNova.variable} ${saira.variable}`}>
+    <html lang="en" className={`${arimo.variable} ${bonaNova.variable} ${saira.variable} ${inter.variable}`}>
       <body>{children}</body>
     </html>
   );

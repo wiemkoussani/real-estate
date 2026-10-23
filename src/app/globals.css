@@ -349,11 +349,7 @@ body {
   max-height: 514px;
   box-sizing: border-box;
   z-index: 22;
-  /* A small nudge right of the 12.21 pad — not flush to the edge */
-  padding-top: 12.21px;
-  padding-bottom: 12.21px;
-  padding-inline-start: 9px;
-  padding-inline-end: 12.21px;
+  padding: 12.21px;
   gap: 13.23px;
   background: #ffffff;
   background-color: #ffffff;
@@ -416,8 +412,8 @@ body {
 /* Figma: header filter vector — 18.66×17.73, top 2.8, left 1.86, stroke 1.83 #6CA3DE */
 .filters-head .filter-title-icon {
   position: relative;
-  width: 20.52px;
-  height: 20.53px;
+  width: 22.39px;
+  height: 22.39px;
   display: block;
   flex: none;
 }
@@ -436,8 +432,8 @@ body {
 }
 /* Figma: close x — 19×19 frame, vector ~10, stroke #748394 / 1.83 */
 .filters-back {
-  width: 19px;
-  height: 19px;
+  width: 19.34px;
+  height: 19.34px;
   border-radius: 0;
   border: 0;
   background: transparent;
@@ -452,8 +448,8 @@ body {
   flex-shrink: 0;
 }
 .filters-back svg {
-  width: 19px;
-  height: 19px;
+  width: 19.34px;
+  height: 19.34px;
   stroke: #748394;
   color: #748394;
   display: block;
@@ -516,9 +512,12 @@ body {
   background: transparent;
 }
 .filters-rich .payment-label {
-  width: auto;
+  width: 252.33px;
+  max-width: 100%;
+  height: 15px;
   align-self: flex-start;
   margin: 0;
+  box-sizing: border-box;
   font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
   font-size: 13.18px;
   font-weight: 700;
@@ -564,17 +563,48 @@ body {
   color: #177b65;
   background: #fdfeff;
 }
-/* كل الوحدات selected — #008FF0 + white */
+/* كل الوحدات selected — fill, 27.48×radius 17.3, #008FF0 */
 .status-pill.all.on {
   background: #008ff0;
   border-color: #008ff0;
   color: #fff;
-  font-size: 12px;
+  height: 27.48px;
+  min-height: 27.48px;
+  border-radius: 17.3px;
+}
+.status-pill.all.on .status-label {
+  width: 63px;
+  height: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
+  font-size: 12.21px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
+  color: #ffffff;
 }
 .status-pill.available {
-  border-color: #00b58d;
+  border: 1.02px solid #00b58d;
   color: #177b65;
   background: #fdfeff;
+  height: 27.48px;
+  min-height: 27.48px;
+  border-radius: 17.3px;
+}
+.status-pill.available:not(.on) .status-label {
+  width: 22px;
+  height: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
+  font-size: 10.54px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
+  color: #177b65;
 }
 .status-pill.available.on {
   background: #00b58d;
@@ -582,24 +612,53 @@ body {
   color: #fff;
 }
 .status-pill.reserved {
-  border-color: #db9806;
+  border: 1.02px solid #db9806;
   color: #db9806;
   background: #fdfeff;
+  height: 26.46px;
+  min-height: 26.46px;
+  border-radius: 17.3px;
+}
+.status-pill.reserved:not(.on) .status-label {
+  width: 30px;
+  height: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
+  font-size: 10.54px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
+  color: #db9806;
 }
 .status-pill.reserved.on {
   background: #db9806;
   border-color: #db9806;
   color: #fff;
 }
-.status-pill.sold {
-  border: 0.88px solid #be1b1e;
-  color: #be1b1e;
-  background: #fdfeff;
-}
+.status-pill.sold,
 .status-pill.sold.on {
+  border: 0.88px solid #be1b1e;
   background: #be1b1e;
-  border-color: #be1b1e;
   color: #fff;
+  height: 26.46px;
+  min-height: 26.46px;
+  border-radius: 17.3px;
+}
+.status-pill.sold .status-label,
+.status-pill.sold.on .status-label {
+  width: 20px;
+  height: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
+  font-size: 10.54px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
+  color: #ffffff;
 }
 .status-pill .status-label {
   white-space: nowrap;
@@ -650,25 +709,30 @@ body {
 }
 /* Figma المساحة — Arimo 700 / 10.54px / #000000 */
 .filters-rich .filter-area-head h3.area-label {
+  width: 40px;
+  height: 12px;
   font-size: 10.54px;
   line-height: 1;
-  height: 12px;
   color: #000000;
+  text-align: right;
 }
-/* Figma السعر — Arimo 700 / 13.18px / #25384F */
+/* Figma السعر — 35×15, Arimo 700 / 13.18px / #25384F */
 .filters-rich .filter-area-head h3.price-label {
+  width: 35px;
+  height: 15px;
   font-size: 13.18px;
   line-height: 1;
-  height: 15px;
   color: #25384f;
+  text-align: right;
 }
-/* Both values left-aligned above the long track — same type for area & price */
+/* Figma values — Inter 700 / 11.2px / #25384F, height 14 */
 .range-readout {
   font-style: normal;
-  font-family: var(--font-arimo), Arimo, Inter, "Segoe UI", sans-serif;
+  font-family: var(--font-inter), Inter, "Segoe UI", sans-serif;
   font-size: 11.2px;
   font-weight: 700;
   line-height: 1;
+  height: 14px;
   color: #25384f;
   direction: ltr !important;
   unicode-bidi: isolate;
@@ -681,6 +745,8 @@ body {
   gap: 4px;
   margin-inline-start: 0; /* sit on the track’s start edge (left) */
 }
+.range-readout.area-readout { width: 47px; }
+.range-readout.price-readout { width: 75px; }
 /* Figma: ر.س then amount — e.g. ر.س 600,000 */
 .range-readout .sar-cur {
   order: 0;
@@ -776,6 +842,8 @@ body {
 .filters-rich .model-filter > h3,
 .filters-rich .phase-filter > h3 {
   margin: 0;
+  align-self: flex-start;
+  box-sizing: border-box;
   font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
   font-size: 13.18px;
   font-weight: 700;
@@ -783,10 +851,11 @@ body {
   letter-spacing: 0;
   color: #25384f;
   text-align: right;
-  width: auto;
   height: 15px;
-  align-self: flex-start;
 }
+.filters-rich .room-filter > h3 { width: 60px; }
+.filters-rich .model-filter > h3,
+.filters-rich .phase-filter > h3 { width: 44px; }
 /* Figma: Room choices — horizontal hug, gap 9 */
 .chip-row,
 .room-choices {
@@ -850,18 +919,18 @@ body {
   color: #fff;
   font-weight: 700;
 }
-/* Figma: Reset filters — height 33, radius 21, #E3F3FF; pinned to panel bottom */
+/* Figma: Reset filters — fill, 32.57 tall, radius 21.37, #E3F3FF */
 .filters-reset-btn {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
   max-width: 100%;
-  height: 33px;
+  height: 32.57px;
   margin-top: auto;
   flex: none;
   border: 0;
-  border-radius: 21px;
+  border-radius: 21.37px;
   background: #e3f3ff;
   color: #25384f;
   font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
@@ -871,6 +940,19 @@ body {
   letter-spacing: 0;
   cursor: pointer;
   box-sizing: border-box;
+}
+.filters-reset-label {
+  width: 66px;
+  height: 15px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
+  font-size: 13.23px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
+  color: #25384f;
 }
 .filters-reset-btn:hover {
   background: #d4ebfc;
@@ -1328,8 +1410,12 @@ body {
 }
 /* Bedrooms only — value 13px / #25384F, label 10px / #748394 */
 .units.cards .card-specs .spec-rooms b {
-  width: auto;
+  width: 8px;
   height: 15px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
   font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
   font-size: 13px;
   font-weight: 700;
@@ -1349,8 +1435,12 @@ body {
 }
 /* Area — value 13px / #25384F, label 10px / #748394, 38×11 */
 .units.cards .card-specs .spec-area b {
-  width: auto;
+  width: 33px;
   height: 15px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
   font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
   font-size: 13px;
   font-weight: 700;
@@ -1370,8 +1460,12 @@ body {
 }
 /* Floors — value 13px / #25384F, label 10px / #748394, 34×11 */
 .units.cards .card-specs .spec-floor b {
-  width: auto;
+  width: 19px;
   height: 15px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
   font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
   font-size: 13px;
   font-weight: 700;

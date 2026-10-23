@@ -819,7 +819,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
             <section className="filter-area range-filter area-range">
               <div className="filter-area-head range-labels">
                 <h3 className="area-label">المساحة</h3>
-                <em className="range-readout" dir="ltr">
+                <em className="range-readout area-readout" dir="ltr">
                   {Math.round(areaMax).toLocaleString("en-US")}
                 </em>
               </div>
@@ -846,7 +846,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
             <section className="filter-area range-filter price-range">
               <div className="filter-area-head range-labels">
                 <h3 className="price-label">السعر</h3>
-                <em className="range-readout" dir="ltr">
+                <em className="range-readout price-readout" dir="ltr">
                   <span className="sar-cur">ر.س</span>
                   <span className="sar-num">{Math.round(priceMax).toLocaleString("en-US")}</span>
                 </em>
@@ -909,7 +909,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
               </div>
             </section>
             <button type="button" className="filters-reset-btn" onClick={resetFilters}>
-              إعادة تعيين
+              <span className="filters-reset-label">إعادة تعيين</span>
             </button>
           </div>
         </div>
