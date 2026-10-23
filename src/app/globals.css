@@ -285,7 +285,13 @@ body {
   color: #6ca3de !important;
   stroke-width: 2.16;
 }
+.tool-fab.heart-fab svg {
+  width: 24px;
+  height: 25.2px;
+}
 .tool-fab.filter-fab svg {
+  width: 23px;
+  height: 23px;
   stroke-width: 1.8;
 }
 .tool-fab.heart-fab:hover svg,
@@ -312,8 +318,13 @@ body {
   stroke: #6ca3de !important;
   color: #6ca3de !important;
 }
-/* Figma: fav count — Saira 500 / 16px / #6CA3DE / tracking 2% / lh 157% */
+/* Figma: fav count — 16×25, Saira 500 / 16px / #6CA3DE / tracking 2% / lh 157% */
 .tool-fab .fav-count {
+  width: 16px;
+  height: 25px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-family: var(--font-saira), Saira, "Segoe UI", sans-serif;
   font-size: 16px;
   font-weight: 500;
@@ -374,34 +385,46 @@ body {
   flex: none;
   box-sizing: border-box;
 }
-/* Figma: Filter title — hug, gap 7; text Arimo 700 / 15px / #25384F */
+/* Figma: Filter title text — 90×18, Arimo 700 / 15.27px / #25384F */
 .filters-head h2,
 .filters-head .filter-title {
   margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 18px;
+}
+.filters-head .filter-title-text {
+  width: 90px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
   font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
-  font-size: 15px;
+  font-size: 15.27px;
   font-weight: 700;
   line-height: 1;
   letter-spacing: 0;
   color: #25384f;
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
 }
-/* Figma: filter icon in heading — 22×22, stroke #6CA3DE */
+/* Figma: header filter vector — 18.66×17.73, top 2.8, left 1.86, stroke 1.83 #6CA3DE */
 .filters-head .filter-title-icon {
-  width: 22px;
-  height: 22px;
-  display: grid;
-  place-items: center;
+  position: relative;
+  width: 20.52px;
+  height: 20.53px;
+  display: block;
   flex: none;
 }
 .filters-head h2 svg,
 .filters-head .filter-title-icon svg {
-  width: 19px;
-  height: 18px;
+  position: absolute;
+  top: 2.8px;
+  left: 1.86px;
+  width: 18.66px;
+  height: 17.73px;
   color: #6ca3de;
   stroke: #6ca3de;
+  stroke-width: 1.83px;
   fill: none;
   flex: none;
 }
@@ -487,13 +510,16 @@ body {
   background: transparent;
 }
 .filters-rich .payment-label {
-  width: 100%;
+  width: auto;
+  align-self: flex-start;
+  margin: 0;
   font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
-  font-size: 13px;
+  font-size: 13.18px;
   font-weight: 700;
   line-height: 1;
-  color: #25384f;
-  text-align: start; /* RTL → right, flush with pills */
+  letter-spacing: 0;
+  color: #000000;
+  text-align: right;
 }
 /* Figma: Payment options — fill ~252, hug 26, gap 8 */
 .status-pills,
@@ -745,13 +771,15 @@ body {
 .filters-rich .phase-filter > h3 {
   margin: 0;
   font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
-  font-size: 13px;
+  font-size: 13.18px;
   font-weight: 700;
   line-height: 1;
   letter-spacing: 0;
   color: #25384f;
-  text-align: start;
-  width: 100%;
+  text-align: right;
+  width: auto;
+  height: 15px;
+  align-self: flex-start;
 }
 /* Figma: Room choices — horizontal hug, gap 9 */
 .chip-row,
@@ -831,7 +859,7 @@ body {
   background: #e3f3ff;
   color: #25384f;
   font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
-  font-size: 13px;
+  font-size: 13.23px;
   font-weight: 700;
   line-height: 1;
   letter-spacing: 0;
@@ -1291,6 +1319,69 @@ body {
   color: #748394;
   font-weight: 700;
   white-space: nowrap;
+}
+/* Bedrooms only — value 13px / #25384F, label 10px / #748394 */
+.units.cards .card-specs .spec-rooms b {
+  width: auto;
+  height: 15px;
+  font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
+  color: #25384f;
+}
+.units.cards .card-specs .spec-rooms small {
+  width: 44px;
+  height: 11px;
+  font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
+  color: #748394;
+}
+/* Area — value 13px / #25384F, label 10px / #748394, 38×11 */
+.units.cards .card-specs .spec-area b {
+  width: auto;
+  height: 15px;
+  font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
+  color: #25384f;
+}
+.units.cards .card-specs .spec-area small {
+  width: 38px;
+  height: 11px;
+  font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
+  color: #748394;
+}
+/* Floors — value 13px / #25384F, label 10px / #748394, 34×11 */
+.units.cards .card-specs .spec-floor b {
+  width: auto;
+  height: 15px;
+  font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
+  color: #25384f;
+}
+.units.cards .card-specs .spec-floor small {
+  width: 34px;
+  height: 11px;
+  font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
+  color: #748394;
 }
 .badge { font-size: 11px; font-style: normal; font-weight: 700; color: var(--teal); }
 .dot { width: 10px; height: 10px; border-radius: 50%; }

@@ -766,9 +766,9 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
                   </div>
                   <div className="card-divider" aria-hidden="true" />
                   <div className="card-specs">
-                    <span><b>{u.rooms}</b><small>غرف النوم</small></span>
-                    <span><b>{u.surface}</b><small>المساحة</small></span>
-                    <span><b>{u.floor}</b><small>الطوابق</small></span>
+                    <span className="spec-rooms"><b>{u.rooms}</b><small>غرف النوم</small></span>
+                    <span className="spec-area"><b>{u.surface}</b><small>المساحة</small></span>
+                    <span className="spec-floor"><b>{u.floor}</b><small>الطوابق</small></span>
                   </div>
                 </div>
               </button>
@@ -787,7 +787,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
               <span className="filter-title-icon" aria-hidden>
                 <IconFilters size={19} />
               </span>
-              تصفية النتائج
+              <span className="filter-title-text">تصفية النتائج</span>
             </h2>
             <button type="button" className="filters-back" onClick={() => setFiltersOpen(false)} aria-label="Close filters">
               <IconClose size={19} strokeWidth={1.83} />
@@ -1275,9 +1275,9 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
                 </div>
                 <div className="card-divider" aria-hidden="true" />
                 <div className="card-specs">
-                  <span><b>{u.rooms}</b><small>غرف النوم</small></span>
-                  <span><b>{u.surface}</b><small>المساحة</small></span>
-                  <span><b>{u.floor}</b><small>الطوابق</small></span>
+                  <span className="spec-rooms"><b>{u.rooms}</b><small>غرف النوم</small></span>
+                  <span className="spec-area"><b>{u.surface}</b><small>المساحة</small></span>
+                  <span className="spec-floor"><b>{u.floor}</b><small>الطوابق</small></span>
                 </div>
               </div>
             </button>
