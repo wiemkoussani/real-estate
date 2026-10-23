@@ -171,7 +171,12 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
   const [selected, setSelected] = useState<Unit | null>(null);
   const [listOpen, setListOpen] = useState(true);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [filtersClosing, setFiltersClosing] = useState(false);
+  const filtersClosingRef = useRef(false);
+  const filtersCloseTimer = useRef<number | null>(null);
   const [favOnly, setFavOnly] = useState(false);
+  const [leavingFavs, setLeavingFavs] = useState<string[]>([]);
+  const leaveTimers = useRef<Map<string, number>>(new Map());
   const [overlayOn, setOverlayOn] = useState(false);
   const [panMode, setPanMode] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -186,6 +191,9 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
   const [tourUnit, setTourUnit] = useState<Unit | null>(null);
   const [favs, setFavs] = useState<string[]>([]);
   const [scene360Strip, setScene360Strip] = useState(false);
+  const [stripClosing, setStripClosing] = useState(false);
+  const stripClosingRef = useRef(false);
+  const stripCloseTimer = useRef<number | null>(null);
   const [scene360Open, setScene360Open] = useState(false);
   const [activeSceneId, setActiveSceneId] = useState<string | null>(null);
   const rotateHoldRef = useRef<number | null>(null);
@@ -376,9 +384,9 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
       .filter((u) => status === "all" || u.status === status)
       .filter((u) => !selectedModels.length || selectedModels.includes(modelOf(u)))
       .filter((u) => !selectedRooms.length || selectedRooms.includes(u.rooms))
-      .filter((u) => !favOnly || favs.includes(u.id))
+      .filter((u) => !favOnly || favs.includes(u.id) || leavingFavs.includes(u.id))
       .sort((a, b) => a.displayId.localeCompare(b.displayId, undefined, { numeric: true }));
-  }, [units, areaMax, floorMax, priceMin, priceMax, status, selectedModels, selectedRooms, favOnly, favs]);
+  }, [units, areaMax, floorMax, priceMin, priceMax, status, selectedModels, selectedRooms, favOnly, favs, leavingFavs]);
 
   useEffect(() => {
     if (!ready) return;
@@ -427,11 +435,27 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
   }, [ready, filtered, scene360Strip, scene360Open, tourUnit]);
 
   const toggleFav = (id: string) => {
+    const removing = favs.includes(id);
     setFavs((prev) => {
       const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
       localStorage.setItem("axis-favs", JSON.stringify(next));
       return next;
     });
+    if (!favOnly) return;
+    const pending = leaveTimers.current.get(id);
+    if (pending) {
+      window.clearTimeout(pending);
+      leaveTimers.current.delete(id);
+    }
+    if (!removing) {
+      setLeavingFavs((ids) => ids.filter((x) => x !== id));
+      return;
+    }
+    setLeavingFavs((ids) => (ids.includes(id) ? ids : [...ids, id]));
+    leaveTimers.current.set(id, window.setTimeout(() => {
+      leaveTimers.current.delete(id);
+      setLeavingFavs((ids) => ids.filter((x) => x !== id));
+    }, 480));
   };
 
   const bounds = useMemo(() => {
@@ -507,10 +531,24 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
     }
   };
 
+  const closeFilters = () => {
+    if (filtersClosingRef.current || !filtersOpen) return;
+    filtersClosingRef.current = true;
+    setFiltersClosing(true);
+    filtersCloseTimer.current = window.setTimeout(() => {
+      filtersCloseTimer.current = null;
+      filtersClosingRef.current = false;
+      setFiltersClosing(false);
+      setFiltersOpen(false);
+    }, 280);
+  };
+
   const openFilters = () => {
     setFormOpen(false);
+    if (filtersClosingRef.current) return;
     if (isPhoneLayout()) {
-      setFiltersOpen((v) => !v);
+      if (filtersOpen) closeFilters();
+      else setFiltersOpen(true);
       return;
     }
     setFiltersOpen(true);
@@ -520,12 +558,21 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
   const openScene360 = () => {
     setFormOpen(false);
     setFiltersOpen(false);
+    if (stripClosingRef.current) return;
     const phone = isPhoneLayout();
     setScene360Strip((open) => {
       if (open) {
-        setScene360Open(false);
-        setActiveSceneId(null);
-        return false;
+        stripClosingRef.current = true;
+        setStripClosing(true);
+        stripCloseTimer.current = window.setTimeout(() => {
+          stripCloseTimer.current = null;
+          stripClosingRef.current = false;
+          setStripClosing(false);
+          setScene360Strip(false);
+          setScene360Open(false);
+          setActiveSceneId(null);
+        }, 420);
+        return true;
       }
       if (phone) setListOpen(false);
       setScene360Open(false);
@@ -682,10 +729,8 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
           className="peek"
           type="button"
           onClick={() => {
-            setListOpen((v) => {
-              if (v) setFiltersOpen(false);
-              return !v;
-            });
+            if (listOpen) closeFilters();
+            setListOpen((v) => !v);
           }}
           aria-label={listOpen ? "Ranger la liste" : "Ouvrir la liste"}
         >
@@ -732,11 +777,11 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
           </header>
           <div className="panel-toolbar">
             <div className="panel-actions-ring">
-              <button type="button" className={`tool-fab heart-fab ${favOnly ? "on" : ""}`} onClick={() => setFavOnly((v) => !v)} title="Favorites" aria-label="Favorites">
+              <button type="button" className={`tool-fab heart-fab ${favOnly ? "on" : ""}`} onClick={() => { leaveTimers.current.forEach((t) => window.clearTimeout(t)); leaveTimers.current.clear(); setLeavingFavs([]); setFavOnly((v) => !v); }} title="Favorites" aria-label="Favorites">
                 <IconHeart size={20} filled={favOnly} />
                 {favs.length > 0 ? <span className="fav-count">{favs.length}</span> : null}
               </button>
-              <button type="button" className={`tool-fab filter-fab ${filtersOpen ? "on" : ""}`} onClick={() => setFiltersOpen((v) => !v)} title="Filters" aria-label="Filters" aria-pressed={filtersOpen}>
+              <button type="button" className={`tool-fab filter-fab ${filtersOpen ? "on" : ""}`} onClick={() => { if (filtersOpen) closeFilters(); else setFiltersOpen(true); }} title="Filters" aria-label="Filters" aria-pressed={filtersOpen}>
                 <IconFilters size={19} filled={filtersOpen} />
               </button>
             </div>
@@ -750,7 +795,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
               <button
                 key={u.id}
                 type="button"
-                className={`unit ${selected?.id === u.id ? "sel" : ""}`}
+                className={`unit ${selected?.id === u.id ? "sel" : ""} ${leavingFavs.includes(u.id) ? "leaving" : ""}`}
                 onClick={() => openUnit(u)}
                 onMouseEnter={() => engineRef.current?.setPreview(u.id)}
                 onMouseLeave={() => engineRef.current?.setPreview(null)}
@@ -791,8 +836,8 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
         </div>
       </aside>
 
-      {filtersOpen && !scene360Open && (
-        <div className="filters-flyout" dir="rtl" onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
+      {(filtersOpen || filtersClosing) && !scene360Open && (
+        <div className={`filters-flyout${filtersClosing ? " closing" : ""}`} dir="rtl" onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
           <header className="filters-head">
             <h2 className="filter-title">
               <span className="filter-title-icon" aria-hidden>
@@ -800,7 +845,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
               </span>
               <span className="filter-title-text">تصفية النتائج</span>
             </h2>
-            <button type="button" className="filters-back" onClick={() => setFiltersOpen(false)} aria-label="Close filters">
+            <button type="button" className="filters-back" onClick={closeFilters} aria-label="Close filters">
               <IconClose size={19} strokeWidth={1.83} />
             </button>
           </header>
@@ -1038,7 +1083,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
             onMouseDown={(e) => e.stopPropagation()}
           >
             {scene360Strip && (
-              <div className="scene360-strip-dock open">
+              <div className={`scene360-strip-dock open${stripClosing ? " closing" : ""}`}>
                 <div
                   className="scene360-strip"
                   role="list"
@@ -1258,7 +1303,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
               key={u.id}
               type="button"
               data-unit-id={u.id}
-              className={`unit ${selected?.id === u.id ? "sel" : ""}`}
+              className={`unit ${selected?.id === u.id ? "sel" : ""} ${leavingFavs.includes(u.id) ? "leaving" : ""}`}
               onMouseEnter={() => engineRef.current?.setPreview(u.id)}
               onMouseLeave={() => engineRef.current?.setPreview(null)}
               onClick={() => openUnit(u)}
