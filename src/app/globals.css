@@ -12,8 +12,8 @@
   --red: #ff5a5f;
   --shadow: 0 12px 32px rgba(24, 39, 56, 0.12);
   --glass: rgba(255, 255, 255, 0.78);
-  /* Figma names Arimo. Arabic glyphs in those layers are Noto Sans Arabic. */
-  --font-figma-text: var(--font-arimo), var(--font-noto-arabic), sans-serif;
+  /* Text Figma labeled Arimo is painted as Noto Sans Arabic. */
+  --font-figma-text: var(--font-noto-arabic), sans-serif;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
