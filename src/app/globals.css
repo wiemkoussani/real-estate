@@ -637,17 +637,15 @@ body {
   border-color: #db9806;
   color: #fff;
 }
-.status-pill.sold,
-.status-pill.sold.on {
+.status-pill.sold {
   border: 1px solid #be1b1e;
-  background: #be1b1e;
-  color: #fff;
+  background: #fdfeff;
+  color: #be1b1e;
   height: 26.46px;
   min-height: 26.46px;
   border-radius: 17.3px;
 }
-.status-pill.sold .status-label,
-.status-pill.sold.on .status-label {
+.status-pill.sold .status-label {
   width: 20px;
   height: 12px;
   display: inline-flex;
@@ -658,6 +656,14 @@ body {
   font-weight: 700;
   line-height: 1;
   letter-spacing: 0;
+  color: #be1b1e;
+}
+.status-pill.sold.on {
+  background: #be1b1e;
+  border-color: #be1b1e;
+  color: #fff;
+}
+.status-pill.sold.on .status-label {
   color: #ffffff;
 }
 .status-pill .status-label {
