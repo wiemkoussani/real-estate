@@ -847,8 +847,8 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
               <div className="filter-area-head range-labels">
                 <h3>السعر</h3>
                 <em className="range-readout" dir="ltr">
-                  <span className="sar-num">{Math.round(priceMax).toLocaleString("en-US")}</span>
                   <span className="sar-cur">ر.س</span>
+                  <span className="sar-num">{Math.round(priceMax).toLocaleString("en-US")}</span>
                 </em>
               </div>
               <label className="range-single range-slider" dir="rtl">

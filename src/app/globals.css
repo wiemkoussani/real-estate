@@ -332,8 +332,8 @@ body {
   max-height: 514px;
   box-sizing: border-box;
   z-index: 22;
-  /* Figma pad 12; keep content close to the card edge (no extra air) */
-  padding: 12px;
+  /* Asymmetric pad: hug the right edge (RTL start) for حالة الوحدة / المساحة / … */
+  padding: 12px 8px 12px 12px;
   gap: 13px;
   background: #fff;
   border: 0;
@@ -460,8 +460,9 @@ body {
   font-weight: 700;
   color: #25384f;
   letter-spacing: 0;
-  text-align: start;
+  text-align: start; /* RTL → right */
   line-height: 1;
+  width: 100%;
 }
 /* Figma: Payment schedule — label + pills, gap 10 */
 .filters-rich .payment-schedule {
@@ -470,6 +471,7 @@ body {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
+  align-items: stretch;
   gap: 10px;
   padding: 0;
   border-radius: 0;
@@ -482,7 +484,7 @@ body {
   font-weight: 700;
   line-height: 1;
   color: #25384f;
-  text-align: start;
+  text-align: start; /* RTL → right, flush with pills */
 }
 /* Figma: Payment options — fill ~252, hug 26, gap 8 */
 .status-pills,
@@ -587,7 +589,7 @@ body {
   height: 15px;
   min-height: 15px;
 }
-/* Both labels (المساحة / السعر): Arimo 700 / 13px / #25384F — same style */
+/* Both labels (المساحة / السعر): Arimo 700 / 13px / #25384F — same style, right edge */
 .filter-area-head h3 {
   margin: 0;
   text-align: start;
@@ -597,8 +599,9 @@ body {
   line-height: 1;
   letter-spacing: 0;
   color: #25384f;
+  flex: none;
 }
-/* Both values: Inter/Arimo 700 / 11.2px / #25384F — same style */
+/* Both values left-aligned above the long track — same type for area & price */
 .range-readout {
   font-style: normal;
   font-family: var(--font-arimo), Arimo, Inter, "Segoe UI", sans-serif;
@@ -614,19 +617,19 @@ body {
   display: inline-flex;
   flex-direction: row;
   align-items: baseline;
-  gap: 3px;
+  gap: 4px;
+  margin-inline-start: 0; /* sit on the track’s start edge (left) */
 }
-/* Figma price: "600,000 ر.س" — number then currency */
-.range-readout .sar-num {
+/* Figma: ر.س then amount — e.g. ر.س 600,000 */
+.range-readout .sar-cur {
   order: 0;
   unicode-bidi: isolate;
 }
-.range-readout .sar-cur {
+.range-readout .sar-num {
   order: 1;
   unicode-bidi: isolate;
 }
-/* Identical slider for area & price — 17px tall, track #DFE7EB, handle #00B58D
-   Small end inset only (half handle) so thumbs aren’t far from the card edge */
+/* Full-width teal track (longer), handle at the value end */
 .range-single,
 .range-single.range-slider {
   display: flex;
@@ -635,7 +638,7 @@ body {
   height: 17px;
   direction: rtl;
   touch-action: none;
-  padding: 0 8px;
+  padding: 0;
   box-sizing: border-box;
 }
 .range-single input[type="range"] {
@@ -721,6 +724,8 @@ body {
   line-height: 1;
   letter-spacing: 0;
   color: #25384f;
+  text-align: start;
+  width: 100%;
 }
 /* Figma: Room choices — horizontal hug, gap 9 */
 .chip-row,
