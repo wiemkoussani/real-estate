@@ -407,7 +407,7 @@ body {
   align-items: center;
   /* Hug the filter icon. flex-end left a hole inside this 90px box on the laptop. */
   justify-content: flex-start;
-  font-family: sans-serif;
+  font-family: Arial, sans-serif;
   font-size: 15.2673px;
   font-weight: 700;
   line-height: 18px;
@@ -501,7 +501,7 @@ body {
 }
 .filters-rich h3 {
   margin: 0;
-  font-family: sans-serif;
+  font-family: Arial, sans-serif;
   font-size: 13px;
   font-weight: 700;
   color: #25384f;
@@ -533,7 +533,7 @@ body {
   align-self: flex-start;
   margin: 0;
   box-sizing: border-box;
-  font-family: sans-serif;
+  font-family: Arial, sans-serif;
   font-size: 13.1811px;
   font-weight: 700;
   line-height: 15px;
@@ -562,7 +562,7 @@ body {
   border: 1.01782px solid #00b58d;
   border-radius: 17.303px;
   padding: 0 10px;
-  font-family: sans-serif;
+  font-family: Arial, sans-serif;
   font-size: 11px;
   font-weight: 700;
   line-height: 1;
@@ -597,7 +597,7 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-family: sans-serif;
+  font-family: Arial, sans-serif;
   font-size: 12.2139px;
   font-weight: 700;
   line-height: 14px;
@@ -618,7 +618,7 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-family: sans-serif;
+  font-family: Arial, sans-serif;
   font-size: 10.5449px;
   font-weight: 700;
   line-height: 12px;
@@ -644,7 +644,7 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-family: sans-serif;
+  font-family: Arial, sans-serif;
   font-size: 10.5449px;
   font-weight: 700;
   line-height: 12px;
@@ -670,7 +670,7 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-family: sans-serif;
+  font-family: Arial, sans-serif;
   font-size: 10.5449px;
   font-weight: 700;
   line-height: 12px;
@@ -687,9 +687,16 @@ body {
 }
 .status-pill .status-label {
   white-space: nowrap;
+  font-family: Arial, sans-serif;
   font-weight: 700;
-  font-size: inherit;
-  line-height: 1;
+  font-size: 10.5449px;
+  line-height: 12px;
+}
+.status-pill.all .status-label {
+  width: 63px;
+  height: 14px;
+  font-size: 12.2139px;
+  line-height: 14px;
 }
 .status-count { display: none; }
 
@@ -725,7 +732,7 @@ body {
 .filter-area-head h3 {
   margin: 0;
   text-align: start;
-  font-family: sans-serif;
+  font-family: Arial, sans-serif;
   font-weight: 700;
   line-height: 1;
   letter-spacing: 0;
@@ -776,6 +783,7 @@ body {
 .range-readout .sar-cur {
   order: 0;
   unicode-bidi: isolate;
+  font-family: Arial, sans-serif;
 }
 .range-readout .sar-num {
   order: 1;
@@ -869,7 +877,7 @@ body {
   margin: 0;
   align-self: flex-start;
   box-sizing: border-box;
-  font-family: sans-serif;
+  font-family: Arial, sans-serif;
   font-size: 13.1811px;
   font-weight: 700;
   line-height: 15px;
@@ -916,7 +924,7 @@ body {
   border: 1.01782px solid #cbd4de;
   background: #fff;
   color: #010101;
-  font-family: sans-serif;
+  font-family: Arial, sans-serif;
   font-size: 13.2317px;
   font-weight: 400;
   line-height: 15px;
@@ -957,7 +965,7 @@ body {
   border-radius: 21.3743px;
   background: #e3f3ff;
   color: #25384f;
-  font-family: sans-serif;
+  font-family: Arial, sans-serif;
   font-size: 13.2317px;
   font-weight: 700;
   line-height: 15px;
@@ -971,7 +979,7 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-family: sans-serif;
+  font-family: Arial, sans-serif;
   font-size: 13.2317px;
   font-weight: 700;
   line-height: 15px;
@@ -1055,13 +1063,18 @@ body {
 .filters { padding: 0 12px 10px; display: grid; gap: 8px; font-size: 12px; color: var(--muted); }
 /* Flyout uses the Figma pad on the card itself — no second inset, solid white */
 .filters-flyout .filters {
+  box-sizing: border-box;
+  width: calc(100% + 12.2139px);
+  margin-inline-end: -12.2139px;
   padding: 0;
+  padding-inline-end: 12.2139px;
   gap: 13.23px;
   display: flex;
   flex-direction: column;
   background: #ffffff;
   background-color: #ffffff;
   color: #25384f;
+  font-family: Arial, sans-serif;
 }
 .filters .slider-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .filters label { display: grid; gap: 4px; justify-items: center; }
