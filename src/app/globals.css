@@ -332,6 +332,7 @@ body {
   max-height: 514px;
   box-sizing: border-box;
   z-index: 22;
+  /* Figma pad 12; keep content close to the card edge (no extra air) */
   padding: 12px;
   gap: 13px;
   background: #fff;
@@ -433,11 +434,16 @@ body {
   min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
+  /* scrollbar flush to panel edge — no extra gutter */
+  scrollbar-gutter: auto;
   scrollbar-width: thin;
   scrollbar-color: #c5ced6 transparent;
 }
 .filters-rich::-webkit-scrollbar {
   width: 4px;
+}
+.filters-rich::-webkit-scrollbar-track {
+  background: transparent;
 }
 .filters-rich::-webkit-scrollbar-thumb {
   background: #c5ced6;
@@ -560,38 +566,39 @@ body {
 }
 .status-count { display: none; }
 
-/* Figma: Range filter — vertical fill ~259, hug ~38, gap 7 */
+/* Figma: Range filter — المساحة + السعر share identical layout & type */
 .filters-rich .filter-area,
 .filters-rich .range-filter {
   display: flex;
   flex-direction: column;
   gap: 7px;
   width: 100%;
-  max-width: 259px;
+  max-width: 100%;
 }
-/* Figma: Range labels — horizontal fill, hug 14, space-between */
-.filter-area-head {
+/* Range labels — space-between; same row for area & price */
+.filter-area-head,
+.filter-area-head.range-labels {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   flex-direction: row;
   width: 100%;
-  height: 14px;
-  min-height: 14px;
+  height: 15px;
+  min-height: 15px;
 }
-/* Figma: Filter label المساحة — Arimo 700 / 10.5px / #000 */
+/* Both labels (المساحة / السعر): Arimo 700 / 13px / #25384F — same style */
 .filter-area-head h3 {
   margin: 0;
   text-align: start;
   font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
-  font-size: 10.5px;
+  font-size: 13px;
   font-weight: 700;
   line-height: 1;
   letter-spacing: 0;
-  color: #000;
+  color: #25384f;
 }
-/* Figma: Minimum value — Inter 700 / 11.2px / #25384F */
+/* Both values: Inter/Arimo 700 / 11.2px / #25384F — same style */
 .range-readout {
   font-style: normal;
   font-family: var(--font-arimo), Arimo, Inter, "Segoe UI", sans-serif;
@@ -607,8 +614,9 @@ body {
   display: inline-flex;
   flex-direction: row;
   align-items: baseline;
-  gap: 4px;
+  gap: 3px;
 }
+/* Figma price: "600,000 ر.س" — number then currency */
 .range-readout .sar-num {
   order: 0;
   unicode-bidi: isolate;
@@ -617,16 +625,17 @@ body {
   order: 1;
   unicode-bidi: isolate;
 }
-/* Figma: Range slider 259×17; Track ~230×2 #DFE7EB inset; Handle 17×17 #00B58D */
-.range-single {
+/* Identical slider for area & price — 17px tall, track #DFE7EB, handle #00B58D
+   Small end inset only (half handle) so thumbs aren’t far from the card edge */
+.range-single,
+.range-single.range-slider {
   display: flex;
   align-items: center;
   width: 100%;
   height: 17px;
   direction: rtl;
   touch-action: none;
-  /* inset so track ≈ 230 inside 259 (handle overhangs ends) */
-  padding: 0 14px;
+  padding: 0 8px;
   box-sizing: border-box;
 }
 .range-single input[type="range"] {
