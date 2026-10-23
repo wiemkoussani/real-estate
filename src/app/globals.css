@@ -3826,15 +3826,19 @@ body {
   }
 
   .filters-flyout {
-    position: fixed;
-    top: calc(68px + env(safe-area-inset-top, 0px));
+    /* Same Figma card on a laptop that falls under the 1100px layout */
+    top: 79px;
     left: max(12px, env(safe-area-inset-left, 0px));
     right: auto;
-    width: min(300px, calc(100vw - 24px));
-    max-height: min(62vh, 520px);
-    border-radius: 18px;
-    border: 1px solid var(--line);
-    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.18);
+    width: 282.95px;
+    height: 514px;
+    max-height: min(514px, calc(100dvh - 96px));
+    border-radius: 11px;
+    border: 0;
+    padding: 12.21px;
+    gap: 13.23px;
+    background: #ffffff;
+    box-shadow: 0 3.05px 9.16px 0 rgba(22, 43, 60, 0.1451);
     z-index: 28;
     animation: filters-in-mobile 0.34s cubic-bezier(0.22, 1, 0.36, 1);
   }
