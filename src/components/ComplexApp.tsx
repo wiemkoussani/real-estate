@@ -816,9 +816,9 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
                 ))}
               </div>
             </section>
-            <section className="filter-area range-filter">
+            <section className="filter-area range-filter area-range">
               <div className="filter-area-head range-labels">
-                <h3>المساحة</h3>
+                <h3 className="area-label">المساحة</h3>
                 <em className="range-readout" dir="ltr">
                   {Math.round(areaMax).toLocaleString("en-US")}
                 </em>
@@ -843,9 +843,9 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
                 />
               </label>
             </section>
-            <section className="filter-area range-filter">
+            <section className="filter-area range-filter price-range">
               <div className="filter-area-head range-labels">
-                <h3>السعر</h3>
+                <h3 className="price-label">السعر</h3>
                 <em className="range-readout" dir="ltr">
                   <span className="sar-cur">ر.س</span>
                   <span className="sar-num">{Math.round(priceMax).toLocaleString("en-US")}</span>

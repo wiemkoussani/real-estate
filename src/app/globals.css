@@ -332,11 +332,11 @@ body {
   max-height: 514px;
   box-sizing: border-box;
   z-index: 22;
-  /* Slightly tighter on the right (RTL start) so section titles sit further right */
+  /* A small nudge right of the 12.21 pad — not flush to the edge */
   padding-top: 12.21px;
   padding-bottom: 12.21px;
-  padding-inline-start: 4px;
-  padding-inline-end: 14px;
+  padding-inline-start: 9px;
+  padding-inline-end: 12.21px;
   gap: 13.23px;
   background: #ffffff;
   background-color: #ffffff;
@@ -443,9 +443,6 @@ body {
   min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
-  /* scrollbar 3px further toward the right edge of the card */
-  margin-right: -3px;
-  width: calc(100% + 3px);
   scrollbar-gutter: auto;
   scrollbar-width: thin;
   scrollbar-color: #c5ced6 transparent;
@@ -589,7 +586,7 @@ body {
   width: 100%;
   max-width: 100%;
 }
-/* Range labels — space-between; same row for area & price */
+/* Range labels — value on the left, word on the right */
 .filter-area-head,
 .filter-area-head.range-labels {
   display: flex;
@@ -601,18 +598,38 @@ body {
   height: 15px;
   min-height: 15px;
 }
-/* Both labels (المساحة / السعر): Arimo 700 / 13px / #25384F — same style, right edge */
+.filters-rich .area-range .filter-area-head {
+  height: 12px;
+  min-height: 12px;
+}
+.filters-rich .price-range .filter-area-head {
+  height: 15px;
+  min-height: 15px;
+}
 .filter-area-head h3 {
   margin: 0;
+  margin-inline-start: auto;
   text-align: start;
   font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
-  font-size: 13px;
   font-weight: 700;
   line-height: 1;
   letter-spacing: 0;
-  color: #25384f;
   flex: 0 0 auto;
   width: auto;
+}
+/* Figma المساحة — Arimo 700 / 10.54px / #000000 */
+.filters-rich .filter-area-head h3.area-label {
+  font-size: 10.54px;
+  line-height: 1;
+  height: 12px;
+  color: #000000;
+}
+/* Figma السعر — Arimo 700 / 13.18px / #25384F */
+.filters-rich .filter-area-head h3.price-label {
+  font-size: 13.18px;
+  line-height: 1;
+  height: 15px;
+  color: #25384f;
 }
 /* Both values left-aligned above the long track — same type for area & price */
 .range-readout {
@@ -652,7 +669,8 @@ body {
   height: 17px;
   direction: ltr;
   touch-action: none;
-  padding: 0;
+  /* Keep the long track, but pull the green thumb off the right edge */
+  padding: 0 14px 0 0;
   box-sizing: border-box;
 }
 .range-single input[type="range"] {
@@ -955,11 +973,11 @@ body {
   box-sizing: border-box;
 }
 .panel .units {
-  width: calc(100% + 11px);
-  /* small gap cards ↔ scrollbar; pull track toward sidebar outer edge */
-  padding-inline-end: 5px;
+  /* Scrollbar only: nearer the sidebar's right edge, farther from the cards */
+  width: calc(100% + 10px);
+  padding-inline-end: 16px;
   margin: 0;
-  margin-inline-end: -11px;
+  margin-inline-end: -10px;
   scrollbar-gutter: auto;
   scrollbar-width: auto;
   scrollbar-color: #8a97a5 transparent;
