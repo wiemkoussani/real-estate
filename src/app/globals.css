@@ -466,14 +466,14 @@ body {
   background-color: #ffffff;
   flex: 1;
   min-height: 0;
-  overflow-x: hidden;
+  overflow-x: visible;
   overflow-y: auto;
-  scrollbar-gutter: auto;
-  scrollbar-width: thin;
-  scrollbar-color: #c5ced6 transparent;
+  scrollbar-width: none;
 }
 .filters-rich::-webkit-scrollbar {
-  width: 4px;
+  width: 0;
+  height: 0;
+  display: none;
 }
 .filters-rich::-webkit-scrollbar-track {
   background: transparent;
@@ -586,7 +586,7 @@ body {
   color: #ffffff;
 }
 .status-pill.available {
-  border: 1.02px solid #00b58d;
+  border: 1px solid #00b58d;
   color: #177b65;
   background: #fdfeff;
   height: 27.48px;
@@ -612,7 +612,7 @@ body {
   color: #fff;
 }
 .status-pill.reserved {
-  border: 1.02px solid #db9806;
+  border: 1px solid #db9806;
   color: #db9806;
   background: #fdfeff;
   height: 26.46px;
@@ -639,7 +639,7 @@ body {
 }
 .status-pill.sold,
 .status-pill.sold.on {
-  border: 0.88px solid #be1b1e;
+  border: 1px solid #be1b1e;
   background: #be1b1e;
   color: #fff;
   height: 26.46px;
