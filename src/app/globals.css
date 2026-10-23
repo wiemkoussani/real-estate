@@ -322,8 +322,7 @@ body {
   color: #6ca3de;
   flex: none;
 }
-/* Figma: Property filters — 283×514, top 79, left +5, radius 11, pad ~12–14, gap 13
-   Extra inset so content (X, sliders) isn’t flush with the white edge */
+/* Figma: Property filters — 283×514, top 79, left +5, radius 11, pad 12, gap 13 */
 .filters-flyout {
   position: fixed;
   top: 79px;
@@ -333,7 +332,7 @@ body {
   max-height: 514px;
   box-sizing: border-box;
   z-index: 22;
-  padding: 14px 16px 14px;
+  padding: 12px;
   gap: 13px;
   background: #fff;
   border: 0;
@@ -561,16 +560,16 @@ body {
 }
 .status-count { display: none; }
 
-/* Figma: Range filter — vertical, hug, gap 7; fill panel content width */
+/* Figma: Range filter — vertical fill ~259, hug ~38, gap 7 */
 .filters-rich .filter-area,
 .filters-rich .range-filter {
   display: flex;
   flex-direction: column;
   gap: 7px;
   width: 100%;
-  max-width: 100%;
+  max-width: 259px;
 }
-/* Figma: Range labels — horizontal fill, hug 15, space-between */
+/* Figma: Range labels — horizontal fill, hug 14, space-between */
 .filter-area-head {
   display: flex;
   align-items: center;
@@ -578,25 +577,25 @@ body {
   gap: 12px;
   flex-direction: row;
   width: 100%;
-  min-height: 15px;
-  height: auto;
+  height: 14px;
+  min-height: 14px;
 }
-/* Figma: Filter label (السعر / المساحة) — Arimo 700 / 13.2px / #25384F */
+/* Figma: Filter label المساحة — Arimo 700 / 10.5px / #000 */
 .filter-area-head h3 {
   margin: 0;
   text-align: start;
   font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
-  font-size: 13px;
+  font-size: 10.5px;
   font-weight: 700;
   line-height: 1;
   letter-spacing: 0;
-  color: #25384f;
+  color: #000;
 }
 /* Figma: Minimum value — Inter 700 / 11.2px / #25384F */
 .range-readout {
   font-style: normal;
   font-family: var(--font-arimo), Arimo, Inter, "Segoe UI", sans-serif;
-  font-size: 11px;
+  font-size: 11.2px;
   font-weight: 700;
   line-height: 1;
   color: #25384f;
@@ -610,16 +609,15 @@ body {
   align-items: baseline;
   gap: 4px;
 }
-/* Mock: ر.س then number */
-.range-readout .sar-cur {
+.range-readout .sar-num {
   order: 0;
   unicode-bidi: isolate;
 }
-.range-readout .sar-num {
+.range-readout .sar-cur {
   order: 1;
   unicode-bidi: isolate;
 }
-/* Figma: Range slider — 259×17; Track 230×2 #DFE7EB; Handle 17×17 #00B58D */
+/* Figma: Range slider 259×17; Track ~230×2 #DFE7EB inset; Handle 17×17 #00B58D */
 .range-single {
   display: flex;
   align-items: center;
@@ -627,7 +625,8 @@ body {
   height: 17px;
   direction: rtl;
   touch-action: none;
-  padding: 0;
+  /* inset so track ≈ 230 inside 259 (handle overhangs ends) */
+  padding: 0 14px;
   box-sizing: border-box;
 }
 .range-single input[type="range"] {
