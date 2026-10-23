@@ -2046,7 +2046,8 @@ body {
 .scene360-strip-dock .scene360-thumb {
   width: var(--s360-w, 189px);
   height: var(--s360-h, 111px);
-  border: 0;
+  box-sizing: border-box;
+  border: 2px solid transparent;
   border-radius: 10px;
   overflow: hidden;
   flex: none;
@@ -2057,7 +2058,8 @@ body {
   cursor: pointer;
 }
 .scene360-strip-dock .scene360-thumb.on {
-  box-shadow: 0 2.82px 8.46px rgba(22, 43, 60, 0.145), 0 0 0 2px #3b7dd8;
+  border-color: #3b7dd8;
+  box-shadow: 0 2.82px 8.46px rgba(22, 43, 60, 0.145);
 }
 .scene360-strip-dock .scene360-thumb img {
   width: 100%;
