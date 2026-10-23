@@ -725,7 +725,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
                 <IconHeart size={20} filled={favOnly} />
                 {favs.length > 0 ? <span className="fav-count">{favs.length}</span> : null}
               </button>
-              <button type="button" className={`tool-fab filter-fab ${filtersOpen ? "on" : ""}`} onClick={() => setFiltersOpen((v) => !v)} title="Filters" aria-label="Filters">
+              <button type="button" className={`tool-fab filter-fab ${filtersOpen ? "on" : ""}`} onClick={() => setFiltersOpen((v) => !v)} title="Filters" aria-label="Filters" aria-pressed={filtersOpen}>
                 <IconFilters size={19} filled={filtersOpen} />
               </button>
             </div>
@@ -783,18 +783,23 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
       {filtersOpen && !scene360Open && (
         <div className="filters-flyout" dir="rtl" onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
           <header className="filters-head">
-            <h2><IconFilters size={16} /> تصفية النتائج</h2>
+            <h2 className="filter-title">
+              <span className="filter-title-icon" aria-hidden>
+                <IconFilters size={19} />
+              </span>
+              تصفية النتائج
+            </h2>
             <button type="button" className="filters-back" onClick={() => setFiltersOpen(false)} aria-label="Close filters">
-              <IconClose size={18} />
+              <IconClose size={10} />
             </button>
           </header>
           <div className="filters filters-rich">
-            <section>
-              <h3>حالة الوحدة</h3>
-              <div className="status-pills">
+            <section className="payment-schedule">
+              <h3 className="payment-label">حالة الوحدة</h3>
+              <div className="status-pills payment-options">
                 <button
                   type="button"
-                  className={`status-pill all ${status === "all" ? "on" : ""}`}
+                  className={`status-pill payment-option all ${status === "all" ? "on" : ""}`}
                   onClick={() => setStatus("all")}
                 >
                   <span className="status-label">كل الوحدات</span>
@@ -803,7 +808,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
                   <button
                     key={s}
                     type="button"
-                    className={`status-pill ${s} ${status === s ? "on" : ""}`}
+                    className={`status-pill payment-option ${s} ${status === s ? "on" : ""}`}
                     onClick={() => setStatus(s)}
                   >
                     <span className="status-label">{STATUS_AR[s]}</span>
@@ -811,14 +816,14 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
                 ))}
               </div>
             </section>
-            <section className="filter-area">
-              <div className="filter-area-head">
+            <section className="filter-area range-filter">
+              <div className="filter-area-head range-labels">
                 <h3>المساحة</h3>
                 <em className="range-readout" dir="ltr">
                   {Math.round(areaMax).toLocaleString("en-US")}
                 </em>
               </div>
-              <label className="range-single" dir="rtl">
+              <label className="range-single range-slider" dir="rtl">
                 <span className="sr-only">Max area</span>
                 <input
                   type="range"
@@ -838,8 +843,8 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
                 />
               </label>
             </section>
-            <section className="filter-area">
-              <div className="filter-area-head">
+            <section className="filter-area range-filter">
+              <div className="filter-area-head range-labels">
                 <h3>السعر</h3>
                 <em className="range-readout" dir="ltr">
                   <span className="sar-cur">{"\u200Eر.س\u200E"}</span>
@@ -847,7 +852,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
                   <span className="sar-num">{`\u200E${Math.round(priceMax).toLocaleString("en-US")}\u200E`}</span>
                 </em>
               </div>
-              <label className="range-single" dir="rtl">
+              <label className="range-single range-slider" dir="rtl">
                 <span className="sr-only">Max price</span>
                 <input
                   type="range"
@@ -867,34 +872,46 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
                 />
               </label>
             </section>
-            <section>
+            <section className="room-filter">
               <h3>عدد الغرف</h3>
-              <div className="chip-row">
+              <div className="chip-row room-choices">
                 <button
                   type="button"
-                  className={`filter-chip ${selectedRooms.length === 0 ? "on" : ""}`}
+                  className={`filter-chip filter-choice ${selectedRooms.length === 0 ? "on" : ""}`}
                   onClick={() => setSelectedRooms([])}
                 >
                   الكل
                 </button>
                 {bounds.rooms.map((n) => (
-                  <button key={n} type="button" className={`filter-chip ${selectedRooms.includes(n) ? "on" : ""}`} onClick={() => toggleRoom(n)}>
+                  <button
+                    key={n}
+                    type="button"
+                    className={`filter-chip filter-choice ${selectedRooms.includes(n) ? "on" : ""}`}
+                    onClick={() => toggleRoom(n)}
+                  >
                     {n}
                   </button>
                 ))}
               </div>
             </section>
-            <section>
+            <section className="model-filter phase-filter">
               <h3>النموذج</h3>
-              <div className="chip-row">
+              <div className="chip-row phase-choices">
                 {bounds.models.map((code) => (
-                  <button key={code} type="button" className={`filter-chip ${selectedModels.includes(code) ? "on" : ""}`} onClick={() => toggleModel(code)}>
+                  <button
+                    key={code}
+                    type="button"
+                    className={`filter-chip filter-choice ${selectedModels.includes(code) ? "on" : ""}`}
+                    onClick={() => toggleModel(code)}
+                  >
                     {code}
                   </button>
                 ))}
               </div>
             </section>
-            <button type="button" className="filters-reset-btn" onClick={resetFilters}>إعادة تعيين</button>
+            <button type="button" className="filters-reset-btn" onClick={resetFilters}>
+              إعادة تعيين
+            </button>
           </div>
         </div>
       )}

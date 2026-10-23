@@ -111,15 +111,15 @@ body {
   outline: none;
   overflow: hidden;
 }
-/* Figma: Rectangle 1 / LogoAjyad — 65×59, radius 20, shadow 0 3 7.1 @25% */
+/* Logo Ajyad — 65×59, no white wrapper / shadow plate */
 .panel-agency-logo {
   width: 65px;
   height: 59px;
   flex-shrink: 0;
-  border-radius: 20px;
-  background: transparent;
-  box-shadow: 0 3px 7.1px rgba(0, 0, 0, 0.25);
-  overflow: hidden;
+  border-radius: 0;
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow: visible;
 }
 .panel-agency-logo img {
   width: 65px;
@@ -127,7 +127,9 @@ body {
   max-width: 65px;
   object-fit: contain;
   object-position: center;
-  border-radius: 20px;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 /* Figma: Group 2 wordmark — 172×57, #B5984B @94% */
 .panel-project-logo {
@@ -266,11 +268,14 @@ body {
   box-shadow: none;
 }
 .tool-fab.filter-fab:hover,
-.tool-fab.filter-fab.on {
+.tool-fab.filter-fab.on,
+.tool-fab.filter-fab:focus,
+.tool-fab.filter-fab:active {
   background: transparent;
   color: #6ca3de;
   border: 0;
   box-shadow: none;
+  outline: none;
 }
 /* Figma: heart / filter vectors — stroke #6CA3DE */
 .tool-fab.heart-fab svg,
@@ -284,17 +289,28 @@ body {
   stroke-width: 1.8;
 }
 .tool-fab.heart-fab:hover svg,
-.tool-fab.filter-fab:hover svg,
-.tool-fab.heart-fab.on svg,
-.tool-fab.filter-fab.on svg {
+.tool-fab.heart-fab.on svg {
   stroke: #6ca3de !important;
   color: #6ca3de !important;
 }
 .tool-fab.heart-fab.on svg {
   fill: #6ca3de !important;
 }
-.tool-fab.filter-fab.on svg {
+/* Filter: outline by default, filled blue when open — same as heart */
+.tool-fab.filter-fab svg,
+.tool-fab.filter-fab svg * {
+  stroke: #6ca3de !important;
+  color: #6ca3de !important;
+}
+.tool-fab.filter-fab:not(.on) svg,
+.tool-fab.filter-fab:not(.on) svg * {
   fill: none !important;
+}
+.tool-fab.filter-fab.on svg,
+.tool-fab.filter-fab.on svg * {
+  fill: #6ca3de !important;
+  stroke: #6ca3de !important;
+  color: #6ca3de !important;
 }
 /* Figma: fav count — Saira 500 / 16px / #6CA3DE / tracking 2% / lh 157% */
 .tool-fab .fav-count {
@@ -306,19 +322,22 @@ body {
   color: #6ca3de;
   flex: none;
 }
-/* Desktop: compact card beside the sidebar. Mobile: fills the panel below toolbar. */
+/* Figma: Property filters — 283×514, top 79, left +5 from sidebar, radius 11, pad 12, gap 13 */
 .filters-flyout {
   position: fixed;
-  top: 16px;
-  left: calc(min(382px, 86vw) + 14px);
-  width: min(288px, 42vw);
-  height: auto;
-  max-height: min(68vh, 520px);
+  top: 79px;
+  left: calc(min(382px, 86vw) + 5px);
+  width: 283px;
+  height: 514px;
+  max-height: 514px;
+  box-sizing: border-box;
   z-index: 22;
+  padding: 12px;
+  gap: 13px;
   background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  box-shadow: var(--shadow);
+  border: 0;
+  border-radius: 11px;
+  box-shadow: 0 3.05px 12px rgba(0, 0, 0, 0.14);
   display: flex;
   flex-direction: column;
   overflow: auto;
@@ -327,58 +346,91 @@ body {
   transform-origin: top left;
 }
 .app:has(.panel.open.form-wide) .filters-flyout {
-  left: calc(min(382px, 86vw) + 14px);
+  left: calc(min(382px, 86vw) + 5px);
 }
 @keyframes filters-in {
   from { opacity: 0; transform: translate(-12px, -8px) scale(0.97); }
   to { opacity: 1; transform: translate(0, 0) scale(1); }
 }
+/* Figma: Filter heading — fill ~259×32, space-between */
 .filters-head {
   display: flex;
+  flex-direction: row;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 12px 14px 4px;
+  width: 100%;
+  height: 32px;
+  padding: 0;
   border-bottom: 0;
   flex: none;
+  box-sizing: border-box;
 }
-.filters-head h2 {
+/* Figma: Filter title — hug, gap 7; text Arimo 700 / 15px / #25384F */
+.filters-head h2,
+.filters-head .filter-title {
   margin: 0;
-  font-size: 16px;
+  font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
+  font-size: 15px;
   font-weight: 700;
-  color: #1b365d;
+  line-height: 1;
+  letter-spacing: 0;
+  color: #25384f;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
 }
-.filters-head h2 svg {
-  color: #3b7dd8;
-  stroke: #3b7dd8;
+/* Figma: filter icon in heading — 22×22, stroke #6CA3DE */
+.filters-head .filter-title-icon {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
   flex: none;
 }
+.filters-head h2 svg,
+.filters-head .filter-title-icon svg {
+  width: 19px;
+  height: 18px;
+  color: #6ca3de;
+  stroke: #6ca3de;
+  fill: none;
+  flex: none;
+}
+/* Figma: close x — 19×19, stroke #748394 */
 .filters-back {
-  width: 28px;
-  height: 28px;
+  width: 19px;
+  height: 19px;
   border-radius: 0;
   border: 0;
   background: transparent;
-  color: #8b98a8;
-  font-size: 22px;
-  font-weight: 400;
+  color: #748394;
   cursor: pointer;
   display: grid;
   place-items: center;
   line-height: 1;
   padding: 0;
   box-shadow: none;
+  flex: none;
+}
+.filters-back svg {
+  width: 10px;
+  height: 10px;
+  stroke: #748394;
+  color: #748394;
+  stroke-width: 1.83;
 }
 .filters-back:hover {
-  color: #1b365d;
+  color: #25384f;
 }
 .filters-rich {
-  display: grid;
-  padding: 10px 12px 12px;
-  gap: 10px;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  gap: 13px;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
 }
 .filters-rich section {
   display: grid;
@@ -386,104 +438,156 @@ body {
 }
 .filters-rich h3 {
   margin: 0;
-  font-size: 14px;
+  font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
+  font-size: 13px;
   font-weight: 700;
-  color: #243044;
+  color: #25384f;
   letter-spacing: 0;
   text-align: start;
+  line-height: 1;
 }
-.status-pills {
+/* Figma: Payment schedule — 271×102, radius 4, pad 9, gap 10 */
+.filters-rich .payment-schedule {
+  width: 100%;
+  max-width: 271px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 9px;
+  border-radius: 4px;
+  background: #fff;
+}
+.filters-rich .payment-label {
+  width: 100%;
+  font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  color: #25384f;
+  text-align: start;
+}
+/* Figma: Payment options — fill ~252, hug 26, gap 8 */
+.status-pills,
+.payment-options {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
+  width: 100%;
 }
-.status-pill {
+/* Figma: Payment option — height 26, radius 17, border ~1 */
+.status-pill,
+.payment-option {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
-  min-height: 30px;
-  height: 30px;
+  min-height: 26px;
+  height: 26px;
   gap: 0;
-  border: 1.5px solid #3b7dd8;
-  border-radius: 999px;
-  padding: 0 10px;
-  font-size: 13px;
-  font-weight: 800;
-  color: #3b7dd8;
+  border: 1px solid #00b58d;
+  border-radius: 17px;
+  padding: 0 8px;
+  font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1;
+  color: #177b65;
   cursor: pointer;
-  background: #fff;
+  background: #fdfeff;
   box-shadow: none;
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  box-sizing: border-box;
 }
 .status-pill.all {
-  border-color: #3b7dd8;
-  color: #3b7dd8;
-  background: #fff;
+  border-color: #00b58d;
+  color: #177b65;
+  background: #fdfeff;
 }
+/* كل الوحدات selected — #008FF0 + white */
 .status-pill.all.on {
-  background: #3b7dd8;
-  border-color: #3b7dd8;
+  background: #008ff0;
+  border-color: #008ff0;
   color: #fff;
-  font-weight: 700;
+  font-size: 12px;
 }
 .status-pill.available {
-  border-color: #3dba67;
-  color: #3dba67;
-  background: #fff;
+  border-color: #00b58d;
+  color: #177b65;
+  background: #fdfeff;
 }
 .status-pill.available.on {
-  background: #3dba67;
-  border-color: #3dba67;
+  background: #00b58d;
+  border-color: #00b58d;
   color: #fff;
-  font-weight: 700;
 }
 .status-pill.reserved {
-  border-color: #e8a317;
-  color: #e8a317;
-  background: #fff;
+  border-color: #db9806;
+  color: #db9806;
+  background: #fdfeff;
 }
 .status-pill.reserved.on {
-  background: #e8a317;
-  border-color: #e8a317;
+  background: #db9806;
+  border-color: #db9806;
   color: #fff;
-  font-weight: 700;
 }
 .status-pill.sold {
-  border-color: #ff5a5f;
-  color: #ff5a5f;
-  background: #fff;
+  border: 0.88px solid #be1b1e;
+  color: #be1b1e;
+  background: #fdfeff;
 }
 .status-pill.sold.on {
-  background: #ff5a5f;
-  border-color: #ff5a5f;
+  background: #be1b1e;
+  border-color: #be1b1e;
   color: #fff;
-  font-weight: 700;
 }
 .status-pill .status-label {
   white-space: nowrap;
-  font-weight: 800;
+  font-weight: 700;
+  font-size: inherit;
+  line-height: 1;
 }
 .status-count { display: none; }
+
+/* Figma: Range filter — vertical fill ~259, hug ~39, gap 7 */
+.filters-rich .filter-area,
+.filters-rich .range-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  width: 100%;
+  max-width: 259px;
+}
+/* Figma: Range labels — horizontal fill, hug 15, space-between */
 .filter-area-head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
   flex-direction: row;
+  width: 100%;
+  min-height: 15px;
+  height: auto;
 }
+/* Figma: Filter label (السعر / المساحة) — Arimo 700 / 13.2px / #25384F */
 .filter-area-head h3 {
   margin: 0;
   text-align: start;
-  font-size: 14px;
+  font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
+  font-size: 13px;
   font-weight: 700;
-  color: #1b365d;
+  line-height: 1;
+  letter-spacing: 0;
+  color: #25384f;
 }
+/* Figma: Minimum value — Inter 700 / 11.2px / #25384F */
 .range-readout {
   font-style: normal;
-  font-size: 13.5px;
-  font-weight: 600;
-  color: #111;
+  font-family: var(--font-arimo), Arimo, Inter, "Segoe UI", sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  color: #25384f;
   direction: ltr !important;
   unicode-bidi: isolate;
   white-space: nowrap;
@@ -494,20 +598,24 @@ body {
   align-items: baseline;
   gap: 4px;
 }
-.range-readout .sar-cur {
+.range-readout .sar-num {
   order: 0;
   unicode-bidi: isolate;
 }
-.range-readout .sar-num {
+.range-readout .sar-cur {
   order: 1;
   unicode-bidi: isolate;
 }
+/* Figma: Range slider — 259×17; Track 230×2 #DFE7EB; Handle 17×17 #00B58D */
 .range-single {
-  display: block;
+  display: flex;
+  align-items: center;
   width: 100%;
+  height: 17px;
   direction: rtl;
   touch-action: none;
-  padding: 4px 0 2px;
+  padding: 0;
+  box-sizing: border-box;
 }
 .range-single input[type="range"] {
   display: block;
@@ -515,36 +623,42 @@ body {
   margin: 0;
   appearance: none;
   -webkit-appearance: none;
-  height: 2px;
+  height: 17px;
   border-radius: 99px;
-  background: #eef3f7;
+  background: transparent;
   cursor: pointer;
   outline: none;
 }
 .range-single input[type="range"]::-webkit-slider-runnable-track {
   height: 2px;
   border-radius: 99px;
-  background: #eef3f7;
+  background: linear-gradient(
+    to left,
+    #00b58d 0%,
+    #00b58d var(--range-fill, 0%),
+    #dfe7eb var(--range-fill, 0%),
+    #dfe7eb 100%
+  );
 }
 .range-single input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
   box-sizing: border-box;
-  width: 12px;
-  height: 12px;
-  margin-top: -5px;
+  width: 17px;
+  height: 17px;
+  margin-top: -7.5px;
   border-radius: 50%;
-  background: #3dba67;
+  background: #00b58d;
   border: 0;
   box-shadow: none;
   cursor: grab;
 }
 .range-single input[type="range"]::-moz-range-thumb {
   box-sizing: border-box;
-  width: 12px;
-  height: 12px;
+  width: 17px;
+  height: 17px;
   border-radius: 50%;
-  background: #3dba67;
+  background: #00b58d;
   border: 0;
   box-shadow: none;
   cursor: grab;
@@ -552,64 +666,127 @@ body {
 .range-single input[type="range"]::-moz-range-track {
   height: 2px;
   border-radius: 99px;
-  background: #eef3f7;
+  background: #dfe7eb;
 }
 .range-single input[type="range"]::-moz-range-progress {
   height: 2px;
   border-radius: 99px;
-  background: #eef3f7;
+  background: #00b58d;
 }
-.chip-row {
+/* Figma: Room filter — vertical fill ~259, hug ~62, gap 10 */
+.filters-rich .room-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 259px;
+}
+/* Figma: Phase filter — vertical fill ~259, hug ~103, gap 7 */
+.filters-rich .model-filter,
+.filters-rich .phase-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  width: 100%;
+  max-width: 259px;
+}
+.filters-rich .room-filter > h3,
+.filters-rich .model-filter > h3,
+.filters-rich .phase-filter > h3 {
+  margin: 0;
+  font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
+  color: #25384f;
+}
+/* Figma: Room choices — horizontal hug, gap 9 */
+.chip-row,
+.room-choices {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  flex-direction: row;
+  align-items: center;
+  gap: 9px;
+  width: fit-content;
+  max-width: 100%;
   justify-content: flex-start;
 }
-.filter-chip {
-  width: 40px;
-  height: 40px;
-  min-width: 40px;
-  padding: 0;
-  border-radius: 50%;
-  border: 1.5px solid #3b7dd8;
+/* Figma: Phase choices — horizontal hug, gap 10 */
+.phase-choices {
+  display: flex;
+  flex-wrap: wrap;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  width: fit-content;
+  max-width: 100%;
+  justify-content: flex-start;
+}
+/* Figma: Filter choice — hug × 37, min 37, radius 41, pad 10 */
+.filter-chip,
+.filter-choice {
+  box-sizing: border-box;
+  width: auto;
+  min-width: 37px;
+  height: 37px;
+  padding: 0 10px;
+  border-radius: 41px;
+  border: 1px solid #cbd4de;
   background: #fff;
-  color: #1b2430;
+  color: #010101;
+  font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
   font-size: 13px;
   font-weight: 400;
   line-height: 1;
+  letter-spacing: 0;
   cursor: pointer;
-  display: grid;
-  place-items: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   box-shadow: none;
   -webkit-appearance: none;
   appearance: none;
 }
-.filter-chip:not(.on) {
-  border-color: #3b7dd8;
+.filter-chip:not(.on),
+.filter-choice:not(.on) {
+  border-color: #cbd4de;
   background: #fff;
-  color: #1b2430;
+  color: #010101;
   font-weight: 400;
 }
-.filter-chip.on {
-  background: #3b7dd8;
-  border-color: #3b7dd8;
+/* Figma: Filter choice selected — fill #1A8FDF, label white 700 */
+.filter-chip.on,
+.filter-choice.on {
+  background: #1a8fdf;
+  border-color: transparent;
   color: #fff;
   font-weight: 700;
 }
+/* Figma: Reset filters — fill 259, height 33, radius 21, #E3F3FF */
 .filters-reset-btn {
-  justify-self: stretch;
-  margin-top: 2px;
-  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 259px;
+  height: 33px;
+  margin-top: 4px;
   border: 0;
-  border-radius: 999px;
-  background: rgba(59, 125, 216, 0.18);
-  color: #111;
-  font-size: 14px;
+  border-radius: 21px;
+  background: #e3f3ff;
+  color: #25384f;
+  font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
+  font-size: 13px;
   font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
   cursor: pointer;
+  box-sizing: border-box;
 }
 .filters-reset-btn:hover {
-  background: rgba(59, 125, 216, 0.28);
+  background: #d4ebfc;
 }
 .sr-only {
   position: absolute;
@@ -624,8 +801,8 @@ body {
 }
 @media (min-width: 1101px) {
   .filters-flyout {
-    /* sits beside the sidebar card — height = content only */
-    top: 72px;
+    /* Figma: Property filters top 79 */
+    top: 79px;
   }
 }
 .panel-inner.form-mode {
@@ -723,14 +900,41 @@ body {
   color: var(--text);
 }
 
-/* Figma: Apartment results — fill 358, gap 11 between cards (sidebar only) */
-.units { flex: 1; overflow: auto; padding: 0 0 14px; min-height: 0; }
+/* Figma: Apartment results — fill 358, gap 11 between cards (sidebar only)
+   Scrollbar sits in its own gutter (stage side), not over the cards */
+.units {
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
+  padding: 0 0 14px;
+  box-sizing: border-box;
+}
+.panel .units {
+  /* reserve a clear track between cards and the stage edge */
+  padding-inline-end: 10px;
+  margin-inline-end: -4px;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: #9aa8b5 transparent;
+}
+.panel .units::-webkit-scrollbar {
+  width: 6px;
+}
+.panel .units::-webkit-scrollbar-track {
+  background: transparent;
+  margin-block: 4px;
+}
+.panel .units::-webkit-scrollbar-thumb {
+  background: #9aa8b5;
+  border-radius: 99px;
+}
 .panel .units.cards {
   display: flex;
   flex-direction: column;
   gap: 11px;
   width: 100%;
   max-width: 358px;
+  box-sizing: border-box;
 }
 .thead, .units.table .unit {
   display: grid;
@@ -766,7 +970,8 @@ body {
 }
 .unit:hover, .unit.sel { background: transparent; }
 .units.table .unit .heart { justify-self: end; }
-/* Figma: Apartment card — 355×98, gap 13, radius 12, stroke #E1E8EB, shadow 0/4/4 @25% */
+/* Figma: Apartment card — 355×98, gap 13, radius 12, stroke #E1E8EB
+   Inset photo so it does not touch the card edge; shadow only on hover/selected */
 .units.cards .unit {
   display: flex;
   flex-direction: row;
@@ -780,10 +985,11 @@ body {
   box-sizing: border-box;
   border: 1px solid #e1e8eb;
   border-radius: 12px;
-  padding: 0 0 0 0;
+  /* 6px vertical keeps 84px photo inside 98px card; horizontal inset so image ≠ edge */
+  padding: 6px 7px;
   background: #fff;
   position: relative;
-  box-shadow: 0 4px 4px rgba(0, 0, 0, 0.25);
+  box-shadow: none;
   transition: box-shadow 0.18s ease, border-color 0.18s ease;
 }
 .units.cards .unit:hover,
@@ -793,22 +999,22 @@ body {
   box-shadow: 0 4px 4px rgba(0, 0, 0, 0.25);
   z-index: 1;
 }
-/* Figma: Apartment details — vertical, 258×hug(74), gap 6 */
+/* Figma: Apartment details — vertical, hug 74, gap 6 (fills leftover width after photo + gap) */
 .units.cards .card-copy {
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 6px;
-  width: 258px;
-  max-width: 258px;
+  width: auto;
+  max-width: none;
   min-width: 0;
   height: 74px;
   text-align: start;
   line-height: 1;
-  flex: 0 0 auto;
+  flex: 1 1 auto;
   align-self: center;
 }
-/* Figma: Apartment photograph — 82×84, radius 9 (82+13+258=353 content; +2 border = 355) */
+/* Figma: Apartment photograph — 82×84, radius 9 */
 .units.cards .card-side {
   position: relative;
   width: 82px;
@@ -2762,11 +2968,11 @@ body {
 .panel-brand .panel-agency-logo {
   width: 65px;
   height: 59px;
-  background: transparent;
+  background: transparent !important;
   border: 0;
-  box-shadow: 0 3px 7.1px rgba(0, 0, 0, 0.25);
-  border-radius: 20px;
-  overflow: hidden;
+  box-shadow: none !important;
+  border-radius: 0;
+  overflow: visible;
 }
 .panel-brand .agency-logo img,
 .panel-brand .panel-agency-logo img {
@@ -2774,7 +2980,9 @@ body {
   height: 59px;
   max-width: 65px;
   object-fit: contain;
-  border-radius: 20px;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 .agency-card .agency-logo img {
   width: auto;
