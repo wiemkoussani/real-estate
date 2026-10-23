@@ -749,18 +749,21 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
                     className={liked ? "heart on" : "heart"}
                     onClick={(e) => { e.stopPropagation(); toggleFav(u.id); }}
                   >
-                    <IconHeart size={11} filled={liked} />
+                    <IconHeart size={12} filled={liked} />
                   </span>
                 </div>
                 <div className="card-copy">
-                  <div className="card-top">
-                    <strong>{u.displayId}</strong>
+                  <div className="card-availability">
+                    <div className="card-identity">
+                      <strong>{u.displayId}</strong>
+                      <span className="card-price" dir="ltr" lang="en">
+                        <span className="sar-cur">{price.currency}</span>
+                        <span className="sar-num">{price.amount}</span>
+                      </span>
+                    </div>
                     <em className={`badge ${u.status}`}>{STATUS_AR[u.status]}</em>
                   </div>
-                  <span className="card-price" dir="ltr" lang="en">
-                    <span className="sar-cur">{price.currency}</span>
-                    <span className="sar-num">{price.amount}</span>
-                  </span>
+                  <div className="card-divider" aria-hidden="true" />
                   <div className="card-specs">
                     <span><b>{u.rooms}</b><small>غرف النوم</small></span>
                     <span><b>{u.surface}</b><small>المساحة</small></span>
@@ -1239,18 +1242,21 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
                   className={liked ? "heart on" : "heart"}
                   onClick={(e) => { e.stopPropagation(); toggleFav(u.id); }}
                 >
-                  <IconHeart size={11} filled={liked} />
+                  <IconHeart size={12} filled={liked} />
                 </span>
               </div>
               <div className="card-copy">
-                <div className="card-top">
-                  <strong>{u.displayId}</strong>
+                <div className="card-availability">
+                  <div className="card-identity">
+                    <strong>{u.displayId}</strong>
+                    <span className="card-price" dir="ltr" lang="en">
+                      <span className="sar-cur">{price.currency}</span>
+                      <span className="sar-num">{price.amount}</span>
+                    </span>
+                  </div>
                   <em className={`badge ${u.status}`}>{STATUS_AR[u.status]}</em>
                 </div>
-                <span className="card-price" dir="ltr" lang="en">
-                  <span className="sar-cur">{price.currency}</span>
-                  <span className="sar-num">{price.amount}</span>
-                </span>
+                <div className="card-divider" aria-hidden="true" />
                 <div className="card-specs">
                   <span><b>{u.rooms}</b><small>غرف النوم</small></span>
                   <span><b>{u.surface}</b><small>المساحة</small></span>

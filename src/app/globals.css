@@ -54,29 +54,33 @@ body {
   transition: width 0.32s ease;
   z-index: 4;
 }
-.panel.open { width: min(360px, 86vw); background: #f4f7fb; }
-.panel.open.form-wide { width: min(360px, 86vw); }
+/* Figma: Property browser — 382 wide, pad 15/12/12, gap 7, #F7FAF9 */
+.panel.open { width: min(382px, 86vw); background: #f7faf9; }
+.panel.open.form-wide { width: min(382px, 86vw); }
 .panel.open.filters-on { z-index: 12; }
 .panel-inner {
   position: absolute;
   top: 0;
   bottom: 0;
   left: 0;
-  width: min(360px, 86vw);
+  width: min(382px, 86vw);
   height: 100%;
   margin: 0;
-  background: #f4f7fb;
+  padding: 15px 12px 0;
+  box-sizing: border-box;
+  background: #f7faf9;
   border: 0;
   border-radius: 0;
   box-shadow: none;
   display: flex;
   flex-direction: column;
+  gap: 7px;
   overflow: hidden;
   transform: translateX(-105%);
   transition: transform 0.32s ease;
 }
 .panel.open .panel-inner { transform: translateX(0); }
-.panel.open.form-wide .panel-inner { width: min(360px, 86vw); }
+.panel.open.form-wide .panel-inner { width: min(382px, 86vw); }
 .panel.open.filters-on .panel-inner {
   overflow: visible;
 }
@@ -84,7 +88,7 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 12px 0;
+  padding: 0;
 }
 .panel-brand-capsule {
   flex: 1;
@@ -101,21 +105,23 @@ body {
   box-shadow: none;
   outline: none;
 }
+/* Figma: LogoAjyad — 65×59, radius 20 */
 .panel-agency-logo {
-  width: auto;
-  height: 46px;
+  width: 65px;
+  height: 59px;
   flex-shrink: 0;
-  border-radius: 0;
-  background: transparent;
+  border-radius: 20px;
+  background: #fff;
   box-shadow: none;
-  overflow: visible;
+  overflow: hidden;
 }
 .panel-agency-logo img {
-  width: auto;
-  height: 46px;
-  max-width: 80px;
+  width: 65px;
+  height: 59px;
+  max-width: 65px;
   object-fit: contain;
-  object-position: left center;
+  object-position: center;
+  border-radius: 20px;
 }
 .panel-project-logo {
   flex: none;
@@ -159,7 +165,7 @@ body {
   align-items: center;
   justify-content: stretch;
   gap: 8px;
-  padding: 6px 12px 6px;
+  padding: 0;
 }
 .panel-actions-ring {
   width: 100%;
@@ -240,7 +246,7 @@ body {
 .filters-flyout {
   position: fixed;
   top: 16px;
-  left: calc(min(360px, 86vw) + 14px);
+  left: calc(min(382px, 86vw) + 14px);
   width: min(288px, 42vw);
   height: auto;
   max-height: min(68vh, 520px);
@@ -257,7 +263,7 @@ body {
   transform-origin: top left;
 }
 .app:has(.panel.open.form-wide) .filters-flyout {
-  left: calc(min(360px, 86vw) + 14px);
+  left: calc(min(382px, 86vw) + 14px);
 }
 @keyframes filters-in {
   from { opacity: 0; transform: translate(-12px, -8px) scale(0.97); }
@@ -653,7 +659,7 @@ body {
   color: var(--text);
 }
 
-.units { flex: 1; overflow: auto; padding: 4px 4px 14px; }
+.units { flex: 1; overflow: auto; padding: 0 0 14px; min-height: 0; }
 .thead, .units.table .unit {
   display: grid;
   grid-template-columns: 12px minmax(48px, 1fr) 52px 36px 40px 22px;
@@ -688,69 +694,80 @@ body {
 }
 .unit:hover, .unit.sel { background: transparent; }
 .units.table .unit .heart { justify-self: end; }
+/* Figma: Apartment card — 355×98, gap 13, radius 12, stroke #E1E8EB, shadow 0/4/4 @25% */
 .units.cards .unit {
-  display: grid;
-  grid-template-columns: 86px minmax(0, 1fr);
-  column-gap: 10px;
+  display: flex;
+  flex-direction: row;
   align-items: center;
-  width: calc(100% - 20px);
-  max-width: calc(100% - 20px);
-  margin: 0 10px 8px;
+  column-gap: 13px;
+  width: 355px;
+  max-width: 100%;
+  height: 98px;
+  margin: 0 0 8px;
   min-width: 0;
-  border: 1px solid #eef2f6;
-  border-radius: 16px;
-  padding: 5px 10px 6px;
+  box-sizing: border-box;
+  border: 1px solid #e1e8eb;
+  border-radius: 12px;
+  padding: 0 0 0 0;
   background: #fff;
   position: relative;
-  box-shadow: 0 1px 2px rgba(24, 39, 56, 0.04);
+  box-shadow: 0 4px 4px rgba(0, 0, 0, 0.25);
   transition: box-shadow 0.18s ease, border-color 0.18s ease;
 }
 .units.cards .unit:hover,
 .units.cards .unit.sel {
   transform: none;
-  border-color: #fff;
-  box-shadow: 0 8px 18px rgba(24, 39, 56, 0.14);
+  border-color: #e1e8eb;
+  box-shadow: 0 4px 4px rgba(0, 0, 0, 0.25);
   z-index: 1;
 }
+/* Figma: Apartment details — vertical, 258×hug(74), gap 6 */
 .units.cards .card-copy {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 0;
+  gap: 6px;
+  width: 258px;
+  max-width: 258px;
   min-width: 0;
+  height: 74px;
   text-align: start;
   line-height: 1;
+  flex: 0 0 auto;
   align-self: center;
 }
+/* Figma: Apartment photograph — 82×84, radius 9 (82+13+258=353 content; +2 border = 355) */
 .units.cards .card-side {
   position: relative;
-  width: 86px;
-  height: 86px;
+  width: 82px;
+  height: 84px;
+  flex: 0 0 82px;
 }
 .units.cards .unit img,
 .units.cards .unit .card-img-fallback {
-  width: 86px;
-  height: 86px;
+  width: 82px;
+  height: 84px;
   object-fit: cover;
-  border-radius: 10px;
+  border-radius: 9px;
   background: #e8eef3;
   display: block;
 }
+/* Figma: Save apartment — 22×23, top 4 left 4, radius 7, #fff @49% */
 .units.cards .unit .heart,
 .units.cards .unit .heart.on {
   position: absolute;
   top: 4px;
   left: 4px;
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 23px;
   border: 0 !important;
-  border-radius: 6px !important;
+  border-radius: 7px !important;
   display: grid;
   place-items: center;
   color: #111 !important;
-  background: rgba(232, 238, 245, 0.72) !important;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  background: rgba(255, 255, 255, 0.49) !important;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   box-shadow: none !important;
   margin: 0;
   padding: 0;
@@ -763,7 +780,27 @@ body {
 }
 .units.cards .unit .heart.on {
   color: var(--teal) !important;
-  background: rgba(232, 238, 245, 0.72) !important;
+  background: rgba(255, 255, 255, 0.49) !important;
+}
+/* Figma: Availability and price — horizontal, fill 258, hug 33, space-between */
+.units.cards .card-availability {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  height: 33px;
+  line-height: 1;
+}
+/* Figma: Listing identity — vertical, hug, gap 2 */
+.units.cards .card-identity {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+  height: 33px;
 }
 .units.cards .card-top {
   display: flex;
@@ -778,17 +815,23 @@ body {
   margin: 0;
   color: #1b2430;
   font-weight: 500;
+  line-height: 1;
 }
+/* Figma: Available status — height 25, radius 12, pad L/R 8 */
 .units.cards .unit .badge {
   display: inline-flex;
   align-items: center;
-  padding: 2px 8px;
-  border-radius: 999px;
+  justify-content: center;
+  height: 25px;
+  padding: 0 8px;
+  border-radius: 12px;
   font-size: 11px;
   font-style: normal;
   font-weight: 700;
   border: 0;
-  line-height: 1.1;
+  line-height: 1;
+  flex: 0 0 auto;
+  box-sizing: border-box;
 }
 .units.cards .unit .badge.available {
   color: #1f9d57;
@@ -800,14 +843,14 @@ body {
 }
 .units.cards .unit .badge.sold {
   color: #e0454a;
-  background: rgba(255, 90, 95, 0.16);
+  background: #f8c8c8;
 }
 .units.cards .card-price {
   color: #2db36a;
   font-size: 13px;
   font-weight: 500;
   line-height: 1;
-  margin: 2px 0 0;
+  margin: 0;
   /* Force ر.س LEFT of amount even inside RTL page */
   direction: ltr !important;
   unicode-bidi: isolate;
@@ -831,23 +874,36 @@ body {
   direction: ltr;
   font-variant-numeric: tabular-nums;
 }
+/* Figma: Details divider — 258×1 #E1E8EB */
+.units.cards .card-divider {
+  width: 100%;
+  height: 1px;
+  background: #e1e8eb;
+  flex: 0 0 1px;
+}
+/* Figma: Property specifications — horizontal, fill 258, hug 28 */
 .units.cards .card-specs {
   display: flex;
+  flex-direction: row;
   justify-content: space-evenly;
+  align-items: center;
   width: 100%;
+  height: 28px;
   gap: 8px;
-  margin-top: 4px;
-  padding: 5px 0 0;
-  border-top: 1px solid #e4eaf0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  box-sizing: border-box;
 }
 .units.cards .card-specs span {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
+  justify-content: center;
+  gap: 2px;
   min-width: max-content;
   text-align: center;
-  flex: 0 0 auto;
+  flex: 1 1 0;
 }
 .units.cards .card-specs b {
   font-size: 12px;
@@ -1219,8 +1275,8 @@ body {
   left: auto;
   /* Near-center on the 360→arrow; nudged slightly up from exact mid */
   bottom: calc((44px - 124px) / 2 + 12px);
-  width: calc(100vw - 28px - 100% - 10px - min(360px, 86vw) - 16px);
-  max-width: calc(100vw - 28px - 100% - 10px - min(360px, 86vw) - 16px);
+  width: calc(100vw - 28px - 100% - 10px - min(382px, 86vw) - 16px);
+  max-width: calc(100vw - 28px - 100% - 10px - min(382px, 86vw) - 16px);
   flex: none;
   min-width: 0;
 }
@@ -2601,18 +2657,21 @@ body {
 }
 .panel-brand .agency-logo,
 .panel-brand .panel-agency-logo {
-  width: auto;
-  height: 46px;
-  background: transparent;
+  width: 65px;
+  height: 59px;
+  background: #fff;
   border: 0;
   box-shadow: none;
-  border-radius: 0;
+  border-radius: 20px;
+  overflow: hidden;
 }
 .panel-brand .agency-logo img,
 .panel-brand .panel-agency-logo img {
-  width: auto;
-  height: 46px;
-  max-width: 80px;
+  width: 65px;
+  height: 59px;
+  max-width: 65px;
+  object-fit: contain;
+  border-radius: 20px;
 }
 .agency-card .agency-logo img {
   width: auto;
@@ -2794,12 +2853,14 @@ body {
     border-radius: 0;
     background: transparent;
     box-shadow: none;
+    overflow: visible;
   }
   .compact-agency-logo img {
     width: auto;
     height: 50px;
     max-width: 80px;
     object-fit: contain;
+    border-radius: 0;
   }
   .phone-top .compact-project {
     display: flex;
@@ -3139,26 +3200,24 @@ body {
     padding: 0 12px calc(8px + env(safe-area-inset-bottom, 0px));
   }
   .dock.units.cards .unit {
-    flex: 0 0 min(76vw, 292px);
-    width: min(76vw, 292px);
-    max-width: min(76vw, 292px);
+    flex: 0 0 355px;
+    width: 355px;
+    max-width: min(355px, calc(100vw - 24px));
+    height: 98px;
     margin: 0;
     scroll-snap-align: start;
-    border-radius: 22px;
-    padding: 6px 10px 7px;
-    /* Match capture: soft frosted light grey-white over map */
-    background: rgba(236, 241, 247, 0.72);
-    border: 1px solid rgba(255, 255, 255, 0.9);
-    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.14);
-    backdrop-filter: blur(18px) saturate(120%);
-    -webkit-backdrop-filter: blur(18px) saturate(120%);
+    /* Same Figma card chrome on phone carousel */
+    border-radius: 12px;
+    padding: 0;
+    background: #fff;
+    border: 1px solid #e1e8eb;
+    box-shadow: 0 4px 4px rgba(0, 0, 0, 0.25);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
   .dock.units.cards .unit.sel {
     outline: 2px solid var(--teal);
-    border-color: rgba(255, 255, 255, 0.95);
-  }
-  .dock.units.cards .card-specs {
-    border-top-color: rgba(255, 255, 255, 0.55);
+    border-color: #e1e8eb;
   }
 
   .tip {
