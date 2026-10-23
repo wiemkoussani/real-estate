@@ -723,9 +723,9 @@ body {
   color: var(--text);
 }
 
-/* Figma: Apartment results — fill 358, gap 11 between cards */
+/* Figma: Apartment results — fill 358, gap 11 between cards (sidebar only) */
 .units { flex: 1; overflow: auto; padding: 0 0 14px; min-height: 0; }
-.units.cards {
+.panel .units.cards {
   display: flex;
   flex-direction: column;
   gap: 11px;
@@ -1050,7 +1050,9 @@ body {
 .compact-top,
 .phone-top { display: none; }
 .compact-project { display: none; }
-.dock { display: none; }
+/* Hide phone card strip on PC — must beat .units.cards display rules */
+.dock,
+.dock.units.cards { display: none; }
 
 .stage {
   flex: 1;
