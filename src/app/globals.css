@@ -1582,8 +1582,8 @@ body {
   position: absolute;
   right: calc(100% + 10px);
   left: auto;
-  /* Near-center on the 360→arrow; nudged slightly up from exact mid */
-  bottom: calc((44px - 124px) / 2 + 12px);
+  /* Figma Exterior gallery — height 113; center on 360→arrow */
+  bottom: calc((44px - 113px) / 2 + 12px);
   width: calc(100vw - 28px - 100% - 10px - min(382px, 86vw) - 16px);
   max-width: calc(100vw - 28px - 100% - 10px - min(382px, 86vw) - 16px);
   flex: none;
@@ -1955,12 +1955,13 @@ body {
   display: none;
 }
 .scene360-strip-dock.open {
-  /* PC: large thumbs, scroll inside the gap [sidebar … 360 arrow] — OK if < 5 visible */
-  --s360-w: 188px;
-  --s360-gap: 12px;
+  /* Figma: Exterior gallery — horizontal, height 113, gap 14 */
+  --s360-w: 189px;
+  --s360-h: 111px;
+  --s360-gap: 14px;
   display: flex;
-  align-items: flex-end;
-  height: auto;
+  align-items: center;
+  height: 113px;
   padding: 0;
   margin: 0;
   background: transparent;
@@ -1975,19 +1976,22 @@ body {
   transform-origin: bottom center;
   animation: strip360-up 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
+/* Figma: Exterior view — 189×111, radius 10, shadow 0 2.8 8.5 #162B3C @ 14.5% */
 .scene360-strip-dock .scene360-thumb {
-  width: var(--s360-w, 188px);
-  height: 124px;
-  border: 2px solid transparent;
-  border-radius: 14px;
+  width: var(--s360-w, 189px);
+  height: var(--s360-h, 111px);
+  border: 0;
+  border-radius: 10px;
   overflow: hidden;
   flex: none;
   background: transparent;
-  box-shadow: none;
+  box-shadow: 0 2.82px 8.46px rgba(22, 43, 60, 0.145);
   scroll-snap-align: none;
+  padding: 0;
+  cursor: pointer;
 }
 .scene360-strip-dock .scene360-thumb.on {
-  border-color: #3b7dd8;
+  box-shadow: 0 2.82px 8.46px rgba(22, 43, 60, 0.145), 0 0 0 2px #3b7dd8;
 }
 .scene360-strip-dock .scene360-thumb img {
   width: 100%;
@@ -1996,7 +2000,7 @@ body {
   object-position: center;
   display: block;
   border: 0;
-  border-radius: 12px;
+  border-radius: 10px;
   pointer-events: none;
   box-shadow: none;
 }
@@ -2005,9 +2009,9 @@ body {
   flex-direction: row;
   direction: ltr;
   align-items: center;
-  gap: var(--s360-gap, 10px);
+  gap: var(--s360-gap, 14px);
   width: 100%;
-  height: 100%;
+  height: 113px;
   overflow-x: auto;
   overflow-y: hidden;
   padding: 0;
