@@ -1,5 +1,27 @@
 import type { Metadata, Viewport } from "next";
+import { Arimo, Bona_Nova, Saira } from "next/font/google";
 import "./globals.css";
+
+const arimo = Arimo({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  variable: "--font-arimo",
+  display: "swap",
+});
+
+const bonaNova = Bona_Nova({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  variable: "--font-bona-nova",
+  display: "swap",
+});
+
+const saira = Saira({
+  subsets: ["latin"],
+  weight: ["500"],
+  variable: "--font-saira",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "AXIS",
@@ -16,7 +38,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${arimo.variable} ${bonaNova.variable} ${saira.variable}`}>
       <body>{children}</body>
     </html>
   );

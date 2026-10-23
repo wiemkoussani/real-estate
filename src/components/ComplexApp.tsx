@@ -712,7 +712,8 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
                 </span>
               ) : (
                 <div className="panel-brand-copy">
-                  <b>{tour.name}</b>
+                  <b>أجياد سديم</b>
+                  <span>خميس مشيط</span>
                 </div>
               )}
             </div>
@@ -721,11 +722,11 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
           <div className="panel-toolbar">
             <div className="panel-actions-ring">
               <button type="button" className={`tool-fab heart-fab ${favOnly ? "on" : ""}`} onClick={() => setFavOnly((v) => !v)} title="Favorites" aria-label="Favorites">
-                <IconHeart size={18} filled={favOnly} />
+                <IconHeart size={20} filled={favOnly} />
                 {favs.length > 0 ? <span className="fav-count">{favs.length}</span> : null}
               </button>
               <button type="button" className={`tool-fab filter-fab ${filtersOpen ? "on" : ""}`} onClick={() => setFiltersOpen((v) => !v)} title="Filters" aria-label="Filters">
-                <IconFilters size={16} filled={filtersOpen} />
+                <IconFilters size={19} filled={filtersOpen} />
               </button>
             </div>
           </div>

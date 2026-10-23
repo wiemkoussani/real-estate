@@ -90,29 +90,35 @@ body {
   gap: 8px;
   padding: 0;
 }
+/* Figma: Brand header — fill 358×59, radius 22, pad L/R 23, bottom border 2 #6CA3DE */
 .panel-brand-capsule {
   flex: 1;
   min-width: 0;
+  width: 100%;
+  max-width: 358px;
+  height: 59px;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 10px 16px;
-  border-radius: 18px;
+  padding: 0 23px;
+  border-radius: 22px;
   background: #fff;
   border: 0;
-  border-bottom: 4px solid #7eb6ef;
+  border-bottom: 2px solid #6ca3de;
   box-shadow: none;
   outline: none;
+  overflow: hidden;
 }
-/* Figma: LogoAjyad — 65×59, radius 20 */
+/* Figma: Rectangle 1 / LogoAjyad — 65×59, radius 20, shadow 0 3 7.1 @25% */
 .panel-agency-logo {
   width: 65px;
   height: 59px;
   flex-shrink: 0;
   border-radius: 20px;
-  background: #fff;
-  box-shadow: none;
+  background: transparent;
+  box-shadow: 0 3px 7.1px rgba(0, 0, 0, 0.25);
   overflow: hidden;
 }
 .panel-agency-logo img {
@@ -123,42 +129,61 @@ body {
   object-position: center;
   border-radius: 20px;
 }
+/* Figma: Group 2 wordmark — 172×57, #B5984B @94% */
 .panel-project-logo {
   flex: none;
-  min-width: 0;
-  height: 46px;
+  width: 172px;
+  max-width: 172px;
+  height: 57px;
   margin-inline-start: auto;
   display: flex;
   align-items: center;
   justify-content: flex-end;
 }
 .panel-project-logo img {
-  max-width: 168px;
-  max-height: 100%;
-  width: auto;
-  height: 100%;
+  width: 100%;
+  max-width: 172px;
+  max-height: 57px;
+  height: 57px;
   object-fit: contain;
   object-position: right center;
 }
 .panel-brand-copy {
-  display: grid;
-  gap: 3px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0;
+  width: 172px;
+  max-width: 172px;
+  height: 57px;
   min-width: 0;
-  flex: 1;
+  flex: none;
+  margin-inline-start: auto;
+  color: rgba(181, 152, 75, 0.94);
+  text-align: end;
 }
+/* Figma: Ajyad Sedimm wordmark — Bona Nova 700 / 20px / tracking 2% */
 .panel-brand-copy b {
-  font-size: 15px;
-  line-height: 1.15;
+  font-family: var(--font-bona-nova), "Bona Nova", "Noto Naskh Arabic", serif;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: #16325c;
-  letter-spacing: -0.01em;
+  color: rgba(181, 152, 75, 0.94);
+  max-width: 100%;
 }
+/* Figma: subtitle — Bona Nova 700 / 10px / tracking 2% */
 .panel-brand-copy span {
-  font-size: 11px;
-  color: #7a8fa3;
-  font-weight: 650;
+  font-family: var(--font-bona-nova), "Bona Nova", "Noto Naskh Arabic", serif;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  color: rgba(181, 152, 75, 0.94);
 }
 .panel-toolbar {
   display: flex;
@@ -167,31 +192,35 @@ body {
   gap: 8px;
   padding: 0;
 }
+/* Figma: Search and filter bar — fill 358×37, radius 18, pad L/R 14, border 1 #6CA3DE */
 .panel-actions-ring {
   width: 100%;
+  max-width: 358px;
+  height: 37px;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 5px 14px;
+  padding: 0 14px;
   background: #fff;
-  border: 1px solid #7eb6ef;
-  border-radius: 999px;
+  border: 1px solid #6ca3de;
+  border-radius: 18px;
   box-shadow: none;
   outline: none;
 }
 .tool-fab {
   width: auto;
-  min-width: 28px;
-  height: 28px;
+  min-width: 0;
+  height: auto;
   border-radius: 0;
   border: 0;
   background: transparent;
-  color: #8b98a8;
+  color: #6ca3de;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 4px;
   cursor: pointer;
   box-shadow: none;
   flex: none;
@@ -200,47 +229,82 @@ body {
 }
 .tool-fab.heart-fab,
 .tool-fab.filter-fab {
-  color: #3b7dd8;
+  color: #6ca3de;
 }
-.tool-fab.heart-fab { margin-inline-end: auto; }
-.tool-fab.filter-fab { margin-inline-start: auto; }
+/* Figma: Favorites selector — 49×31, radius 16, pad 3/7, gap 4 */
+.tool-fab.heart-fab {
+  width: auto;
+  min-width: 31px;
+  height: 31px;
+  margin-inline-end: auto;
+  padding: 3px 7px;
+  gap: 4px;
+  border-radius: 16px;
+  background: #fff;
+  box-sizing: border-box;
+}
+.tool-fab.heart-fab:has(.fav-count) {
+  width: 49px;
+}
+/* Figma: filter — 23×23 */
+.tool-fab.filter-fab {
+  width: 23px;
+  height: 23px;
+  margin-inline-start: auto;
+  padding: 0;
+}
 .tool-fab:hover {
   background: transparent;
   transform: none;
-  color: #5f6d7c;
+  color: #6ca3de;
 }
 .tool-fab.heart-fab:hover,
-.tool-fab.filter-fab:hover,
-.tool-fab.heart-fab.on,
-.tool-fab.filter-fab.on {
-  background: transparent;
-  color: #2b5fad;
+.tool-fab.heart-fab.on {
+  background: #fff;
+  color: #6ca3de;
   border: 0;
   box-shadow: none;
 }
-/* Outline stroke — blue border for heart + filter icons */
+.tool-fab.filter-fab:hover,
+.tool-fab.filter-fab.on {
+  background: transparent;
+  color: #6ca3de;
+  border: 0;
+  box-shadow: none;
+}
+/* Figma: heart / filter vectors — stroke #6CA3DE */
 .tool-fab.heart-fab svg,
 .tool-fab.filter-fab svg {
   fill: none !important;
-  stroke: #3b7dd8 !important;
-  color: #3b7dd8 !important;
+  stroke: #6ca3de !important;
+  color: #6ca3de !important;
+  stroke-width: 2.16;
+}
+.tool-fab.filter-fab svg {
+  stroke-width: 1.8;
 }
 .tool-fab.heart-fab:hover svg,
 .tool-fab.filter-fab:hover svg,
 .tool-fab.heart-fab.on svg,
 .tool-fab.filter-fab.on svg {
-  stroke: #2b5fad !important;
-  color: #2b5fad !important;
+  stroke: #6ca3de !important;
+  color: #6ca3de !important;
 }
-.tool-fab.heart-fab.on svg,
+.tool-fab.heart-fab.on svg {
+  fill: #6ca3de !important;
+}
 .tool-fab.filter-fab.on svg {
-  fill: #3b7dd8 !important;
+  fill: none !important;
 }
+/* Figma: fav count — Saira 500 / 16px / #6CA3DE / tracking 2% / lh 157% */
 .tool-fab .fav-count {
-  font-size: 14px;
-  font-weight: 800;
-  line-height: 1;
-  color: inherit;
+  font-family: var(--font-saira), Saira, "Segoe UI", sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.57;
+  letter-spacing: 0.02em;
+  color: #6ca3de;
+  flex: none;
 }
 /* Desktop: compact card beside the sidebar. Mobile: fills the panel below toolbar. */
 .filters-flyout {
@@ -659,7 +723,15 @@ body {
   color: var(--text);
 }
 
+/* Figma: Apartment results — fill 358, gap 11 between cards */
 .units { flex: 1; overflow: auto; padding: 0 0 14px; min-height: 0; }
+.units.cards {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  width: 100%;
+  max-width: 358px;
+}
 .thead, .units.table .unit {
   display: grid;
   grid-template-columns: 12px minmax(48px, 1fr) 52px 36px 40px 22px;
@@ -703,7 +775,7 @@ body {
   width: 355px;
   max-width: 100%;
   height: 98px;
-  margin: 0 0 8px;
+  margin: 0;
   min-width: 0;
   box-sizing: border-box;
   border: 1px solid #e1e8eb;
@@ -793,14 +865,16 @@ body {
   height: 33px;
   line-height: 1;
 }
-/* Figma: Listing identity — vertical, hug, gap 2 */
+/* Figma: Listing identity — vertical, hug 78×33, gap 2 */
 .units.cards .card-identity {
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 2px;
   min-width: 0;
+  width: auto;
   height: 33px;
+  font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
 }
 .units.cards .card-top {
   display: flex;
@@ -809,47 +883,60 @@ body {
   gap: 8px;
   line-height: 1;
 }
+/* Figma: Apartment code — Arimo 700 / 14px / #25384F */
 .units.cards .unit strong {
-  font-size: 13.5px;
+  font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
+  font-size: 14px;
   display: block;
   margin: 0;
-  color: #1b2430;
-  font-weight: 500;
+  color: #25384f;
+  font-weight: 700;
   line-height: 1;
+  letter-spacing: 0;
 }
-/* Figma: Available status — height 25, radius 12, pad L/R 8 */
+/* Figma: Available / Sold / Reserved (taken) status pills */
 .units.cards .unit .badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  width: auto;
   height: 25px;
   padding: 0 8px;
   border-radius: 12px;
-  font-size: 11px;
+  font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
+  font-size: 12px;
   font-style: normal;
   font-weight: 700;
+  letter-spacing: 0;
   border: 0;
   line-height: 1;
   flex: 0 0 auto;
   box-sizing: border-box;
+  white-space: nowrap;
 }
+/* Available — bg #C8F8E6, text #177B65 */
 .units.cards .unit .badge.available {
-  color: #1f9d57;
-  background: rgba(61, 186, 103, 0.16);
+  color: #177b65;
+  background: #c8f8e6;
 }
+/* Reserved / taken — bg #F8E2C8, text #DB9806 */
 .units.cards .unit .badge.reserved {
-  color: #c48400;
-  background: rgba(240, 180, 41, 0.18);
+  color: #db9806;
+  background: #f8e2c8;
 }
+/* Sold — bg #F8C8C8, text #BE1B1E */
 .units.cards .unit .badge.sold {
-  color: #e0454a;
+  color: #be1b1e;
   background: #f8c8c8;
 }
+/* Figma: Price — Arimo 700 / 13px / #00B58D */
 .units.cards .card-price {
-  color: #2db36a;
+  font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
+  color: #00b58d;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 700;
   line-height: 1;
+  letter-spacing: 0;
   margin: 0;
   /* Force ر.س LEFT of amount even inside RTL page */
   direction: ltr !important;
@@ -881,15 +968,15 @@ body {
   background: #e1e8eb;
   flex: 0 0 1px;
 }
-/* Figma: Property specifications — horizontal, fill 258, hug 28 */
+/* Figma: Property specifications — horizontal fill 258, hug 28; each column fill 86, gap 2 */
 .units.cards .card-specs {
   display: flex;
   flex-direction: row;
-  justify-content: space-evenly;
+  justify-content: space-between;
   align-items: center;
   width: 100%;
   height: 28px;
-  gap: 8px;
+  gap: 0;
   margin: 0;
   padding: 0;
   border: 0;
@@ -901,24 +988,38 @@ body {
   align-items: center;
   justify-content: center;
   gap: 2px;
-  min-width: max-content;
+  width: 86px;
+  max-width: 86px;
+  min-width: 0;
+  height: 28px;
   text-align: center;
-  flex: 1 1 0;
+  flex: 1 1 86px;
+  font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
 }
+/* Spec value — Arimo 700 / 13px / #25384F */
 .units.cards .card-specs b {
-  font-size: 12px;
-  color: #243044;
-  font-weight: 500;
+  font-size: 13px;
+  color: #25384f;
+  font-weight: 700;
   line-height: 1;
+  letter-spacing: 0;
 }
+/* Spec label — Arimo 700 / 10px / #748394 */
 .units.cards .card-specs small {
   font-size: 10px;
-  color: #9aa6b2;
-  font-weight: 600;
-  line-height: 1.15;
+  color: #748394;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
 }
 .units.cards .unit small { font-size: 13px; text-transform: none; letter-spacing: 0; color: #8b98a4; font-weight: 500; }
-.units.cards .unit .card-specs small { font-size: 10px; line-height: 1.15; color: #9aa6b2; white-space: nowrap; }
+.units.cards .unit .card-specs small {
+  font-size: 10px;
+  line-height: 1;
+  color: #748394;
+  font-weight: 700;
+  white-space: nowrap;
+}
 .badge { font-size: 11px; font-style: normal; font-weight: 700; color: var(--teal); }
 .dot { width: 10px; height: 10px; border-radius: 50%; }
 .dot.available { background: var(--green); }
@@ -2659,9 +2760,9 @@ body {
 .panel-brand .panel-agency-logo {
   width: 65px;
   height: 59px;
-  background: #fff;
+  background: transparent;
   border: 0;
-  box-shadow: none;
+  box-shadow: 0 3px 7.1px rgba(0, 0, 0, 0.25);
   border-radius: 20px;
   overflow: hidden;
 }
