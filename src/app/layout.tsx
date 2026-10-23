@@ -1,13 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import { Arimo, Bona_Nova, Inter, Saira } from "next/font/google";
+import { Bona_Nova, Inter, Saira } from "next/font/google";
 import "./globals.css";
-
-const arimo = Arimo({
-  subsets: ["latin"],
-  weight: ["400", "700"],
-  variable: "--font-arimo",
-  display: "swap",
-});
 
 const bonaNova = Bona_Nova({
   subsets: ["latin"],
@@ -45,7 +38,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${arimo.variable} ${bonaNova.variable} ${saira.variable} ${inter.variable}`}>
+    <html lang="en" className={`${bonaNova.variable} ${saira.variable} ${inter.variable}`}>
       <body>{children}</body>
     </html>
   );

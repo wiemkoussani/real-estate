@@ -407,7 +407,7 @@ body {
   align-items: center;
   /* Hug the filter icon. flex-end left a hole inside this 90px box on the laptop. */
   justify-content: flex-start;
-  font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
+  font-family: sans-serif;
   font-size: 15.2673px;
   font-weight: 700;
   line-height: 18px;
@@ -494,7 +494,7 @@ body {
 }
 .filters-rich h3 {
   margin: 0;
-  font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
+  font-family: sans-serif;
   font-size: 13px;
   font-weight: 700;
   color: #25384f;
@@ -526,7 +526,7 @@ body {
   align-self: flex-start;
   margin: 0;
   box-sizing: border-box;
-  font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
+  font-family: sans-serif;
   font-size: 13.1811px;
   font-weight: 700;
   line-height: 15px;
@@ -555,7 +555,7 @@ body {
   border: 1.01782px solid #00b58d;
   border-radius: 17.303px;
   padding: 0 10px;
-  font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
+  font-family: sans-serif;
   font-size: 11px;
   font-weight: 700;
   line-height: 1;
@@ -590,7 +590,7 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
+  font-family: sans-serif;
   font-size: 12.2139px;
   font-weight: 700;
   line-height: 14px;
@@ -611,7 +611,7 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
+  font-family: sans-serif;
   font-size: 10.5449px;
   font-weight: 700;
   line-height: 12px;
@@ -637,7 +637,7 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
+  font-family: sans-serif;
   font-size: 10.5449px;
   font-weight: 700;
   line-height: 12px;
@@ -663,7 +663,7 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
+  font-family: sans-serif;
   font-size: 10.5449px;
   font-weight: 700;
   line-height: 12px;
@@ -718,7 +718,7 @@ body {
 .filter-area-head h3 {
   margin: 0;
   text-align: start;
-  font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
+  font-family: sans-serif;
   font-weight: 700;
   line-height: 1;
   letter-spacing: 0;
@@ -862,7 +862,7 @@ body {
   margin: 0;
   align-self: flex-start;
   box-sizing: border-box;
-  font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
+  font-family: sans-serif;
   font-size: 13.1811px;
   font-weight: 700;
   line-height: 15px;
@@ -909,7 +909,7 @@ body {
   border: 1.01782px solid #cbd4de;
   background: #fff;
   color: #010101;
-  font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
+  font-family: sans-serif;
   font-size: 13.2317px;
   font-weight: 400;
   line-height: 15px;
@@ -950,7 +950,7 @@ body {
   border-radius: 21.3743px;
   background: #e3f3ff;
   color: #25384f;
-  font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
+  font-family: sans-serif;
   font-size: 13.2317px;
   font-weight: 700;
   line-height: 15px;
@@ -964,7 +964,7 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
+  font-family: sans-serif;
   font-size: 13.2317px;
   font-weight: 700;
   line-height: 15px;
@@ -1279,7 +1279,7 @@ body {
   min-width: 0;
   width: auto;
   height: 33px;
-  font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
+  font-family: sans-serif;
 }
 .units.cards .card-top {
   display: flex;
@@ -1290,7 +1290,7 @@ body {
 }
 /* Figma: Apartment code — Arimo 700 / 14px / #25384F */
 .units.cards .unit strong {
-  font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
+  font-family: sans-serif;
   font-size: 14px;
   display: block;
   margin: 0;
@@ -1308,7 +1308,7 @@ body {
   height: 25px;
   padding: 0 8px;
   border-radius: 12px;
-  font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
+  font-family: sans-serif;
   font-size: 12px;
   font-style: normal;
   font-weight: 700;
@@ -1336,7 +1336,7 @@ body {
 }
 /* Figma: Price — Arimo 700 / 13px / #00B58D */
 .units.cards .card-price {
-  font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
+  font-family: sans-serif;
   color: #00b58d;
   font-size: 13px;
   font-weight: 700;
@@ -1397,7 +1397,7 @@ body {
   height: 28px;
   text-align: center;
   flex: 1 1 86px;
-  font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
+  font-family: sans-serif;
 }
 /* Spec value — Arimo 700 / 13px / #25384F */
 .units.cards .card-specs b {
@@ -1431,7 +1431,7 @@ body {
   align-items: center;
   justify-content: center;
   overflow: visible;
-  font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
+  font-family: sans-serif;
   font-size: 13px;
   font-weight: 700;
   line-height: 15px;
@@ -1441,7 +1441,7 @@ body {
 .units.cards .card-specs .spec-rooms small {
   width: 44px;
   height: 11px;
-  font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
+  font-family: sans-serif;
   font-size: 10px;
   font-weight: 700;
   line-height: 11px;
@@ -1456,7 +1456,7 @@ body {
   align-items: center;
   justify-content: center;
   overflow: visible;
-  font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
+  font-family: sans-serif;
   font-size: 13px;
   font-weight: 700;
   line-height: 15px;
@@ -1466,7 +1466,7 @@ body {
 .units.cards .card-specs .spec-area small {
   width: 38px;
   height: 11px;
-  font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
+  font-family: sans-serif;
   font-size: 10px;
   font-weight: 700;
   line-height: 11px;
@@ -1481,7 +1481,7 @@ body {
   align-items: center;
   justify-content: center;
   overflow: visible;
-  font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
+  font-family: sans-serif;
   font-size: 13px;
   font-weight: 700;
   line-height: 15px;
@@ -1491,7 +1491,7 @@ body {
 .units.cards .card-specs .spec-floor small {
   width: 34px;
   height: 11px;
-  font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
+  font-family: sans-serif;
   font-size: 10px;
   font-weight: 700;
   line-height: 11px;
