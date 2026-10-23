@@ -401,7 +401,8 @@ body {
   height: 18px;
   display: inline-flex;
   align-items: center;
-  justify-content: flex-end;
+  /* Hug the filter icon. flex-end left a hole inside this 90px box on the laptop. */
+  justify-content: flex-start;
   font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
   font-size: 15.27px;
   font-weight: 700;
