@@ -923,10 +923,11 @@ body {
   box-sizing: border-box;
 }
 .panel .units {
-  width: 100%;
-  /* gap between card edge and scrollbar; scrollbar sits toward panel edge */
-  padding-inline-end: 8px;
+  width: calc(100% + 8px);
+  /* small gap cards ↔ scrollbar; pull track toward sidebar outer edge */
+  padding-inline-end: 5px;
   margin: 0;
+  margin-inline-end: -8px;
   scrollbar-gutter: auto;
   scrollbar-width: auto;
   scrollbar-color: #8a97a5 transparent;
