@@ -1,6 +1,20 @@
 import type { Metadata, Viewport } from "next";
-import { Bona_Nova, Inter, Saira } from "next/font/google";
+import { Arimo, Bona_Nova, Inter, Noto_Sans_Arabic, Saira } from "next/font/google";
 import "./globals.css";
+
+const arimo = Arimo({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  variable: "--font-arimo",
+  display: "swap",
+});
+
+const notoArabic = Noto_Sans_Arabic({
+  subsets: ["arabic"],
+  weight: ["400", "700"],
+  variable: "--font-noto-arabic",
+  display: "swap",
+});
 
 const bonaNova = Bona_Nova({
   subsets: ["latin"],
@@ -38,7 +52,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${bonaNova.variable} ${saira.variable} ${inter.variable}`}>
+    <html lang="en" className={`${arimo.variable} ${notoArabic.variable} ${bonaNova.variable} ${saira.variable} ${inter.variable}`}>
       <body>{children}</body>
     </html>
   );
