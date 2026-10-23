@@ -1347,6 +1347,7 @@ body {
   flex: 0 0 auto;
   box-sizing: border-box;
   white-space: nowrap;
+  margin-top: -4px;
 }
 /* Available — bg #C8F8E6, text #177B65 */
 .units.cards .unit .badge.available {
@@ -3367,8 +3368,8 @@ body {
 .phone-row input { flex: 1; }
 .lead.side button[type="submit"] { color: #fff; }
 
-/* Phone layout: handset width only. A laptop viewport never enters this block. */
-@media (max-width: 540px) {
+/* Phone layout: a handset, or a tablet (touch, no hover, up to 1400px). */
+@media (max-width: 540px), (max-width: 1400px) and (pointer: coarse) and (hover: none) {
 html.phone-layout .app {
   flex-direction: column;
   position: relative;
@@ -3907,9 +3908,9 @@ html.phone-layout .detail-side { max-height: 42vh; }
 
 }
 
-/* Laptop and desktop: the measured Figma card. Wins over the phone rules. */
+/* Laptop and desktop: the measured Figma card. A tablet keeps the phone layout. */
 @media (min-width: 541px) {
-  .filters-flyout {
+  html:not(.phone-layout) .filters-flyout {
     top: 79px !important;
     left: calc(min(382px, 86vw) + 5px) !important;
     right: auto !important;
@@ -3923,17 +3924,17 @@ html.phone-layout .detail-side { max-height: 42vh; }
     border-radius: 11px !important;
     box-shadow: 0 3.05346px 9.1604px rgba(22, 43, 60, 0.145098) !important;
   }
-  .panel.open,
-  .panel.open.form-wide {
+  html:not(.phone-layout) .panel.open,
+  html:not(.phone-layout) .panel.open.form-wide {
     display: block !important;
     position: relative !important;
     inset: auto !important;
     width: min(382px, 86vw) !important;
     height: auto !important;
   }
-  .phone-top,
-  .dock,
-  .dock.units.cards {
+  html:not(.phone-layout) .phone-top,
+  html:not(.phone-layout) .dock,
+  html:not(.phone-layout) .dock.units.cards {
     display: none !important;
   }
 }

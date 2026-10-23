@@ -1,8 +1,9 @@
-/** Phone UI only under a real handset width.
+/** Phone UI for a handset, and for a tablet (touch, no hover).
 
-A 1920×1080 laptop stays wider than this at any normal Windows scale, so it keeps
-the PC sidebar and the measured filter. Do not raise this number. */
-export const PHONE_LAYOUT_MQ = "(max-width: 540px)";
+A laptop keeps the PC sidebar. A trackpad still counts as hover, so a
+1920×1080 Dell stays on the PC layout. A tablet matches the phone. */
+export const PHONE_LAYOUT_MQ =
+  "(max-width: 540px), (max-width: 1400px) and (pointer: coarse) and (hover: none)";
 
 export function isPhoneLayout(): boolean {
   if (typeof window === "undefined") return false;
