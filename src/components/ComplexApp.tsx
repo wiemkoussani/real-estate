@@ -210,7 +210,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
   }, []);
 
   useEffect(() => {
-    const mq = window.matchMedia("(max-width: 1100px)");
+    const mq = window.matchMedia("(max-width: 800px)");
     const apply = () => {
       if (mq.matches) {
         setListOpen(false);
@@ -383,7 +383,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
 
     const syncPreviewUnit = () => {
       if (typeof window === "undefined") return;
-      if (!window.matchMedia("(max-width: 1100px)").matches) return;
+      if (!window.matchMedia("(max-width: 800px)").matches) return;
       if (scene360Strip || scene360Open || tourUnit) return;
       const mid = dock.scrollLeft + dock.clientWidth / 2;
       let bestId: string | null = null;
@@ -489,7 +489,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
 
   const openProjectList = () => {
     setFormOpen(false);
-    if (window.matchMedia("(max-width: 1100px)").matches) {
+    if (window.matchMedia("(max-width: 800px)").matches) {
       setToolsOpen((v) => !v);
     } else {
       setListOpen(true);
@@ -498,7 +498,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
 
   const openFilters = () => {
     setFormOpen(false);
-    if (window.matchMedia("(max-width: 1100px)").matches) {
+    if (window.matchMedia("(max-width: 800px)").matches) {
       setFiltersOpen((v) => !v);
       return;
     }
@@ -509,7 +509,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
   const openScene360 = () => {
     setFormOpen(false);
     setFiltersOpen(false);
-    const phone = window.matchMedia("(max-width: 1100px)").matches;
+    const phone = window.matchMedia("(max-width: 800px)").matches;
     setScene360Strip((open) => {
       if (open) {
         setScene360Open(false);
@@ -687,7 +687,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
               onBack={() => {
                 setFormOpen(false);
                 // Phone/tablet: leave the contact form for the map, not the unit list.
-                if (window.matchMedia("(max-width: 1100px)").matches) setListOpen(false);
+                if (window.matchMedia("(max-width: 800px)").matches) setListOpen(false);
               }}
             />
           ) : (

@@ -147,7 +147,7 @@ export function AroundMap({
     const pts = pointsRef.current;
     const size = map.getSize();
     if (!pts.length || size.x < 48 || size.y < 48) return;
-    const tablet = window.matchMedia("(min-width: 721px) and (max-width: 1100px)").matches;
+    const tablet = window.matchMedia("(min-width: 721px) and (max-width: 800px)").matches;
     const pad = Math.max(8, Math.min(tablet ? 48 : 24, Math.floor(Math.min(size.x, size.y) / 8)));
     framedSize.current = { x: size.x, y: size.y };
     if (pts.length > 1) map.fitBounds(pts, { padding: [pad, pad], maxZoom: tablet ? 12 : 15 });
@@ -164,7 +164,7 @@ export function AroundMap({
         mapRef.current.remove();
         mapRef.current = null;
       }
-      const tablet = window.matchMedia("(min-width: 721px) and (max-width: 1100px)").matches;
+      const tablet = window.matchMedia("(min-width: 721px) and (max-width: 800px)").matches;
       const map = L.map(mapEl.current, { zoomControl: false, attributionControl: false }).setView(
         [data.lat, data.lng],
         tablet ? 12 : 14,
