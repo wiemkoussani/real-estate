@@ -666,10 +666,10 @@ body {
   justify-content: flex-start;
   width: 100%;
   height: 17px;
-  direction: ltr;
+  direction: rtl;
   touch-action: none;
-  /* Keep the long track, but pull the green thumb off the right edge */
-  padding: 0 14px 0 0;
+  /* Thumb (the high value) sits on the left, fully inside the track */
+  padding: 0 0 0 8px;
   box-sizing: border-box;
 }
 .range-single input[type="range"] {
@@ -974,7 +974,7 @@ body {
 .panel .units {
   /* Bar sits in the old edge padding, so the cards keep their width */
   width: calc(100% + 12px);
-  padding-inline-end: 4px;
+  padding-inline-end: 2px;
   margin: 0;
   margin-inline-end: -12px;
   scrollbar-gutter: auto;
@@ -1000,7 +1000,7 @@ body {
   width: calc(100% + 12px);
   max-width: none;
   margin-inline-end: -12px;
-  padding-inline-end: 4px;
+  padding-inline-end: 2px;
   box-sizing: border-box;
 }
 .thead, .units.table .unit {
