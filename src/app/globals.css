@@ -608,7 +608,6 @@ body {
 }
 .filter-area-head h3 {
   margin: 0;
-  margin-inline-start: auto;
   text-align: start;
   font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
   font-weight: 700;
@@ -973,13 +972,13 @@ body {
   box-sizing: border-box;
 }
 .panel .units {
-  /* Scrollbar only: nearer the sidebar's right edge, farther from the cards */
-  width: calc(100% + 10px);
-  padding-inline-end: 16px;
+  /* Bar sits in the old edge padding, so the cards keep their width */
+  width: calc(100% + 12px);
+  padding-inline-end: 4px;
   margin: 0;
-  margin-inline-end: -10px;
+  margin-inline-end: -12px;
   scrollbar-gutter: auto;
-  scrollbar-width: auto;
+  scrollbar-width: thin;
   scrollbar-color: #8a97a5 transparent;
 }
 .panel .units::-webkit-scrollbar {
@@ -992,15 +991,16 @@ body {
 .panel .units::-webkit-scrollbar-thumb {
   background: #8a97a5;
   border-radius: 99px;
-  border: 1px solid transparent;
-  background-clip: padding-box;
+  border: 0;
 }
 .panel .units.cards {
   display: flex;
   flex-direction: column;
   gap: 11px;
-  width: 100%;
+  width: calc(100% + 12px);
   max-width: none;
+  margin-inline-end: -12px;
+  padding-inline-end: 4px;
   box-sizing: border-box;
 }
 .thead, .units.table .unit {
