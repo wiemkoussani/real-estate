@@ -466,13 +466,20 @@ body {
 .filters-rich {
   display: flex;
   flex-direction: column;
+  /* Payment block is 270.65 inside a 258.53 column. In RTL it hangs
+     into the card’s left padding. Keep that padding inside this box so
+     the left pills (available, sold) are not clipped. */
+  box-sizing: border-box;
+  width: calc(100% + 12.2139px);
+  margin-inline-end: -12.2139px;
   padding: 0;
+  padding-inline-end: 12.2139px;
   gap: 13.23px;
   background: #ffffff;
   background-color: #ffffff;
   flex: 1;
   min-height: 0;
-  overflow-x: visible;
+  overflow-x: hidden;
   overflow-y: auto;
   scrollbar-width: none;
 }
