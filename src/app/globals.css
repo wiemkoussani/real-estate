@@ -345,9 +345,8 @@ body {
   top: 79px;
   left: calc(min(382px, 86vw) + 5px);
   width: 282.95px;
-  /* 514 on a tall screen. On a short laptop the same card stays fully on screen. */
-  height: min(514px, calc(100dvh - 91px));
-  max-height: min(514px, calc(100dvh - 91px));
+  height: 514px;
+  max-height: 514px;
   box-sizing: border-box;
   z-index: 22;
   padding: 12.21px;
@@ -3867,4 +3866,35 @@ html.phone-layout .detail { grid-template-columns: 1fr; grid-template-rows: 1fr 
 html.phone-layout .detail-top { right: 12px; left: 12px; }
 html.phone-layout .detail-side { max-height: 42vh; }
 
+}
+
+/* Laptop and desktop: the measured Figma card. Wins over the phone rules. */
+@media (min-width: 541px) {
+  .filters-flyout {
+    top: 79px !important;
+    left: calc(min(382px, 86vw) + 5px) !important;
+    right: auto !important;
+    width: 282.95px !important;
+    height: 514px !important;
+    max-height: 514px !important;
+    padding: 12.21px !important;
+    gap: 13.23px !important;
+    background: #ffffff !important;
+    border: 0 !important;
+    border-radius: 11px !important;
+    box-shadow: 0 3.05px 9.16px 0 rgba(22, 43, 60, 0.1451) !important;
+  }
+  .panel.open,
+  .panel.open.form-wide {
+    display: block !important;
+    position: relative !important;
+    inset: auto !important;
+    width: min(382px, 86vw) !important;
+    height: auto !important;
+  }
+  .phone-top,
+  .dock,
+  .dock.units.cards {
+    display: none !important;
+  }
 }
