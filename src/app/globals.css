@@ -972,12 +972,12 @@ body {
   box-sizing: border-box;
 }
 .panel .units {
-  /* Bar sits in the old edge padding, so the cards keep their width */
+  /* Scrollbar flush with the sidebar; gutter + padding keep it off the cards */
   width: calc(100% + 12px);
-  padding-inline-end: 2px;
+  padding-inline-end: 8px;
   margin: 0;
   margin-inline-end: -12px;
-  scrollbar-gutter: auto;
+  scrollbar-gutter: stable;
   scrollbar-width: thin;
   scrollbar-color: #8a97a5 transparent;
 }
@@ -996,12 +996,19 @@ body {
 .panel .units.cards {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: 11px;
   width: calc(100% + 12px);
   max-width: none;
   margin-inline-end: -12px;
-  padding-inline-end: 2px;
+  padding-inline-end: 8px;
+  scrollbar-gutter: stable;
   box-sizing: border-box;
+}
+.panel .units.cards .unit {
+  width: 355px;
+  max-width: 355px;
+  flex: 0 0 355px;
 }
 .thead, .units.table .unit {
   display: grid;
