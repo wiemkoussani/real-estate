@@ -690,7 +690,7 @@ body {
 .units.table .unit .heart { justify-self: end; }
 .units.cards .unit {
   display: grid;
-  grid-template-columns: 72px minmax(0, 1fr);
+  grid-template-columns: 86px minmax(0, 1fr);
   column-gap: 10px;
   align-items: center;
   width: calc(100% - 20px);
@@ -699,7 +699,7 @@ body {
   min-width: 0;
   border: 1px solid #eef2f6;
   border-radius: 16px;
-  padding: 6px 12px 8px;
+  padding: 5px 10px 6px;
   background: #fff;
   position: relative;
   box-shadow: 0 1px 2px rgba(24, 39, 56, 0.04);
@@ -724,13 +724,13 @@ body {
 }
 .units.cards .card-side {
   position: relative;
-  width: 72px;
-  height: 76px;
+  width: 86px;
+  height: 86px;
 }
 .units.cards .unit img,
 .units.cards .unit .card-img-fallback {
-  width: 72px;
-  height: 76px;
+  width: 86px;
+  height: 86px;
   object-fit: cover;
   border-radius: 10px;
   background: #e8eef3;
@@ -836,8 +836,8 @@ body {
   justify-content: space-evenly;
   width: 100%;
   gap: 8px;
-  margin-top: 8px;
-  padding: 8px 0 0;
+  margin-top: 4px;
+  padding: 5px 0 0;
   border-top: 1px solid #e4eaf0;
 }
 .units.cards .card-specs span {
@@ -3139,13 +3139,13 @@ body {
     padding: 0 12px calc(8px + env(safe-area-inset-bottom, 0px));
   }
   .dock.units.cards .unit {
-    flex: 0 0 min(82vw, 320px);
-    width: min(82vw, 320px);
-    max-width: min(82vw, 320px);
+    flex: 0 0 min(76vw, 292px);
+    width: min(76vw, 292px);
+    max-width: min(76vw, 292px);
     margin: 0;
     scroll-snap-align: start;
     border-radius: 22px;
-    padding: 8px 12px 10px;
+    padding: 6px 10px 7px;
     /* Match capture: soft frosted light grey-white over map */
     background: rgba(236, 241, 247, 0.72);
     border: 1px solid rgba(255, 255, 255, 0.9);
