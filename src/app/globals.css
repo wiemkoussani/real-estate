@@ -322,7 +322,8 @@ body {
   color: #6ca3de;
   flex: none;
 }
-/* Figma: Property filters — 283×514, top 79, left +5 from sidebar, radius 11, pad 12, gap 13 */
+/* Figma: Property filters — 283×514, top 79, left +5, radius 11, pad 12, gap 13
+   shadow 0 3.05 9.16 #162B3C @ 14.5% */
 .filters-flyout {
   position: fixed;
   top: 79px;
@@ -337,10 +338,10 @@ body {
   background: #fff;
   border: 0;
   border-radius: 11px;
-  box-shadow: 0 3.05px 12px rgba(0, 0, 0, 0.14);
+  box-shadow: 0 3.05px 9.16px rgba(22, 43, 60, 0.145);
   display: flex;
   flex-direction: column;
-  overflow: auto;
+  overflow: hidden;
   flex: none;
   animation: filters-in 0.32s cubic-bezier(0.22, 1, 0.36, 1);
   transform-origin: top left;
@@ -352,7 +353,7 @@ body {
   from { opacity: 0; transform: translate(-12px, -8px) scale(0.97); }
   to { opacity: 1; transform: translate(0, 0) scale(1); }
 }
-/* Figma: Filter heading — fill ~259×32, space-between */
+/* Figma: Filter heading — fill ~259, height 32, space-between */
 .filters-head {
   display: flex;
   flex-direction: row;
@@ -430,7 +431,17 @@ body {
   gap: 13px;
   flex: 1;
   min-height: 0;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #c5ced6 transparent;
+}
+.filters-rich::-webkit-scrollbar {
+  width: 4px;
+}
+.filters-rich::-webkit-scrollbar-thumb {
+  background: #c5ced6;
+  border-radius: 99px;
 }
 .filters-rich section {
   display: grid;
@@ -446,17 +457,17 @@ body {
   text-align: start;
   line-height: 1;
 }
-/* Figma: Payment schedule — 271×102, radius 4, pad 9, gap 10 */
+/* Figma: Payment schedule — label + pills, gap 10 (no inset pad — matches full mock) */
 .filters-rich .payment-schedule {
   width: 100%;
-  max-width: 271px;
+  max-width: 259px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 9px;
-  border-radius: 4px;
-  background: #fff;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
 }
 .filters-rich .payment-label {
   width: 100%;
@@ -487,14 +498,14 @@ body {
   gap: 0;
   border: 1px solid #00b58d;
   border-radius: 17px;
-  padding: 0 8px;
+  padding: 0 10px;
   font-family: var(--font-arimo), Arimo, "Segoe UI", Tahoma, Arial, sans-serif;
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 700;
   line-height: 1;
   color: #177b65;
   cursor: pointer;
-  background: #fdfeff;
+  background: #fff;
   box-shadow: none;
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   box-sizing: border-box;
@@ -598,11 +609,12 @@ body {
   align-items: baseline;
   gap: 4px;
 }
-.range-readout .sar-num {
+/* Mock: ر.س then number */
+.range-readout .sar-cur {
   order: 0;
   unicode-bidi: isolate;
 }
-.range-readout .sar-cur {
+.range-readout .sar-num {
   order: 1;
   unicode-bidi: isolate;
 }
@@ -900,8 +912,7 @@ body {
   color: var(--text);
 }
 
-/* Figma: Apartment results — fill 358, gap 11 between cards (sidebar only)
-   Scrollbar sits in its own gutter (stage side), not over the cards */
+/* Figma: Apartment results — fill content width (~358), gap 11; same pad L/R as panel */
 .units {
   flex: 1;
   overflow: auto;
@@ -910,19 +921,18 @@ body {
   box-sizing: border-box;
 }
 .panel .units {
-  /* reserve a clear track between cards and the stage edge */
-  padding-inline-end: 10px;
-  margin-inline-end: -4px;
-  scrollbar-gutter: stable;
+  width: 100%;
+  padding-inline: 0;
+  margin: 0;
+  scrollbar-gutter: auto;
   scrollbar-width: thin;
   scrollbar-color: #9aa8b5 transparent;
 }
 .panel .units::-webkit-scrollbar {
-  width: 6px;
+  width: 4px;
 }
 .panel .units::-webkit-scrollbar-track {
   background: transparent;
-  margin-block: 4px;
 }
 .panel .units::-webkit-scrollbar-thumb {
   background: #9aa8b5;
@@ -933,7 +943,7 @@ body {
   flex-direction: column;
   gap: 11px;
   width: 100%;
-  max-width: 358px;
+  max-width: none;
   box-sizing: border-box;
 }
 .thead, .units.table .unit {
@@ -977,7 +987,7 @@ body {
   flex-direction: row;
   align-items: center;
   column-gap: 13px;
-  width: 355px;
+  width: 100%;
   max-width: 100%;
   height: 98px;
   margin: 0;
