@@ -558,10 +558,14 @@ body {
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   box-sizing: border-box;
 }
+/* كل الوحدات off — blue outline and blue text, not the green of متاح */
 .status-pill.all {
-  border-color: #00b58d;
-  color: #177b65;
+  border-color: #008ff0;
+  color: #008ff0;
   background: #fdfeff;
+}
+.status-pill.all:not(.on) .status-label {
+  color: #008ff0;
 }
 /* كل الوحدات selected — fill, 27.48×radius 17.3, #008FF0 */
 .status-pill.all.on {
