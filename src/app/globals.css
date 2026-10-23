@@ -322,8 +322,8 @@ body {
   color: #6ca3de;
   flex: none;
 }
-/* Figma: Property filters — 283×514, top 79, left +5, radius 11, pad 12, gap 13
-   shadow 0 3.05 9.16 #162B3C @ 14.5% */
+/* Figma: Property filters — 283×514, top 79, left +5, radius 11, pad ~12–14, gap 13
+   Extra inset so content (X, sliders) isn’t flush with the white edge */
 .filters-flyout {
   position: fixed;
   top: 79px;
@@ -333,7 +333,7 @@ body {
   max-height: 514px;
   box-sizing: border-box;
   z-index: 22;
-  padding: 12px;
+  padding: 14px 16px 14px;
   gap: 13px;
   background: #fff;
   border: 0;
@@ -398,7 +398,7 @@ body {
   fill: none;
   flex: none;
 }
-/* Figma: close x — 19×19, stroke #748394 */
+/* Figma: close x — 19×19 frame, vector ~10, stroke #748394 / 1.83 */
 .filters-back {
   width: 19px;
   height: 19px;
@@ -413,16 +413,17 @@ body {
   padding: 0;
   box-shadow: none;
   flex: none;
+  flex-shrink: 0;
 }
 .filters-back svg {
-  width: 10px;
-  height: 10px;
+  width: 19px;
+  height: 19px;
   stroke: #748394;
   color: #748394;
-  stroke-width: 1.83;
+  display: block;
 }
 .filters-back:hover {
-  color: #25384f;
+  color: #5a6a7a;
 }
 .filters-rich {
   display: flex;
@@ -457,10 +458,10 @@ body {
   text-align: start;
   line-height: 1;
 }
-/* Figma: Payment schedule — label + pills, gap 10 (no inset pad — matches full mock) */
+/* Figma: Payment schedule — label + pills, gap 10 */
 .filters-rich .payment-schedule {
   width: 100%;
-  max-width: 259px;
+  max-width: 100%;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -560,14 +561,14 @@ body {
 }
 .status-count { display: none; }
 
-/* Figma: Range filter — vertical fill ~259, hug ~39, gap 7 */
+/* Figma: Range filter — vertical, hug, gap 7; fill panel content width */
 .filters-rich .filter-area,
 .filters-rich .range-filter {
   display: flex;
   flex-direction: column;
   gap: 7px;
   width: 100%;
-  max-width: 259px;
+  max-width: 100%;
 }
 /* Figma: Range labels — horizontal fill, hug 15, space-between */
 .filter-area-head {
@@ -685,22 +686,22 @@ body {
   border-radius: 99px;
   background: #00b58d;
 }
-/* Figma: Room filter — vertical fill ~259, hug ~62, gap 10 */
+/* Figma: Room filter — vertical, gap 10 */
 .filters-rich .room-filter {
   display: flex;
   flex-direction: column;
   gap: 10px;
   width: 100%;
-  max-width: 259px;
+  max-width: 100%;
 }
-/* Figma: Phase filter — vertical fill ~259, hug ~103, gap 7 */
+/* Figma: Phase filter — vertical, gap 7 */
 .filters-rich .model-filter,
 .filters-rich .phase-filter {
   display: flex;
   flex-direction: column;
   gap: 7px;
   width: 100%;
-  max-width: 259px;
+  max-width: 100%;
 }
 .filters-rich .room-filter > h3,
 .filters-rich .model-filter > h3,
@@ -776,15 +777,16 @@ body {
   color: #fff;
   font-weight: 700;
 }
-/* Figma: Reset filters — fill 259, height 33, radius 21, #E3F3FF */
+/* Figma: Reset filters — height 33, radius 21, #E3F3FF; pinned to panel bottom */
 .filters-reset-btn {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
-  max-width: 259px;
+  max-width: 100%;
   height: 33px;
-  margin-top: 4px;
+  margin-top: auto;
+  flex: none;
   border: 0;
   border-radius: 21px;
   background: #e3f3ff;
@@ -912,7 +914,7 @@ body {
   color: var(--text);
 }
 
-/* Figma: Apartment results — fill content width (~358), gap 11; same pad L/R as panel */
+/* Figma: Apartment results — cards fill width; scrollbar slightly inset + thicker */
 .units {
   flex: 1;
   overflow: auto;
@@ -922,21 +924,25 @@ body {
 }
 .panel .units {
   width: 100%;
-  padding-inline: 0;
+  /* gap between card edge and scrollbar; scrollbar sits toward panel edge */
+  padding-inline-end: 8px;
   margin: 0;
   scrollbar-gutter: auto;
-  scrollbar-width: thin;
-  scrollbar-color: #9aa8b5 transparent;
+  scrollbar-width: auto;
+  scrollbar-color: #8a97a5 transparent;
 }
 .panel .units::-webkit-scrollbar {
-  width: 4px;
+  width: 7px;
 }
 .panel .units::-webkit-scrollbar-track {
   background: transparent;
+  margin-block: 6px;
 }
 .panel .units::-webkit-scrollbar-thumb {
-  background: #9aa8b5;
+  background: #8a97a5;
   border-radius: 99px;
+  border: 1px solid transparent;
+  background-clip: padding-box;
 }
 .panel .units.cards {
   display: flex;

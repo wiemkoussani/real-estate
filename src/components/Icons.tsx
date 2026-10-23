@@ -164,6 +164,19 @@ export const IconBack = (p: Props) => (
 export const IconChevronDown = (p: Props) => (
   <Svg {...p}><path d="M6 9l6 6 6-6" /></Svg>
 );
-export const IconClose = (p: Props) => (
-  <Svg {...p}><path d="M18 6 6 18M6 6l12 12" /></Svg>
+/** Close X — Figma filters: ~19 frame, ~10 stroke graphic, #748394 / 1.83 */
+export const IconClose = (p: Props & { strokeWidth?: number }) => (
+  <svg
+    className={p.className}
+    width={p.size ?? 19}
+    height={p.size ?? 19}
+    viewBox="0 0 19 19"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={p.strokeWidth ?? 1.83}
+    strokeLinecap="round"
+    aria-hidden
+  >
+    <path d="M5.5 5.5 13.5 13.5M13.5 5.5 5.5 13.5" />
+  </svg>
 );

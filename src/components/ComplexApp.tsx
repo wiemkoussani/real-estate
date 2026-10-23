@@ -790,7 +790,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
               تصفية النتائج
             </h2>
             <button type="button" className="filters-back" onClick={() => setFiltersOpen(false)} aria-label="Close filters">
-              <IconClose size={10} />
+              <IconClose size={19} strokeWidth={1.83} />
             </button>
           </header>
           <div className="filters filters-rich">
