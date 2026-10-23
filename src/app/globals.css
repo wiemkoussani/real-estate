@@ -345,8 +345,9 @@ body {
   top: 79px;
   left: calc(min(382px, 86vw) + 5px);
   width: 282.95px;
-  height: 514px;
-  max-height: 514px;
+  /* 514 on a tall screen. On a short laptop the same card stays fully on screen. */
+  height: min(514px, calc(100dvh - 91px));
+  max-height: min(514px, calc(100dvh - 91px));
   box-sizing: border-box;
   z-index: 22;
   padding: 12.21px;
@@ -3328,7 +3329,8 @@ body {
 .phone-row input { flex: 1; }
 .lead.side button[type="submit"] { color: #fff; }
 
-/* Phone layout is a class, not a viewport width. A scaled 1920×1080 laptop stays on the PC filter. */
+/* Phone layout: handset width only. A laptop viewport never enters this block. */
+@media (max-width: 540px) {
 html.phone-layout .app {
   flex-direction: column;
   position: relative;
@@ -3865,3 +3867,4 @@ html.phone-layout .detail { grid-template-columns: 1fr; grid-template-rows: 1fr 
 html.phone-layout .detail-top { right: 12px; left: 12px; }
 html.phone-layout .detail-side { max-height: 42vh; }
 
+}

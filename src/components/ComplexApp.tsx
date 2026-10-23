@@ -2,7 +2,7 @@
 
 import { useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, createContext } from "react";
 import { COMPLEX, UNIT_MODELS, modelOf, sarParts, type Unit, type UnitStatus } from "@/lib/complex";
-import { isPhoneLayout } from "@/lib/phoneLayout";
+import { isPhoneLayout, PHONE_LAYOUT_MQ } from "@/lib/phoneLayout";
 import { buildTour, emptyTour, tourPlanUrl, tourVillaUrl, type TourMedia } from "@/lib/tour";
 import type { OrbitEngine as OrbitEngineType } from "@/viewer/OrbitEngine";
 import {
@@ -228,7 +228,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
     apply(true);
     const onResize = () => apply(false);
     window.addEventListener("resize", onResize);
-    const mq = window.matchMedia("(hover: hover) and (pointer: fine)");
+    const mq = window.matchMedia(PHONE_LAYOUT_MQ);
     mq.addEventListener("change", onResize);
     return () => {
       window.removeEventListener("resize", onResize);
