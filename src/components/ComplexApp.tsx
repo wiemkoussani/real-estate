@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useContext, useEffect, useMemo, useRef, useState, createContext } from "react";
+import { useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, createContext } from "react";
 import { COMPLEX, UNIT_MODELS, modelOf, sarParts, type Unit, type UnitStatus } from "@/lib/complex";
+import { isPhoneLayout } from "@/lib/phoneLayout";
 import { buildTour, emptyTour, tourPlanUrl, tourVillaUrl, type TourMedia } from "@/lib/tour";
 import type { OrbitEngine as OrbitEngineType } from "@/viewer/OrbitEngine";
 import {
@@ -209,10 +210,14 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
     }
   }, []);
 
-  useEffect(() => {
-    const mq = window.matchMedia("(max-width: 800px)");
-    const apply = () => {
-      if (mq.matches) {
+  useLayoutEffect(() => {
+    let phone = isPhoneLayout();
+    const apply = (force: boolean) => {
+      const next = isPhoneLayout();
+      document.documentElement.classList.toggle("phone-layout", next);
+      if (!force && next === phone) return;
+      phone = next;
+      if (next) {
         setListOpen(false);
         setFiltersOpen(false);
       } else {
@@ -220,9 +225,15 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
       }
       setLayoutReady(true);
     };
-    apply();
-    mq.addEventListener("change", apply);
-    return () => mq.removeEventListener("change", apply);
+    apply(true);
+    const onResize = () => apply(false);
+    window.addEventListener("resize", onResize);
+    const mq = window.matchMedia("(hover: hover) and (pointer: fine)");
+    mq.addEventListener("change", onResize);
+    return () => {
+      window.removeEventListener("resize", onResize);
+      mq.removeEventListener("change", onResize);
+    };
   }, []);
 
   useEffect(() => {
@@ -383,7 +394,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
 
     const syncPreviewUnit = () => {
       if (typeof window === "undefined") return;
-      if (!window.matchMedia("(max-width: 800px)").matches) return;
+      if (!isPhoneLayout()) return;
       if (scene360Strip || scene360Open || tourUnit) return;
       const mid = dock.scrollLeft + dock.clientWidth / 2;
       let bestId: string | null = null;
@@ -489,7 +500,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
 
   const openProjectList = () => {
     setFormOpen(false);
-    if (window.matchMedia("(max-width: 800px)").matches) {
+    if (isPhoneLayout()) {
       setToolsOpen((v) => !v);
     } else {
       setListOpen(true);
@@ -498,7 +509,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
 
   const openFilters = () => {
     setFormOpen(false);
-    if (window.matchMedia("(max-width: 800px)").matches) {
+    if (isPhoneLayout()) {
       setFiltersOpen((v) => !v);
       return;
     }
@@ -509,7 +520,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
   const openScene360 = () => {
     setFormOpen(false);
     setFiltersOpen(false);
-    const phone = window.matchMedia("(max-width: 800px)").matches;
+    const phone = isPhoneLayout();
     setScene360Strip((open) => {
       if (open) {
         setScene360Open(false);
@@ -687,7 +698,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
               onBack={() => {
                 setFormOpen(false);
                 // Phone/tablet: leave the contact form for the map, not the unit list.
-                if (window.matchMedia("(max-width: 800px)").matches) setListOpen(false);
+                if (isPhoneLayout()) setListOpen(false);
               }}
             />
           ) : (

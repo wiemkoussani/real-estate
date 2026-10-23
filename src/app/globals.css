@@ -3328,540 +3328,540 @@ body {
 .phone-row input { flex: 1; }
 .lead.side button[type="submit"] { color: #fff; }
 
-@media (max-width: 800px) {
-  .app {
-    flex-direction: column;
-    position: relative;
-    height: 100dvh;
-    max-height: 100dvh;
-  }
-
-  .stage {
-    position: absolute;
-    inset: 0;
-    flex: none;
-    width: 100%;
-    height: 100%;
-    min-height: 0;
-  }
-  .panel {
-    display: none;
-  }
-  .panel.open,
-  .panel.open.form-wide {
-    display: none;
-  }
-  .app.layout-ready .panel.open,
-  .app.layout-ready .panel.open.form-wide {
-    display: block;
-    position: fixed;
-    inset: 0;
-    width: 100% !important;
-    height: 100% !important;
-    max-height: none;
-    z-index: 30;
-    pointer-events: auto;
-  }
-  .panel-inner,
-  .panel.open.form-wide .panel-inner {
-    margin: 0;
-    height: 100%;
-    width: 100%;
-    border-radius: 0;
-    transform: none;
-  }
-  .peek { display: none; }
-  .panel-x { display: grid; }
-  .app.layout-ready:has(.panel.open) .hud,
-  .app.layout-ready:has(.panel.open) .dock,
-  .app.layout-ready:has(.panel.open) .phone-top,
-  .app.layout-ready:has(.panel.open) .rail {
-    visibility: hidden;
-  }
-
-  /* Phone header: full-bleed top (recessed look) — only bottom corners + thick bottom edge */
-  .phone-top {
-    display: block;
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 9;
-    pointer-events: none;
-    padding: 0;
-  }
-  .phone-top-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    pointer-events: auto;
-    background: #fff;
-    border: 0;
-    border-top: 0;
-    border-bottom: 3px solid #7eb6ef;
-    border-radius: 0 0 12px 12px;
-    /* Even thinner white bar — logos stay large; blue edge back to 3px */
-    padding:
-      max(1px, env(safe-area-inset-top, 0px))
-      max(12px, env(safe-area-inset-right, 0px))
-      1px
-      max(12px, env(safe-area-inset-left, 0px));
-    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05);
-  }
-  .phone-top .compact-logo {
-    width: auto;
-    height: 50px;
-    padding: 0;
-    border: 0;
-    border-radius: 0;
-    background: transparent;
-    box-shadow: none;
-    display: grid;
-    place-items: center;
-    cursor: default;
-    pointer-events: none;
-    flex: none;
-  }
-  /* Filter open: lock orbit / drag on the aerial */
-  .app.filters-open .stage {
-    pointer-events: none !important;
-  }
-  .compact-agency-logo {
-    width: auto;
-    height: 50px;
-    border-radius: 0;
-    background: transparent;
-    box-shadow: none;
-    overflow: visible;
-  }
-  .compact-agency-logo img {
-    width: auto;
-    height: 50px;
-    max-width: 80px;
-    object-fit: contain;
-    border-radius: 0;
-  }
-  .phone-top .compact-project {
-    display: flex;
-    max-width: min(58vw, 210px);
-    justify-content: flex-end;
-    pointer-events: none;
-  }
-  .compact-project-logo {
-    height: 48px;
-    width: auto;
-    max-width: 100%;
-    object-fit: contain;
-  }
-  .compact-project-name {
-    font-size: 16px;
-    font-weight: 700;
-    line-height: 1.15;
-    color: #c9a227;
-    text-align: end;
-  }
-  .phone-top .compact-filter {
-    pointer-events: auto;
-    position: absolute;
-    /* Same level as مشروع, with a small gap under the white header */
-    top: calc(58px + env(safe-area-inset-top, 0px));
-    left: max(6px, env(safe-area-inset-left, 0px));
-    width: 38px;
-    height: 38px;
-    border-radius: 50%;
-    border: 1px solid rgba(255, 255, 255, 0.9);
-    background: rgba(255, 255, 255, 0.96);
-    color: #1a2330;
-    display: grid;
-    place-items: center;
-    cursor: pointer;
-    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
-  }
-  .phone-top .compact-filter svg,
-  .phone-top .compact-filter svg path {
-    fill: none !important;
-    stroke: #1a2330 !important;
-    color: #1a2330 !important;
-  }
-
-  .rail {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 0;
-    top: calc(58px + env(safe-area-inset-top, 0px));
-    right: max(4px, env(safe-area-inset-right, 0px));
-    background: transparent;
-    border: 0;
-    box-shadow: none;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    padding: 0;
-  }
-  /* Phone: keep compact rail (PC sizes stay bigger above) */
-  .rail-stack {
-    opacity: 1;
-    max-height: none;
-    pointer-events: auto;
-    width: 52px;
-    min-width: 52px;
-    max-width: 52px;
-    padding: 0;
-    gap: 8px;
-    align-items: center;
-    background: transparent;
-    border: 1px solid transparent;
-    box-shadow: none;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    border-radius: 999px;
-    overflow: visible;
-    transition:
-      background 0.28s ease,
-      border-color 0.28s ease,
-      box-shadow 0.28s ease,
-      padding 0.28s ease;
-  }
-  .rail-fab {
-    width: 38px;
-    height: 38px;
-  }
-  .rail-fab.open { min-width: 38px; }
-  .rail-fab.project-toggle.open {
-    height: 38px;
-    padding: 0 9px 0 14px;
-    gap: 8px;
-  }
-  .rail-fab.project-toggle.open .rail-name { font-size: 13px; }
-  .rail-fab.project-toggle.open .rail-ico.project {
-    width: 22px;
-    height: 22px;
-  }
-  .rail-ico {
-    width: 34px;
-    height: 34px;
-  }
-  .rail-ico svg {
-    width: 15px;
-    height: 15px;
-  }
-  .rail-ico.project svg {
-    width: 16px;
-    height: 16px;
-  }
-  .app.tools-on .rail-stack {
-    padding: 7px 6px 10px;
-    gap: 7px;
-    background: linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.48) 0%,
-      rgba(255, 255, 255, 0.22) 100%
-    );
-    border-color: rgba(255, 255, 255, 0.9);
-    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.14);
-    backdrop-filter: blur(16px) saturate(120%);
-    -webkit-backdrop-filter: blur(16px) saturate(120%);
-  }
-  .rail-stack .rail-fab.project-toggle.open {
-    /* Same as PC: building icon sits in the 52px glass; «مشروع» hangs left */
-    align-self: flex-end;
-    margin-inline-end: 1px;
-  }
-  .rail-stack .rail-fab:not(.project-toggle) {
-    opacity: 0;
-    transform: translateY(-6px);
-    max-height: 0;
-    margin: 0;
-    overflow: visible;
-    pointer-events: none;
-    align-self: flex-end;
-    width: 38px;
-    transition:
-      opacity 0.28s ease,
-      transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
-      max-height 0.28s ease;
-  }
-  .app.tools-on .rail-stack .rail-fab:not(.project-toggle) {
-    opacity: 1;
-    transform: translateY(0);
-    max-height: 48px;
-    pointer-events: auto;
-  }
-  /* Phone: icons only — no تواصل / المعرض / الموقع / مساعدة labels */
-  .rail-stack .rail-fab:not(.project-toggle) .rail-name,
-  .app.tools-on .rail-stack .rail-fab:not(.project-toggle) .rail-name {
-    display: none !important;
-  }
-  .app.tools-on .rail-stack .rail-fab:not(.project-toggle):nth-child(2) { transition-delay: 0.02s; }
-  .app.tools-on .rail-stack .rail-fab:not(.project-toggle):nth-child(3) { transition-delay: 0.05s; }
-  .app.tools-on .rail-stack .rail-fab:not(.project-toggle):nth-child(4) { transition-delay: 0.08s; }
-  .app.tools-on .rail-stack .rail-fab:not(.project-toggle):nth-child(5) { transition-delay: 0.11s; }
-
-  /* Exactly under the building icon (right side of مشروع) */
-  .rail-fab.project-toggle,
-  .rail-ico.project {
-    overflow: visible !important;
-    position: relative;
-  }
-  .rail-hint {
-    display: flex !important;
-    flex-direction: column;
-    align-items: center;
-    gap: 0;
-    position: absolute;
-    top: calc(100% + 8px);
-    left: 50%;
-    right: auto;
-    width: auto;
-    margin: 0;
-    padding: 0;
-    z-index: 6;
-    pointer-events: none;
-    line-height: 0;
-    transform: translateX(-50%);
-    animation: rail-chevron 1.05s ease-in-out infinite;
-  }
-  .rail-hint i {
-    display: block;
-    width: 8px;
-    height: 8px;
-    margin: 0;
-    border-right: 2.2px solid #fff;
-    border-bottom: 2.2px solid #fff;
-    transform: rotate(45deg);
-    box-sizing: border-box;
-    filter:
-      drop-shadow(0 0 1px #0b3a8c)
-      drop-shadow(0 1px 2px rgba(11, 58, 140, 0.65));
-  }
-  .rail-hint i + i {
-    margin-top: -1px; /* a bit more space between the two */
-  }
-  .rail-fab.project-toggle.is-expanded .rail-hint {
-    opacity: 0;
-    visibility: hidden;
-    animation: none;
-  }
-  @keyframes rail-chevron {
-    0%, 100% { opacity: 0.9; transform: translateX(-50%) translateY(0); }
-    50% { opacity: 1; transform: translateX(-50%) translateY(2px); }
-  }
-
-  .hud-tools { display: none; }
-  .hud-eye-solo { display: grid; }
-  .hud {
-    left: auto;
-    right: max(12px, env(safe-area-inset-right, 0px));
-    /* 360 / eye / compass — nudged slightly lower */
-    bottom: calc(118px + env(safe-area-inset-bottom, 0px));
-    transform: none;
-    justify-content: flex-end;
-    gap: 8px;
-    z-index: 8;
-  }
-
-  /* Floating cards over full-bleed map (mock) — no solid chrome band */
-  .dock {
-    display: flex;
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    flex: none;
-    width: 100%;
-    z-index: 7;
-    gap: 10px;
-    overflow-x: auto;
-    /* Lower the card strip a bit */
-    padding: 0 12px calc(8px + env(safe-area-inset-bottom, 0px));
-    scroll-snap-type: x mandatory;
-    scrollbar-width: none;
-    touch-action: pan-x;
-    background: transparent;
-    border-top: 0;
-    box-shadow: none;
-    transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.35s ease;
-    max-height: none;
-    pointer-events: none;
-  }
-  .dock > * { pointer-events: auto; }
-  .dock.tuck {
-    transform: translateY(110%);
-    opacity: 0;
-    pointer-events: none;
-  }
-  /* 360 strip mode (phone): bottom panoramic strip + chevron only — match mock */
-  .hud.strip360-on {
-    left: 0;
-    right: 0;
-    bottom: 0;
-    gap: 0;
-    padding: 0;
-    justify-content: stretch;
-    align-items: stretch;
-    flex-direction: column;
-    pointer-events: none;
-  }
-  .hud.strip360-on > * {
-    pointer-events: auto;
-  }
-  .hud.strip360-on .hud-compass-row,
-  .hud.strip360-on .hud-tools {
-    display: none !important;
-  }
-  .hud.strip360-on .hud-360 {
-    pointer-events: auto;
-    position: absolute;
-    right: max(14px, env(safe-area-inset-right, 0px));
-    /* Sit just above the rising strip (thumbs ~104px + padding) */
-    bottom: calc(132px + env(safe-area-inset-bottom, 0px));
-    z-index: 2;
-  }
-  .hud.strip360-on .scene360-strip-dock.open {
-    /* undo PC absolute gap layout */
-    position: relative;
-    right: auto;
-    left: auto;
-    bottom: auto;
-    flex: none;
-    width: 100%;
-    max-width: none;
-  }
-  .scene360-strip-dock.open {
-    --s360-w: min(200px, calc((100vw - 40px) / 2));
-    --s360-gap: 10px;
-    --s360-peek: 36px;
-    --s360-visible: 100%;
-    pointer-events: auto;
-    position: relative;
-    left: auto;
-    right: auto;
-    bottom: auto;
-    width: 100%;
-    max-width: none;
-    height: auto;
-    padding: 10px 12px calc(12px + env(safe-area-inset-bottom, 0px));
-    background: transparent;
-    border: 0;
-    border-radius: 0;
-    overflow: hidden;
-    z-index: 1;
-    flex: none;
-    /* reset PC absolute anchoring */
-    transform-origin: bottom center;
-    animation: strip360-up 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
-  }
-  .hud {
-    z-index: 8;
-  }
-  .scene360-strip-dock .scene360-thumb,
-  .scene360-thumb {
-    width: var(--s360-w, min(200px, calc((100vw - 40px) / 2)));
-    height: 104px;
-    border-radius: 14px;
-    border: 2px solid transparent;
-    background: transparent;
-  }
-  .scene360-strip-dock .scene360-thumb.on {
-    border-color: #3b7dd8;
-  }
-  .scene360-strip-dock .scene360-thumb img,
-  .scene360-thumb img {
-    border-radius: 12px;
-    border: 0;
-    object-fit: cover;
-  }
-  .dock::-webkit-scrollbar { display: none; }
-  /* Same PC unit cards, laid out as a horizontal phone carousel.
-     Must match .dock.units.cards { display: none } on desktop or the strip stays hidden. */
-  .dock.units.cards {
-    display: flex;
-    overflow-x: auto;
-    overflow-y: hidden;
-    padding: 0 12px calc(8px + env(safe-area-inset-bottom, 0px));
-  }
-  .dock.units.cards .unit {
-    flex: 0 0 293.22px;
-    width: 293.22px;
-    max-width: min(293.22px, calc(100vw - 24px));
-    height: 92.03px;
-    margin: 0;
-    scroll-snap-align: start;
-    flex-direction: row;
-    align-items: center;
-    column-gap: 9.63px;
-    box-sizing: border-box;
-    border-radius: 19.26px;
-    padding: 10.7px 10.7px 10.7px 7px;
-    background: rgba(255, 255, 255, 0.6);
-    border: 0;
-    box-shadow: none;
-    overflow: hidden;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-  }
-  .dock.units.cards .card-side,
-  .dock.units.cards .unit img,
-  .dock.units.cards .unit .card-img-fallback {
-    width: 69px;
-    height: 70.63px;
-    flex-basis: 69px;
-    border-radius: 8px;
-  }
-  .dock.units.cards .card-copy {
-    height: auto;
-    max-height: 70.63px;
-    gap: 4px;
-  }
-  .dock.units.cards .unit.sel {
-    outline: 2px solid var(--teal);
-    border-color: #e1e8eb;
-  }
-
-  .tip {
-    left: 10px;
-    max-width: min(220px, calc(100vw - 96px));
-    bottom: calc(132px + env(safe-area-inset-bottom, 0px));
-  }
-
-  .filters-flyout {
-    position: fixed;
-    top: calc(68px + env(safe-area-inset-top, 0px));
-    left: max(12px, env(safe-area-inset-left, 0px));
-    right: auto;
-    width: min(300px, calc(100vw - 24px));
-    height: auto;
-    max-height: min(62vh, 520px);
-    border-radius: 18px;
-    border: 1px solid var(--line);
-    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.18);
-    z-index: 28;
-    animation: filters-in-mobile 0.34s cubic-bezier(0.22, 1, 0.36, 1);
-  }
-  @keyframes filters-in-mobile {
-    from { opacity: 0; transform: translate(-8px, -12px) scale(0.96); }
-    to { opacity: 1; transform: translate(0, 0) scale(1); }
-  }
-  /* Keep map chrome visible while floating filter is open */
-  .app.layout-ready.filters-open:not(:has(.panel.open)) .hud,
-  .app.layout-ready.filters-open:not(:has(.panel.open)) .dock,
-  .app.layout-ready.filters-open:not(:has(.panel.open)) .phone-top,
-  .app.layout-ready.filters-open:not(:has(.panel.open)) .rail {
-    visibility: visible;
-  }
-  .hud-compass-row { gap: 6px; }
-  .hud-eye-solo,
-  .hud-360 { width: 44px; height: 44px; }
-  .scene360-view-label { bottom: 126px; left: 12px; }
-  .app.scene360-mode .panel.open,
-  .app.scene360-mode .panel.open.form-wide,
-  .app.layout-ready.scene360-mode .panel.open,
-  .app.layout-ready.scene360-mode .panel.open.form-wide {
-    display: none !important;
-  }
-
-  .detail { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
-  .detail-top { right: 12px; left: 12px; }
-  .detail-side { max-height: 42vh; }
+/* Phone layout is a class, not a viewport width. A scaled 1920×1080 laptop stays on the PC filter. */
+html.phone-layout .app {
+  flex-direction: column;
+  position: relative;
+  height: 100dvh;
+  max-height: 100dvh;
 }
+
+html.phone-layout .stage {
+  position: absolute;
+  inset: 0;
+  flex: none;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+html.phone-layout .panel {
+  display: none;
+}
+html.phone-layout .panel.open,
+html.phone-layout .panel.open.form-wide {
+  display: none;
+}
+html.phone-layout .app.layout-ready .panel.open,
+html.phone-layout .app.layout-ready .panel.open.form-wide {
+  display: block;
+  position: fixed;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+  max-height: none;
+  z-index: 30;
+  pointer-events: auto;
+}
+html.phone-layout .panel-inner,
+html.phone-layout .panel.open.form-wide .panel-inner {
+  margin: 0;
+  height: 100%;
+  width: 100%;
+  border-radius: 0;
+  transform: none;
+}
+html.phone-layout .peek { display: none; }
+html.phone-layout .panel-x { display: grid; }
+html.phone-layout .app.layout-ready:has(.panel.open) .hud,
+html.phone-layout .app.layout-ready:has(.panel.open) .dock,
+html.phone-layout .app.layout-ready:has(.panel.open) .phone-top,
+html.phone-layout .app.layout-ready:has(.panel.open) .rail {
+  visibility: hidden;
+}
+
+/* Phone header: full-bleed top (recessed look) — only bottom corners + thick bottom edge */
+html.phone-layout .phone-top {
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9;
+  pointer-events: none;
+  padding: 0;
+}
+html.phone-layout .phone-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  pointer-events: auto;
+  background: #fff;
+  border: 0;
+  border-top: 0;
+  border-bottom: 3px solid #7eb6ef;
+  border-radius: 0 0 12px 12px;
+  /* Even thinner white bar — logos stay large; blue edge back to 3px */
+  padding:
+    max(1px, env(safe-area-inset-top, 0px))
+    max(12px, env(safe-area-inset-right, 0px))
+    1px
+    max(12px, env(safe-area-inset-left, 0px));
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05);
+}
+html.phone-layout .phone-top .compact-logo {
+  width: auto;
+  height: 50px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  display: grid;
+  place-items: center;
+  cursor: default;
+  pointer-events: none;
+  flex: none;
+}
+/* Filter open: lock orbit / drag on the aerial */
+html.phone-layout .app.filters-open .stage {
+  pointer-events: none !important;
+}
+html.phone-layout .compact-agency-logo {
+  width: auto;
+  height: 50px;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+}
+html.phone-layout .compact-agency-logo img {
+  width: auto;
+  height: 50px;
+  max-width: 80px;
+  object-fit: contain;
+  border-radius: 0;
+}
+html.phone-layout .phone-top .compact-project {
+  display: flex;
+  max-width: min(58vw, 210px);
+  justify-content: flex-end;
+  pointer-events: none;
+}
+html.phone-layout .compact-project-logo {
+  height: 48px;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+}
+html.phone-layout .compact-project-name {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.15;
+  color: #c9a227;
+  text-align: end;
+}
+html.phone-layout .phone-top .compact-filter {
+  pointer-events: auto;
+  position: absolute;
+  /* Same level as مشروع, with a small gap under the white header */
+  top: calc(58px + env(safe-area-inset-top, 0px));
+  left: max(6px, env(safe-area-inset-left, 0px));
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.96);
+  color: #1a2330;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
+}
+html.phone-layout .phone-top .compact-filter svg,
+html.phone-layout .phone-top .compact-filter svg path {
+  fill: none !important;
+  stroke: #1a2330 !important;
+  color: #1a2330 !important;
+}
+
+html.phone-layout .rail {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0;
+  top: calc(58px + env(safe-area-inset-top, 0px));
+  right: max(4px, env(safe-area-inset-right, 0px));
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  padding: 0;
+}
+/* Phone: keep compact rail (PC sizes stay bigger above) */
+html.phone-layout .rail-stack {
+  opacity: 1;
+  max-height: none;
+  pointer-events: auto;
+  width: 52px;
+  min-width: 52px;
+  max-width: 52px;
+  padding: 0;
+  gap: 8px;
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-radius: 999px;
+  overflow: visible;
+  transition:
+    background 0.28s ease,
+    border-color 0.28s ease,
+    box-shadow 0.28s ease,
+    padding 0.28s ease;
+}
+html.phone-layout .rail-fab {
+  width: 38px;
+  height: 38px;
+}
+html.phone-layout .rail-fab.open { min-width: 38px; }
+html.phone-layout .rail-fab.project-toggle.open {
+  height: 38px;
+  padding: 0 9px 0 14px;
+  gap: 8px;
+}
+html.phone-layout .rail-fab.project-toggle.open .rail-name { font-size: 13px; }
+html.phone-layout .rail-fab.project-toggle.open .rail-ico.project {
+  width: 22px;
+  height: 22px;
+}
+html.phone-layout .rail-ico {
+  width: 34px;
+  height: 34px;
+}
+html.phone-layout .rail-ico svg {
+  width: 15px;
+  height: 15px;
+}
+html.phone-layout .rail-ico.project svg {
+  width: 16px;
+  height: 16px;
+}
+html.phone-layout .app.tools-on .rail-stack {
+  padding: 7px 6px 10px;
+  gap: 7px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.48) 0%,
+    rgba(255, 255, 255, 0.22) 100%
+  );
+  border-color: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.14);
+  backdrop-filter: blur(16px) saturate(120%);
+  -webkit-backdrop-filter: blur(16px) saturate(120%);
+}
+html.phone-layout .rail-stack .rail-fab.project-toggle.open {
+  /* Same as PC: building icon sits in the 52px glass; «مشروع» hangs left */
+  align-self: flex-end;
+  margin-inline-end: 1px;
+}
+html.phone-layout .rail-stack .rail-fab:not(.project-toggle) {
+  opacity: 0;
+  transform: translateY(-6px);
+  max-height: 0;
+  margin: 0;
+  overflow: visible;
+  pointer-events: none;
+  align-self: flex-end;
+  width: 38px;
+  transition:
+    opacity 0.28s ease,
+    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    max-height 0.28s ease;
+}
+html.phone-layout .app.tools-on .rail-stack .rail-fab:not(.project-toggle) {
+  opacity: 1;
+  transform: translateY(0);
+  max-height: 48px;
+  pointer-events: auto;
+}
+/* Phone: icons only — no تواصل / المعرض / الموقع / مساعدة labels */
+html.phone-layout .rail-stack .rail-fab:not(.project-toggle) .rail-name,
+html.phone-layout .app.tools-on .rail-stack .rail-fab:not(.project-toggle) .rail-name {
+  display: none !important;
+}
+html.phone-layout .app.tools-on .rail-stack .rail-fab:not(.project-toggle):nth-child(2) { transition-delay: 0.02s; }
+html.phone-layout .app.tools-on .rail-stack .rail-fab:not(.project-toggle):nth-child(3) { transition-delay: 0.05s; }
+html.phone-layout .app.tools-on .rail-stack .rail-fab:not(.project-toggle):nth-child(4) { transition-delay: 0.08s; }
+html.phone-layout .app.tools-on .rail-stack .rail-fab:not(.project-toggle):nth-child(5) { transition-delay: 0.11s; }
+
+/* Exactly under the building icon (right side of مشروع) */
+html.phone-layout .rail-fab.project-toggle,
+html.phone-layout .rail-ico.project {
+  overflow: visible !important;
+  position: relative;
+}
+html.phone-layout .rail-hint {
+  display: flex !important;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  right: auto;
+  width: auto;
+  margin: 0;
+  padding: 0;
+  z-index: 6;
+  pointer-events: none;
+  line-height: 0;
+  transform: translateX(-50%);
+  animation: rail-chevron 1.05s ease-in-out infinite;
+}
+html.phone-layout .rail-hint i {
+  display: block;
+  width: 8px;
+  height: 8px;
+  margin: 0;
+  border-right: 2.2px solid #fff;
+  border-bottom: 2.2px solid #fff;
+  transform: rotate(45deg);
+  box-sizing: border-box;
+  filter:
+    drop-shadow(0 0 1px #0b3a8c)
+    drop-shadow(0 1px 2px rgba(11, 58, 140, 0.65));
+}
+html.phone-layout .rail-hint i + i {
+  margin-top: -1px; /* a bit more space between the two */
+}
+html.phone-layout .rail-fab.project-toggle.is-expanded .rail-hint {
+  opacity: 0;
+  visibility: hidden;
+  animation: none;
+}
+@keyframes rail-chevron {
+  0%, 100% { opacity: 0.9; transform: translateX(-50%) translateY(0); }
+  50% { opacity: 1; transform: translateX(-50%) translateY(2px); }
+}
+
+html.phone-layout .hud-tools { display: none; }
+html.phone-layout .hud-eye-solo { display: grid; }
+html.phone-layout .hud {
+  left: auto;
+  right: max(12px, env(safe-area-inset-right, 0px));
+  /* 360 / eye / compass — nudged slightly lower */
+  bottom: calc(118px + env(safe-area-inset-bottom, 0px));
+  transform: none;
+  justify-content: flex-end;
+  gap: 8px;
+  z-index: 8;
+}
+
+/* Floating cards over full-bleed map (mock) — no solid chrome band */
+html.phone-layout .dock {
+  display: flex;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  flex: none;
+  width: 100%;
+  z-index: 7;
+  gap: 10px;
+  overflow-x: auto;
+  /* Lower the card strip a bit */
+  padding: 0 12px calc(8px + env(safe-area-inset-bottom, 0px));
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  touch-action: pan-x;
+  background: transparent;
+  border-top: 0;
+  box-shadow: none;
+  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.35s ease;
+  max-height: none;
+  pointer-events: none;
+}
+html.phone-layout .dock > * { pointer-events: auto; }
+html.phone-layout .dock.tuck {
+  transform: translateY(110%);
+  opacity: 0;
+  pointer-events: none;
+}
+/* 360 strip mode (phone): bottom panoramic strip + chevron only — match mock */
+html.phone-layout .hud.strip360-on {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  gap: 0;
+  padding: 0;
+  justify-content: stretch;
+  align-items: stretch;
+  flex-direction: column;
+  pointer-events: none;
+}
+html.phone-layout .hud.strip360-on > * {
+  pointer-events: auto;
+}
+html.phone-layout .hud.strip360-on .hud-compass-row,
+html.phone-layout .hud.strip360-on .hud-tools {
+  display: none !important;
+}
+html.phone-layout .hud.strip360-on .hud-360 {
+  pointer-events: auto;
+  position: absolute;
+  right: max(14px, env(safe-area-inset-right, 0px));
+  /* Sit just above the rising strip (thumbs ~104px + padding) */
+  bottom: calc(132px + env(safe-area-inset-bottom, 0px));
+  z-index: 2;
+}
+html.phone-layout .hud.strip360-on .scene360-strip-dock.open {
+  /* undo PC absolute gap layout */
+  position: relative;
+  right: auto;
+  left: auto;
+  bottom: auto;
+  flex: none;
+  width: 100%;
+  max-width: none;
+}
+html.phone-layout .scene360-strip-dock.open {
+  --s360-w: min(200px, calc((100vw - 40px) / 2));
+  --s360-gap: 10px;
+  --s360-peek: 36px;
+  --s360-visible: 100%;
+  pointer-events: auto;
+  position: relative;
+  left: auto;
+  right: auto;
+  bottom: auto;
+  width: 100%;
+  max-width: none;
+  height: auto;
+  padding: 10px 12px calc(12px + env(safe-area-inset-bottom, 0px));
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  overflow: hidden;
+  z-index: 1;
+  flex: none;
+  /* reset PC absolute anchoring */
+  transform-origin: bottom center;
+  animation: strip360-up 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+html.phone-layout .hud {
+  z-index: 8;
+}
+html.phone-layout .scene360-strip-dock .scene360-thumb,
+html.phone-layout .scene360-thumb {
+  width: var(--s360-w, min(200px, calc((100vw - 40px) / 2)));
+  height: 104px;
+  border-radius: 14px;
+  border: 2px solid transparent;
+  background: transparent;
+}
+html.phone-layout .scene360-strip-dock .scene360-thumb.on {
+  border-color: #3b7dd8;
+}
+html.phone-layout .scene360-strip-dock .scene360-thumb img,
+html.phone-layout .scene360-thumb img {
+  border-radius: 12px;
+  border: 0;
+  object-fit: cover;
+}
+html.phone-layout .dock::-webkit-scrollbar { display: none; }
+/* Same PC unit cards, laid out as a horizontal phone carousel.
+   Must match .dock.units.cards { display: none } on desktop or the strip stays hidden. */
+html.phone-layout .dock.units.cards {
+  display: flex;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0 12px calc(8px + env(safe-area-inset-bottom, 0px));
+}
+html.phone-layout .dock.units.cards .unit {
+  flex: 0 0 293.22px;
+  width: 293.22px;
+  max-width: min(293.22px, calc(100vw - 24px));
+  height: 92.03px;
+  margin: 0;
+  scroll-snap-align: start;
+  flex-direction: row;
+  align-items: center;
+  column-gap: 9.63px;
+  box-sizing: border-box;
+  border-radius: 19.26px;
+  padding: 10.7px 10.7px 10.7px 7px;
+  background: rgba(255, 255, 255, 0.6);
+  border: 0;
+  box-shadow: none;
+  overflow: hidden;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+html.phone-layout .dock.units.cards .card-side,
+html.phone-layout .dock.units.cards .unit img,
+html.phone-layout .dock.units.cards .unit .card-img-fallback {
+  width: 69px;
+  height: 70.63px;
+  flex-basis: 69px;
+  border-radius: 8px;
+}
+html.phone-layout .dock.units.cards .card-copy {
+  height: auto;
+  max-height: 70.63px;
+  gap: 4px;
+}
+html.phone-layout .dock.units.cards .unit.sel {
+  outline: 2px solid var(--teal);
+  border-color: #e1e8eb;
+}
+
+html.phone-layout .tip {
+  left: 10px;
+  max-width: min(220px, calc(100vw - 96px));
+  bottom: calc(132px + env(safe-area-inset-bottom, 0px));
+}
+
+html.phone-layout .filters-flyout {
+  position: fixed;
+  top: calc(68px + env(safe-area-inset-top, 0px));
+  left: max(12px, env(safe-area-inset-left, 0px));
+  right: auto;
+  width: min(300px, calc(100vw - 24px));
+  height: auto;
+  max-height: min(62vh, 520px);
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.18);
+  z-index: 28;
+  animation: filters-in-mobile 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes filters-in-mobile {
+  from { opacity: 0; transform: translate(-8px, -12px) scale(0.96); }
+  to { opacity: 1; transform: translate(0, 0) scale(1); }
+}
+/* Keep map chrome visible while floating filter is open */
+html.phone-layout .app.layout-ready.filters-open:not(:has(.panel.open)) .hud,
+html.phone-layout .app.layout-ready.filters-open:not(:has(.panel.open)) .dock,
+html.phone-layout .app.layout-ready.filters-open:not(:has(.panel.open)) .phone-top,
+html.phone-layout .app.layout-ready.filters-open:not(:has(.panel.open)) .rail {
+  visibility: visible;
+}
+html.phone-layout .hud-compass-row { gap: 6px; }
+html.phone-layout .hud-eye-solo,
+html.phone-layout .hud-360 { width: 44px; height: 44px; }
+html.phone-layout .scene360-view-label { bottom: 126px; left: 12px; }
+html.phone-layout .app.scene360-mode .panel.open,
+html.phone-layout .app.scene360-mode .panel.open.form-wide,
+html.phone-layout .app.layout-ready.scene360-mode .panel.open,
+html.phone-layout .app.layout-ready.scene360-mode .panel.open.form-wide {
+  display: none !important;
+}
+
+html.phone-layout .detail { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
+html.phone-layout .detail-top { right: 12px; left: 12px; }
+html.phone-layout .detail-side { max-height: 42vh; }
+
