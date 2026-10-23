@@ -140,6 +140,7 @@ body {
   max-width: 172px;
   height: 57px;
   margin-inline-start: auto;
+  margin-inline-end: -12px;
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -164,6 +165,7 @@ body {
   min-width: 0;
   flex: none;
   margin-inline-start: auto;
+  margin-inline-end: -12px;
   color: rgba(181, 152, 75, 0.94);
   text-align: end;
 }
