@@ -3755,15 +3755,11 @@ html.phone-layout .rail-ico.project svg {
 html.phone-layout .app.tools-on .rail-stack {
   padding: 7px 6px 10px;
   gap: 7px;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.48) 0%,
-    rgba(255, 255, 255, 0.22) 100%
-  );
-  border-color: rgba(255, 255, 255, 0.9);
-  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.14);
-  backdrop-filter: blur(16px) saturate(120%);
-  -webkit-backdrop-filter: blur(16px) saturate(120%);
+  background: rgba(236, 237, 239, 0.439216);
+  border: 0.891965px solid #ffffff;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 html.phone-layout .rail-stack .rail-fab.project-toggle.open {
   /* Same as PC: building icon sits in the 52px glass; «مشروع» hangs left */
