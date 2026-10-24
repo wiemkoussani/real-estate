@@ -175,6 +175,9 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
   const filtersClosingRef = useRef(false);
   const filtersCloseTimer = useRef<number | null>(null);
   const [favOnly, setFavOnly] = useState(false);
+  const [heartPop, setHeartPop] = useState(false);
+  const [listMotion, setListMotion] = useState(false);
+  const listMotionTimer = useRef<number | null>(null);
   const [leavingFavs, setLeavingFavs] = useState<string[]>([]);
   const leaveTimers = useRef<Map<string, number>>(new Map());
   const [overlayOn, setOverlayOn] = useState(false);
@@ -777,8 +780,29 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
           </header>
           <div className="panel-toolbar">
             <div className="panel-actions-ring">
-              <button type="button" className={`tool-fab heart-fab ${favOnly ? "on" : ""}`} onClick={() => { leaveTimers.current.forEach((t) => window.clearTimeout(t)); leaveTimers.current.clear(); setLeavingFavs([]); setFavOnly((v) => !v); }} title="Favorites" aria-label="Favorites">
-                <IconHeart size={20} filled={favOnly} />
+              <button
+                type="button"
+                className={`tool-fab heart-fab ${favOnly ? "on" : ""} ${heartPop ? "pop" : ""}`}
+                onClick={() => {
+                  leaveTimers.current.forEach((t) => window.clearTimeout(t));
+                  leaveTimers.current.clear();
+                  setLeavingFavs([]);
+                  setFavOnly((v) => !v);
+                  setHeartPop(false);
+                  window.requestAnimationFrame(() => setHeartPop(true));
+                  if (listMotionTimer.current) window.clearTimeout(listMotionTimer.current);
+                  setListMotion(true);
+                  listMotionTimer.current = window.setTimeout(() => setListMotion(false), 420);
+                }}
+                onAnimationEnd={(e) => {
+                  if (e.animationName === "heart-pop") setHeartPop(false);
+                }}
+                title="Favorites"
+                aria-label="Favorites"
+              >
+                <span className="heart-glyph">
+                  <IconHeart size={20} filled={favOnly} />
+                </span>
                 {favs.length > 0 ? <span className="fav-count">{favs.length}</span> : null}
               </button>
               <button type="button" className={`tool-fab filter-fab ${filtersOpen ? "on" : ""}`} onClick={() => { if (filtersOpen) closeFilters(); else setFiltersOpen(true); }} title="Filters" aria-label="Filters" aria-pressed={filtersOpen}>
@@ -786,7 +810,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
               </button>
             </div>
           </div>
-          <div className="units cards">
+          <div className={`units cards${listMotion ? " fav-swap" : ""}`}>
             {filtered.map((u) => {
               const photo = cardPhoto(tour, u);
               const liked = favs.includes(u.id);

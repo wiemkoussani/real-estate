@@ -12,16 +12,16 @@ export const IconList = (p: Props) => (
   <Svg {...p}><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" /></Svg>
 );
 export const IconMail = (p: Props) => (
-  <Svg {...p}><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 7 9 7 9-7" /></Svg>
+  <Svg {...p}><rect width="20" height="16" x="2" y="4" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></Svg>
 );
 export const IconHelp = (p: Props) => (
-  <Svg {...p}><circle cx="12" cy="12" r="9" /><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 2.5-3 5" /><path d="M12 17h.01" /></Svg>
+  <Svg {...p}><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><path d="M12 17h.01" /></Svg>
 );
 export const IconPin = (p: Props) => (
-  <Svg {...p}><path d="M12 21s7-6.5 7-12a7 7 0 1 0-14 0c0 5.5 7 12 7 12z" /><circle cx="12" cy="9" r="2.2" /></Svg>
+  <Svg {...p}><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" /><circle cx="12" cy="10" r="3" /></Svg>
 );
 export const IconGallery = (p: Props) => (
-  <Svg {...p}><rect x="3" y="5" width="18" height="14" rx="2" /><circle cx="8.5" cy="10" r="1.5" /><path d="m21 16-5-5-4 4-2-2-5 5" /></Svg>
+  <Svg {...p}><rect width="18" height="18" x="3" y="3" rx="2" ry="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" /></Svg>
 );
 export const IconHeart = (p: Props & { filled?: boolean }) => (
   <svg className={p.className} width={p.size ?? 16} height={p.size ?? 16} viewBox="0 0 24 24" fill={p.filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" aria-hidden>
@@ -48,9 +48,15 @@ export const IconCards = (p: Props) => (
   <Svg {...p}><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></Svg>
 );
 export const IconApps = (p: Props) => (
-  <svg className={p.className} width={p.size ?? 18} height={p.size ?? 18} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-    <path fillRule="evenodd" d="M2.4 21V8.1c0-.7.6-1.3 1.3-1.3h7c.7 0 1.3.6 1.3 1.3V21H2.4Zm2.5-10.2h1.5v1.6H4.9Zm2.7 0h1.5v1.6H7.6Zm-2.7 2.8h1.5v1.6H4.9Zm2.7 0h1.5v1.6H7.6Zm-2.7 2.8h1.5v1.6H4.9Zm2.7 0h1.5v1.6H7.6ZM12.8 21V4.2c0-.7.6-1.3 1.3-1.3h6.6c.7 0 1.3.6 1.3 1.3V21h-9.2Zm2.4-14.3h1.5v1.6h-1.5Zm2.7 0h1.5v1.6h-1.5Zm-2.7 2.8h1.5v1.6h-1.5Zm2.7 0h1.5v1.6h-1.5Zm-2.7 2.8h1.5v1.6h-1.5Zm2.7 0h1.5v1.6h-1.5Zm-2.7 2.8h1.5v1.6h-1.5Zm2.7 0h1.5v1.6h-1.5Z" />
-  </svg>
+  <Svg {...p}>
+    <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z" />
+    <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2" />
+    <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2" />
+    <path d="M10 6h4" />
+    <path d="M10 10h4" />
+    <path d="M10 14h4" />
+    <path d="M10 18h4" />
+  </Svg>
 );
 export const IconZoomIn = (p: Props) => (
   <Svg {...p}><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3M11 8v6M8 11h6" /></Svg>
