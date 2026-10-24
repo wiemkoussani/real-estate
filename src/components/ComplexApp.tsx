@@ -1058,7 +1058,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
                 title="Filters"
                 onClick={openFilters}
               >
-                <IconFilters size={17} />
+                <IconFilters size={19} />
               </button>
             )}
           </header>

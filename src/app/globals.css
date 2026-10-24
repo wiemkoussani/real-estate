@@ -3666,6 +3666,10 @@ html.phone-layout .phone-top .compact-filter {
   cursor: pointer;
   box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
 }
+html.phone-layout .phone-top .compact-filter svg {
+  width: 19px;
+  height: 19px;
+}
 html.phone-layout .phone-top .compact-filter svg,
 html.phone-layout .phone-top .compact-filter svg path {
   fill: none !important;
@@ -4000,7 +4004,7 @@ html.phone-layout .dock.units.cards .unit {
   column-gap: 9.63px;
   box-sizing: border-box;
   border-radius: 12px;
-  padding: 10.7px 10.7px 10.7px 7px;
+  padding: 6px 10.7px 6px 7px;
   background: rgba(255, 255, 255, 0.6);
   border: 0;
   box-shadow: none;
@@ -4011,14 +4015,14 @@ html.phone-layout .dock.units.cards .unit {
 html.phone-layout .dock.units.cards .card-side,
 html.phone-layout .dock.units.cards .unit img,
 html.phone-layout .dock.units.cards .unit .card-img-fallback {
-  width: 69px;
-  height: 70.63px;
-  flex-basis: 69px;
-  border-radius: 8px;
+  width: 78px;
+  height: 80px;
+  flex-basis: 78px;
+  border-radius: 9px;
 }
 html.phone-layout .dock.units.cards .card-copy {
   height: auto;
-  max-height: 70.63px;
+  max-height: 80px;
   gap: 4px;
 }
 html.phone-layout .dock.units.cards .unit.sel {
