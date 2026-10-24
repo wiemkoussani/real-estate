@@ -1953,8 +1953,8 @@ html.phone-layout .dock.units.cards .unit.leaving {
   backdrop-filter: none;
 }
 .rail-ico svg {
-  width: 17.84px;
-  height: 17.84px;
+  width: 15.84px;
+  height: 15.84px;
   flex: none;
   stroke-width: 2.16;
 }
@@ -1968,7 +1968,7 @@ html.phone-layout .dock.units.cards .unit.leaving {
   width: 45.49px;
   height: 45.49px;
   background: #ffffff;
-  color: #7b8590;
+  color: #5e6872;
   border: 0;
   border-radius: 26.759px;
   box-shadow: 0 2.6759px 8.02769px rgba(22, 43, 60, 0.145098);
@@ -2463,6 +2463,14 @@ html.phone-layout .scene360-strip-dock.open.closing {
   gap: var(--s360-gap, 14px);
   height: 113px;
   align-items: center;
+  scroll-snap-type: none;
+  overscroll-behavior-x: none;
+  -webkit-overflow-scrolling: auto;
+  touch-action: none;
+}
+.scene360-bar .scene360-strip.is-dragging {
+  cursor: grabbing;
+  scroll-snap-type: none;
 }
 .scene360-bar .scene360-thumb {
   width: var(--s360-w, 189px);
@@ -2471,6 +2479,7 @@ html.phone-layout .scene360-strip-dock.open.closing {
   border: 2px solid transparent;
   border-radius: 10px;
   box-shadow: 0 2.82px 8.46px rgba(22, 43, 60, 0.145);
+  scroll-snap-align: none;
 }
 .scene360-bar .scene360-thumb.on {
   border-color: #3b7dd8;
