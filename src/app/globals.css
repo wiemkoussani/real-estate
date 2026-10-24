@@ -3655,8 +3655,8 @@ html.phone-layout .phone-top .compact-filter {
   /* Same level as مشروع, with a small gap under the white header */
   top: calc(58px + env(safe-area-inset-top, 0px));
   left: max(6px, env(safe-area-inset-left, 0px));
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   border: 1px solid rgba(255, 255, 255, 0.9);
   background: rgba(255, 255, 255, 0.96);
@@ -3665,10 +3665,6 @@ html.phone-layout .phone-top .compact-filter {
   place-items: center;
   cursor: pointer;
   box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
-}
-html.phone-layout .phone-top .compact-filter svg {
-  width: 19px;
-  height: 19px;
 }
 html.phone-layout .phone-top .compact-filter svg,
 html.phone-layout .phone-top .compact-filter svg path {
