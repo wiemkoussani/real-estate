@@ -2220,30 +2220,35 @@ html.phone-layout .scene360-strip-dock.open.closing {
 }
 html:not(.phone-layout) .scene360-view {
   inset: 0;
-  background: transparent;
+  background: rgba(11, 18, 32, 0.22);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 html:not(.phone-layout) .scene360-pano {
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
+  top: 30px;
+  right: 30px;
+  bottom: 30px;
+  left: 30px;
   width: auto !important;
   height: auto !important;
 }
+html:not(.phone-layout) .app:has(.panel.open) .scene360-pano {
+  left: calc(min(382px, 86vw) + 30px);
+}
 html:not(.phone-layout) .scene360-bar {
-  left: 16px;
-  right: 16px;
-  bottom: 20px;
+  left: 42px;
+  right: 42px;
+  bottom: 42px;
 }
 html:not(.phone-layout) .app:has(.panel.open) .scene360-bar {
-  left: calc(min(382px, 86vw) + 16px);
+  left: calc(min(382px, 86vw) + 42px);
 }
 html:not(.phone-layout) .scene360-back {
-  top: 32px;
-  left: 32px;
+  top: 42px;
+  left: 42px;
 }
 html:not(.phone-layout) .app:has(.panel.open) .scene360-back {
-  left: calc(min(382px, 86vw) + 32px);
+  left: calc(min(382px, 86vw) + 42px);
 }
 .scene360-pano canvas {
   width: 100% !important;
