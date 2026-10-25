@@ -2225,7 +2225,7 @@ html:not(.phone-layout) .scene360-view {
 html:not(.phone-layout) .scene360-pano {
   top: 0;
   right: 0;
-  bottom: 150px;
+  bottom: 0;
   left: 0;
   width: auto !important;
   height: auto !important;
