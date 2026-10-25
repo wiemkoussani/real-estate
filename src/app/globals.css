@@ -2219,21 +2219,27 @@ html.phone-layout .scene360-strip-dock.open.closing {
   pointer-events: auto;
 }
 html:not(.phone-layout) .scene360-view {
-  top: 20px;
-  right: 20px;
-  bottom: 20px;
-  left: 20px;
-}
-html:not(.phone-layout) .app:has(.panel.open) .scene360-view {
-  left: calc(min(382px, 86vw) + 20px);
-}
-html:not(.phone-layout) .scene360-pano {
   top: 0;
   right: 0;
+  bottom: 0;
   left: 0;
+  background: rgba(11, 18, 32, 0.28);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+html:not(.phone-layout) .app:has(.panel.open) .scene360-view {
+  left: 0;
+}
+html:not(.phone-layout) .scene360-pano {
+  top: 20px;
+  right: 20px;
   bottom: 146px;
+  left: 20px;
   width: auto;
   height: auto;
+}
+html:not(.phone-layout) .app:has(.panel.open) .scene360-pano {
+  left: calc(min(382px, 86vw) + 20px);
 }
 html:not(.phone-layout) .scene360-bar {
   left: 32px;
@@ -2243,8 +2249,12 @@ html:not(.phone-layout) .scene360-bar {
 html:not(.phone-layout) .app:has(.panel.open) .scene360-bar {
   left: calc(min(382px, 86vw) + 32px);
 }
+html:not(.phone-layout) .scene360-back {
+  top: 32px;
+  left: 32px;
+}
 html:not(.phone-layout) .app:has(.panel.open) .scene360-back {
-  left: calc(min(382px, 86vw) + 16px);
+  left: calc(min(382px, 86vw) + 32px);
 }
 .scene360-pano canvas {
   width: 100% !important;
@@ -3116,7 +3126,7 @@ html:not(.phone-layout) .app:has(.panel.open) .scene360-back {
   color: #2b3340;
   background: transparent;
 }
-.poi-filters { direction: rtl; }
+.poi-filters { direction: ltr; }
 .poi-filters-head {
   display: grid;
   grid-template-columns: 1fr auto 22px;
@@ -3126,6 +3136,7 @@ html:not(.phone-layout) .app:has(.panel.open) .scene360-back {
   font-weight: 700;
   color: #8a949e;
   margin-bottom: 8px;
+  text-align: right;
 }
 .poi-row {
   display: grid;
@@ -3135,6 +3146,7 @@ html:not(.phone-layout) .app:has(.panel.open) .scene360-back {
   padding: 8px 0;
   font-size: 14px;
   color: #3a4450;
+  text-align: right;
 }
 .poi-mini { display: grid; place-items: center; color: #5b6774; }
 .poi-switch {
@@ -4019,7 +4031,7 @@ html.phone-layout .dock.units.cards {
   padding: 0 12px calc(8px + env(safe-area-inset-bottom, 0px));
 }
 html.phone-layout .dock.units.cards .card-divider {
-  background: #8e9ba6;
+  background: #c5ced4;
 }
 html.phone-layout .dock.units.cards .unit {
   flex: 0 0 293.22px;
