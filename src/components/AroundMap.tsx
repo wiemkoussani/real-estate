@@ -10,7 +10,7 @@ const PIN_SVG: Record<PoiKind, string> = {
   restaurant: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#4a5568" stroke-width="2"><path d="M8 3v8a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2V3M8 21V13M16 3c0 4-2 6-2 10v8"/></svg>`,
   cafe: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#4a5568" stroke-width="2"><path d="M4 10h12v4a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4v-4z"/><path d="M16 11h2a3 3 0 0 1 0 6h-2"/><path d="M8 4s.5 1.5 0 3M12 4s.5 1.5 0 3"/></svg>`,
   hospital: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#4a5568" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 8v8M8 12h8"/></svg>`,
-  church: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#4a5568" stroke-width="2"><path d="M12 3v4M10 5h4"/><path d="M5 21V10l7-4 7 4v11"/><path d="M10 21v-5h4v5"/></svg>`,
+  church: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#4a5568" stroke-width="2"><path d="M4 21h16"/><path d="M6 21V11"/><path d="M18 21V11"/><path d="M6 11a6 6 0 0 1 12 0"/><path d="M12 5V2"/><path d="M10.5 3.2h3"/></svg>`,
   culture: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#4a5568" stroke-width="2"><path d="M4 20h16M6 20V9l6-4 6 4v11"/><path d="M10 13h4"/></svg>`,
   parking: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#4a5568" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 17V7h4.5a3.5 3.5 0 0 1 0 7H9"/></svg>`,
   square: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#4a5568" stroke-width="2"><path d="M12 22V12"/><path d="M8 12a4 4 0 1 1 8 0"/><path d="M5 22h14"/></svg>`,
@@ -53,7 +53,7 @@ export function AroundMap({
   useEffect(() => {
     let stop = false;
     const hasExact = Number.isFinite(lat) && Number.isFinite(lng);
-    const key = hasExact ? `poi-map-v10:${lat!.toFixed(5)},${lng!.toFixed(5)}` : `poi-map-v10:${query}`;
+    const key = hasExact ? `poi-map-v11:${lat!.toFixed(5)},${lng!.toFixed(5)}` : `poi-map-v11:${query}`;
     const aroundUrl = (extra: string) =>
       hasExact
         ? `/api/maps/around?lat=${lat}&lng=${lng}&address=${encodeURIComponent(query)}&${extra}`
@@ -304,12 +304,12 @@ export function AroundMap({
             {POI_FILTERS.map((f) => (
               <div key={f.id} className="poi-row">
                 <span className="poi-mini" dangerouslySetInnerHTML={{ __html: PIN_SVG[f.id] }} />
-                <span>{f.en}</span>
+                <span>{f.ar}</span>
                 <button
                   type="button"
                   className={`poi-switch ${on[f.id] ? "on" : ""}`}
                   onClick={() => setOn((s) => ({ ...s, [f.id]: !s[f.id] }))}
-                  aria-label={f.en}
+                  aria-label={f.ar}
                 />
               </div>
             ))}

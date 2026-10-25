@@ -3,7 +3,7 @@ export const POI_FILTERS = [
   { id: "restaurant", ar: "مطاعم", en: "Gastronomy", query: 'nwr["amenity"="restaurant"]\nnwr["amenity"="fast_food"]', search: "restaurant" },
   { id: "cafe", ar: "مقهى", en: "Cafe", query: 'nwr["amenity"="cafe"]', search: "cafe" },
   { id: "hospital", ar: "مستشفى", en: "Hospital", query: 'nwr["amenity"="hospital"]\nnwr["amenity"="clinic"]', search: "hospital" },
-  { id: "church", ar: "مسجد / كنيسة", en: "Church / Mosque", query: 'nwr["amenity"="place_of_worship"]', search: "mosque" },
+  { id: "church", ar: "جوامع", en: "Mosques", query: 'nwr["amenity"="place_of_worship"]["religion"="muslim"]', search: "mosque" },
   { id: "culture", ar: "ثقافة", en: "Culture", query: 'nwr["tourism"="museum"]\nnwr["amenity"="theatre"]\nnwr["amenity"="library"]', search: "museum" },
   { id: "parking", ar: "موقف سيارات", en: "Car Parking", query: 'nwr["amenity"="parking"]', search: "parking" },
   { id: "square", ar: "ساحة", en: "Square", query: 'nwr["leisure"="park"]\nnwr["place"="square"]', search: "park" },
@@ -30,7 +30,11 @@ export function kindOfTags(tags: Record<string, string> | undefined): PoiKind | 
   if (tags.amenity === "restaurant" || tags.amenity === "fast_food") return "restaurant";
   if (tags.amenity === "cafe") return "cafe";
   if (tags.amenity === "hospital" || tags.amenity === "clinic") return "hospital";
-  if (tags.amenity === "place_of_worship") return "church";
+  if (tags.amenity === "place_of_worship") {
+    const religion = (tags.religion || "").toLowerCase();
+    if (religion && religion !== "muslim") return null;
+    return "church";
+  }
   if (tags.tourism === "museum" || tags.amenity === "theatre" || tags.amenity === "library") return "culture";
   if (tags.amenity === "parking") return "parking";
   if (tags.place === "square" || tags.leisure === "park") return "square";

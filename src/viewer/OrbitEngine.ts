@@ -347,6 +347,7 @@ export class OrbitEngine {
   }
 
   rotateBy(dir: 1 | -1) {
+    if (this.turnLocked()) return;
     const n = this.tour.totalFrames;
     if (!n || this.approaching) return;
     this.holdSpin();
@@ -847,8 +848,9 @@ export class OrbitEngine {
     const RH = this.tour.renderH || 1;
     const cw = this.container.clientWidth;
     const ch = this.container.clientHeight;
-    const contain = this.phoneFit();
-    const scale = Math.max(cw / RW, ch / RH);
+    const phone = typeof document !== "undefined" && document.documentElement.classList.contains("phone-layout");
+    const cover = Math.max(cw / RW, ch / RH);
+    const scale = phone ? cover : ch / RH;
     const dw = Math.round(RW * scale);
     const dh = Math.round(RH * scale);
     const baseX = Math.round((cw - dw) / 2);
@@ -857,7 +859,7 @@ export class OrbitEngine {
     const limitY = Math.max(0, Math.round((dh - ch) / 2));
     this.cropX = Math.min(limitX, Math.max(-limitX, this.cropX));
     this.cropY = Math.min(limitY, Math.max(-limitY, this.cropY));
-    return { cw, ch, dw, dh, dx: baseX + this.cropX, dy: baseY + this.cropY, contain };
+    return { cw, ch, dw, dh, dx: baseX + this.cropX, dy: baseY + this.cropY, contain: phone ? this.phoneFit() : false };
   }
 
   private paint(ctx: CanvasRenderingContext2D, img: CanvasImageSource, quality: "low" | "high") {
@@ -1099,6 +1101,12 @@ export class OrbitEngine {
     this.renderer.setViewport(0, 0, cw, ch);
   }
 
+  /** Phone: past 20% zoom, dragging moves the picture and does not orbit. */
+  private turnLocked() {
+    if (typeof document === "undefined") return false;
+    return document.documentElement.classList.contains("phone-layout") && this.zoom > 1.2;
+  }
+
   private applyTransform() {
     const w = this.container.clientWidth;
     const h = this.container.clientHeight;
@@ -1136,7 +1144,7 @@ export class OrbitEngine {
   }
 
   private dragTo(x: number, y: number) {
-    if (this.panMode) {
+    if (this.panMode || this.turnLocked()) {
       this.moved = true;
       this.panX += x - this.panStartX;
       this.panY += y - this.panStartY;
@@ -1158,7 +1166,7 @@ export class OrbitEngine {
   }
 
   private stepDrag() {
-    if (!this.isDragging || this.panMode || this.disposed || this.spinWaiting) return;
+    if (!this.isDragging || this.panMode || this.turnLocked() || this.disposed || this.spinWaiting) return;
     const sens = COMPLEX.dragSensitivity;
     const n = this.tour.totalFrames;
     if (!n) return;
@@ -1329,6 +1337,8 @@ export class OrbitEngine {
   };
 
   private onWheel = (e: WheelEvent) => {
+    const t = e.target as HTMLElement | null;
+    if (t?.closest(".scene360-strip, .scene360-strip-dock, .hud, .scene360-bar, .scene360-view")) return;
     e.preventDefault();
     this.zoomBy(e.deltaY > 0 ? -COMPLEX.zoomStep : COMPLEX.zoomStep);
   };

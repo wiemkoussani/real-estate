@@ -109,18 +109,12 @@ export default function PanoramaViewer({ src, className }: Props) {
         /* ignore */
       }
     };
-    const onWheel = (e: WheelEvent) => {
-      e.preventDefault();
-      camera.fov = Math.max(40, Math.min(100, camera.fov + e.deltaY * 0.05));
-      camera.updateProjectionMatrix();
-    };
 
     canvas.addEventListener("pointerdown", onDown);
     canvas.addEventListener("pointermove", onMove);
     canvas.addEventListener("pointerup", onUp);
     canvas.addEventListener("pointercancel", onUp);
     canvas.addEventListener("lostpointercapture", onUp);
-    canvas.addEventListener("wheel", onWheel, { passive: false });
 
     const ro = new ResizeObserver(resize);
     ro.observe(host);
@@ -150,7 +144,6 @@ export default function PanoramaViewer({ src, className }: Props) {
       canvas.removeEventListener("pointerup", onUp);
       canvas.removeEventListener("pointercancel", onUp);
       canvas.removeEventListener("lostpointercapture", onUp);
-      canvas.removeEventListener("wheel", onWheel);
       mat.map?.dispose();
       mat.dispose();
       geo.dispose();

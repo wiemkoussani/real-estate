@@ -2218,6 +2218,11 @@ html.phone-layout .scene360-strip-dock.open.closing {
   z-index: 4;
   pointer-events: auto;
 }
+html:not(.phone-layout) .scene360-pano {
+  left: 16px;
+  right: 16px;
+  width: auto;
+}
 .scene360-pano canvas {
   width: 100% !important;
   height: 100% !important;
@@ -3987,6 +3992,9 @@ html.phone-layout .dock.units.cards {
   overflow-x: auto;
   overflow-y: hidden;
   padding: 0 12px calc(8px + env(safe-area-inset-bottom, 0px));
+}
+html.phone-layout .dock.units.cards .card-divider {
+  background: #8e9ba6;
 }
 html.phone-layout .dock.units.cards .unit {
   flex: 0 0 293.22px;

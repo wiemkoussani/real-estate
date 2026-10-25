@@ -177,7 +177,7 @@ async function overpassPlaces(
           return {
             id: `${el.type}-${el.id}`,
             kind,
-            name: el.tags?.name || el.tags?.["name:ar"] || POI_FILTERS.find((f) => f.id === kind)?.en || kind,
+            name: el.tags?.["name:ar"] || el.tags?.name || POI_FILTERS.find((f) => f.id === kind)?.ar || kind,
             lat: plat,
             lng: plng,
           } as PoiPlace;

@@ -200,6 +200,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
   const [scene360Open, setScene360Open] = useState(false);
   const [activeSceneId, setActiveSceneId] = useState<string | null>(null);
   const rotateHoldRef = useRef<number | null>(null);
+  const zoomHoldRef = useRef<number | null>(null);
   const stripDragRef = useRef(false);
   const stripElRef = useRef<HTMLDivElement | null>(null);
   const dockRef = useRef<HTMLDivElement>(null);
@@ -253,8 +254,8 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
     if (!q) return;
     const hasExact = Number.isFinite(tour.locationLat) && Number.isFinite(tour.locationLng);
     const key = hasExact
-      ? `poi-map-v10:${tour.locationLat.toFixed(5)},${tour.locationLng.toFixed(5)}`
-      : `poi-map-v10:${q}`;
+      ? `poi-map-v11:${tour.locationLat.toFixed(5)},${tour.locationLng.toFixed(5)}`
+      : `poi-map-v11:${q}`;
     try {
       const raw = sessionStorage.getItem(key);
       if (raw) {
@@ -602,8 +603,9 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
     stripElRef.current = node;
     if (!node) return;
     const onWheel = (e: WheelEvent) => {
-      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX) && e.deltaX === 0) return;
       e.preventDefault();
+      e.stopPropagation();
+      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX) && e.deltaX === 0) return;
       node.scrollLeft += e.deltaY + e.deltaX;
     };
     let tracking = false;
@@ -1188,10 +1190,34 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
               >
                 {panMode ? <IconPanClosed size={17} /> : <IconPan size={17} />}
               </button>
-              <button type="button" title="Zoom out" onClick={() => engineRef.current?.zoomBy(-COMPLEX.zoomStep)}>
+              <button
+                type="button"
+                title="Zoom out"
+                onPointerDown={(e) => {
+                  e.preventDefault();
+                  (e.currentTarget as HTMLButtonElement).setPointerCapture(e.pointerId);
+                  engineRef.current?.zoomBy(-COMPLEX.zoomStep);
+                  if (zoomHoldRef.current) window.clearInterval(zoomHoldRef.current);
+                  zoomHoldRef.current = window.setInterval(() => engineRef.current?.zoomBy(-COMPLEX.zoomStep), 90);
+                }}
+                onPointerUp={() => { if (zoomHoldRef.current) { window.clearInterval(zoomHoldRef.current); zoomHoldRef.current = null; } }}
+                onPointerCancel={() => { if (zoomHoldRef.current) { window.clearInterval(zoomHoldRef.current); zoomHoldRef.current = null; } }}
+              >
                 <IconMinus size={17} />
               </button>
-              <button type="button" title="Zoom in" onClick={() => engineRef.current?.zoomBy(COMPLEX.zoomStep)}>
+              <button
+                type="button"
+                title="Zoom in"
+                onPointerDown={(e) => {
+                  e.preventDefault();
+                  (e.currentTarget as HTMLButtonElement).setPointerCapture(e.pointerId);
+                  engineRef.current?.zoomBy(COMPLEX.zoomStep);
+                  if (zoomHoldRef.current) window.clearInterval(zoomHoldRef.current);
+                  zoomHoldRef.current = window.setInterval(() => engineRef.current?.zoomBy(COMPLEX.zoomStep), 90);
+                }}
+                onPointerUp={() => { if (zoomHoldRef.current) { window.clearInterval(zoomHoldRef.current); zoomHoldRef.current = null; } }}
+                onPointerCancel={() => { if (zoomHoldRef.current) { window.clearInterval(zoomHoldRef.current); zoomHoldRef.current = null; } }}
+              >
                 <IconPlus size={17} />
               </button>
             </div>
