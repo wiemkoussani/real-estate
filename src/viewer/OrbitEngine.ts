@@ -848,9 +848,7 @@ export class OrbitEngine {
     const RH = this.tour.renderH || 1;
     const cw = this.container.clientWidth;
     const ch = this.container.clientHeight;
-    const phone = typeof document !== "undefined" && document.documentElement.classList.contains("phone-layout");
-    const cover = Math.max(cw / RW, ch / RH);
-    const scale = phone ? cover : ch / RH;
+    const scale = Math.max(cw / RW, ch / RH);
     const dw = Math.round(RW * scale);
     const dh = Math.round(RH * scale);
     const baseX = Math.round((cw - dw) / 2);
@@ -859,7 +857,7 @@ export class OrbitEngine {
     const limitY = Math.max(0, Math.round((dh - ch) / 2));
     this.cropX = Math.min(limitX, Math.max(-limitX, this.cropX));
     this.cropY = Math.min(limitY, Math.max(-limitY, this.cropY));
-    return { cw, ch, dw, dh, dx: baseX + this.cropX, dy: baseY + this.cropY, contain: phone ? this.phoneFit() : false };
+    return { cw, ch, dw, dh, dx: baseX + this.cropX, dy: baseY + this.cropY, contain: this.phoneFit() };
   }
 
   private paint(ctx: CanvasRenderingContext2D, img: CanvasImageSource, quality: "low" | "high") {

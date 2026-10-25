@@ -298,12 +298,12 @@ export function AroundMap({
         ) : (
           <div className="poi-filters">
             <div className="poi-filters-head">
-              <span>Filters</span>
-              <button type="button" className={`poi-switch ${allOn ? "on" : ""}`} onClick={toggleAll} aria-label="All filters" />
+              <span>تصفية</span>
+              <button type="button" className={`poi-switch ${allOn ? "on" : ""}`} onClick={toggleAll} aria-label="كل التصنيفات" />
+              <span className="poi-mini" aria-hidden />
             </div>
             {POI_FILTERS.map((f) => (
               <div key={f.id} className="poi-row">
-                <span className="poi-mini" dangerouslySetInnerHTML={{ __html: PIN_SVG[f.id] }} />
                 <span>{f.ar}</span>
                 <button
                   type="button"
@@ -311,6 +311,7 @@ export function AroundMap({
                   onClick={() => setOn((s) => ({ ...s, [f.id]: !s[f.id] }))}
                   aria-label={f.ar}
                 />
+                <span className="poi-mini" dangerouslySetInnerHTML={{ __html: PIN_SVG[f.id] }} />
               </div>
             ))}
           </div>
