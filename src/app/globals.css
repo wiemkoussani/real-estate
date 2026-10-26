@@ -2220,9 +2220,9 @@ html.phone-layout .scene360-strip-dock.open.closing {
 }
 html:not(.phone-layout) .scene360-view {
   inset: 0;
-  background: rgba(11, 18, 32, 0.22);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: rgba(11, 18, 32, 0.12);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 html:not(.phone-layout) .scene360-pano {
   top: 30px;
@@ -2231,6 +2231,8 @@ html:not(.phone-layout) .scene360-pano {
   left: 30px;
   width: auto !important;
   height: auto !important;
+  border-radius: 16px;
+  overflow: hidden;
 }
 html:not(.phone-layout) .app:has(.panel.open) .scene360-pano {
   left: calc(min(382px, 86vw) + 30px);
@@ -2246,9 +2248,20 @@ html:not(.phone-layout) .app:has(.panel.open) .scene360-bar {
 html:not(.phone-layout) .scene360-back {
   top: 42px;
   left: 42px;
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  color: #fff;
+}
+html:not(.phone-layout) .scene360-back:hover {
+  background: transparent;
+  color: #fff;
 }
 html:not(.phone-layout) .app:has(.panel.open) .scene360-back {
   left: calc(min(382px, 86vw) + 42px);
+}
+html:not(.phone-layout) .scene360-pano canvas {
+  border-radius: 16px;
 }
 .scene360-pano canvas {
   width: 100% !important;
