@@ -82,7 +82,7 @@ function telFromForm(fd: FormData) {
   return `${dial}${num.replace(/^0+/, "")}`;
 }
 
-function PhoneField({ required }: { required?: boolean }) {
+function PhoneField({ required, placeholder }: { required?: boolean; placeholder?: string }) {
   return (
     <span className="phone-row">
       <select name="dial" defaultValue="+966" aria-label="indicatif pays">
@@ -90,7 +90,7 @@ function PhoneField({ required }: { required?: boolean }) {
           <option key={c.d + c.n} value={c.d}>{c.d}</option>
         ))}
       </select>
-      <input name="tel" type="tel" required={required} autoComplete="tel" inputMode="tel" />
+      <input name="tel" type="tel" required={required} autoComplete="tel" inputMode="tel" placeholder={placeholder} />
     </span>
   );
 }
@@ -1448,52 +1448,53 @@ function ContactSidebar({ unit, onBack }: { unit: Unit | null; onBack: () => voi
 
   return (
     <div className="contact-side" dir="rtl">
-      <header className="contact-head">
-        <h2>تواصل معنا</h2>
-        <button type="button" className="back" onClick={onBack}>‹ الوحدات</button>
+      <header className="contact-top">
+        <div className="contact-titles">
+          <h2>تواصل معنا</h2>
+          <p>نحن سعداء بالتواصل معك</p>
+        </div>
+        <button type="button" className="contact-back" onClick={onBack} aria-label="رجوع">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+            <path d="M15 6 9 12l6 6" />
+          </svg>
+        </button>
       </header>
-      <div className="agency-card">
-        {tour.logoUrl ? (
-          <span className="agency-logo"><img src={tour.logoUrl} alt="" /></span>
-        ) : (
-          <span className="agency-mark">A</span>
-        )}
-        <div className="agency-meta">
+      <div className="contact-info">
+        <img src={tour.logoUrl || COMPLEX.logoPath} alt="" className="contact-logo" />
+        <div className="contact-lines">
           <b>{tour.name}</b>
-          <p>
-            <a href={`mailto:${COMPLEX.contactEmail}`}>{COMPLEX.contactEmail}</a>
-          </p>
-          <p>
-            <a href={`tel:${COMPLEX.contactTel}`}>+966 57 555 5782</a>
-          </p>
+          <a href={`mailto:${COMPLEX.contactEmail}`}>
+            <svg width="15" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 7 9 7 9-7" /></svg>
+            {COMPLEX.contactEmail}
+          </a>
+          <a href={`tel:${COMPLEX.contactTel}`} className="contact-tel">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d="M6.5 3.5h3l1.5 4-2 1.2a12 12 0 0 0 6.3 6.3l1.2-2 4 1.5v3A2 2 0 0 1 18.5 20 15 15 0 0 1 4 5.5a2 2 0 0 1 2.5-2z" /></svg>
+            +966 57 555 5782
+          </a>
         </div>
       </div>
-      {unit && <span className="contact-chip">وحدة {unit.displayId}</span>}
       <form className="lead side" onSubmit={submit}>
-        <p>تحية</p>
-        <div className="seg">
+        <p className="contact-ask">تحديد نوع الاستفسار</p>
+        <div className="contact-genders">
           {["السيدة", "السيد", "لا"].map((g) => (
             <button key={g} type="button" className={gender === g ? "on" : ""} onClick={() => setGender(g)}>{g}</button>
           ))}
         </div>
-        <label>اسم العائلة * <input name="nom" required autoComplete="family-name" /></label>
-        <label>الاسم الأول * <input name="prenom" required autoComplete="given-name" /></label>
-        <label>البريد الإلكتروني <input name="email" type="email" autoComplete="email" /></label>
+        <label>اسم العائلة <input name="nom" required autoComplete="family-name" placeholder="أدخل اسم العائلة" /></label>
+        <label>الاسم الأول <input name="prenom" required autoComplete="given-name" placeholder="أدخل الاسم الأول" /></label>
+        <label>البريد الإلكتروني <input name="email" type="email" autoComplete="email" placeholder="أدخل بريدك الإلكتروني" /></label>
         <label>رقم الهاتف
-          <PhoneField />
+          <PhoneField placeholder="أدخل رقم هاتفك" />
         </label>
-        <label>هل لديك رسالة لنا؟ <input name="subject" placeholder="طلبك" /></label>
-        <textarea name="message" rows={4} placeholder="رسالتك" aria-label="رسالتك" />
+        <label>هل لديك رسالة لنا؟
+          <textarea name="message" placeholder="اكتب رسالتك هنا..." aria-label="هل لديك رسالة لنا؟" />
+        </label>
         <label className="lead-check">
-          <span>إرسال إلى المفضلة</span>
           <input type="checkbox" name="favorites" />
-        </label>
-        <label className="lead-check">
-          <span>وافقت عليها. سياسة الخصوصية لقد قرأت</span>
-          <input type="checkbox" name="privacy" required />
+          <span>إرسال إلى المفضلة</span>
         </label>
         {err && <p className="err">{err}</p>}
-        {ok ? <p className="ok">تم الإرسال. سنتواصل معك قريباً.</p> : <button type="submit" disabled={busy}>{busy ? "…" : "إرسال طلب اتصال"}</button>}
+        {ok ? <p className="ok">تم الإرسال. سنتواصل معك قريباً.</p> : <button type="submit" disabled={busy}>{busy ? "…" : "إرسال طلبك"}</button>}
       </form>
     </div>
   );

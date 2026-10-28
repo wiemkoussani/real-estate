@@ -1,10 +1,10 @@
 import type { Metadata, Viewport } from "next";
-import { Bona_Nova, Inter, Noto_Sans_Arabic, Saira } from "next/font/google";
+import { Bona_Nova, Inter, Livvic, Noto_Sans_Arabic, Saira } from "next/font/google";
 import "./globals.css";
 
 const notoArabic = Noto_Sans_Arabic({
   subsets: ["arabic", "latin"],
-  weight: ["400", "700"],
+  weight: ["400", "600", "700"],
   variable: "--font-noto-arabic",
   display: "swap",
 });
@@ -25,8 +25,15 @@ const saira = Saira({
 
 const inter = Inter({
   subsets: ["latin"],
-  weight: ["700"],
+  weight: ["400", "500", "600", "700"],
   variable: "--font-inter",
+  display: "swap",
+});
+
+const livvic = Livvic({
+  subsets: ["latin"],
+  weight: ["500"],
+  variable: "--font-livvic",
   display: "swap",
 });
 
@@ -45,7 +52,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${notoArabic.variable} ${bonaNova.variable} ${saira.variable} ${inter.variable}`}>
+    <html lang="en" className={`${notoArabic.variable} ${bonaNova.variable} ${saira.variable} ${inter.variable} ${livvic.variable}`}>
       <body>{children}</body>
     </html>
   );
