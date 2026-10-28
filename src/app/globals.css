@@ -2921,8 +2921,8 @@ html:not(.phone-layout) .scene360-pano canvas {
   direction: ltr;
   display: grid;
   grid-template-columns: 20px minmax(0, 1fr);
-  column-gap: 6px;
-  row-gap: 4px;
+  column-gap: 10px;
+  row-gap: 5px;
   align-items: center;
   min-width: 0;
   flex: 1;
