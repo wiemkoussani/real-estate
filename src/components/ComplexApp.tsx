@@ -1462,15 +1462,16 @@ function ContactSidebar({ unit, onBack }: { unit: Unit | null; onBack: () => voi
       <div className="contact-info">
         <img src={tour.logoUrl || COMPLEX.logoPath} alt="" className="contact-logo" />
         <div className="contact-lines">
+          <span className="contact-ico" aria-hidden>
+            <svg width="20" height="15" viewBox="0 0 20 15" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="1" y="1.5" width="18" height="12" rx="2" /><path d="m1.5 2.5 8.5 6.5 8.5-6.5" /></svg>
+          </span>
           <b>{tour.name}</b>
-          <a href={`mailto:${COMPLEX.contactEmail}`}>
-            <svg width="15" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 7 9 7 9-7" /></svg>
-            {COMPLEX.contactEmail}
-          </a>
-          <a href={`tel:${COMPLEX.contactTel}`} className="contact-tel">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d="M6.5 3.5h3l1.5 4-2 1.2a12 12 0 0 0 6.3 6.3l1.2-2 4 1.5v3A2 2 0 0 1 18.5 20 15 15 0 0 1 4 5.5a2 2 0 0 1 2.5-2z" /></svg>
-            +966 57 555 5782
-          </a>
+          <span className="contact-ico" aria-hidden />
+          <a href={`mailto:${COMPLEX.contactEmail}`}>{COMPLEX.contactEmail}</a>
+          <span className="contact-ico" aria-hidden>
+            <svg width="20" height="15" viewBox="0 0 20 15" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M4.2 2.2h2.4l1.2 3.1-1.6 1a9.2 9.2 0 0 0 4.8 4.8l1-1.6 3.1 1.2v2.4a1.6 1.6 0 0 1-1.6 1.6A11.6 11.6 0 0 1 2.6 3.8a1.6 1.6 0 0 1 1.6-1.6z" /></svg>
+          </span>
+          <a href={`tel:${COMPLEX.contactTel}`} className="contact-tel">+966 57 555 5782</a>
         </div>
       </div>
       <form className="lead side" onSubmit={submit}>

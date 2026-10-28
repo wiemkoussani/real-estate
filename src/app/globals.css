@@ -2903,9 +2903,9 @@ html:not(.phone-layout) .scene360-pano canvas {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
   height: 66px;
-  padding: 8px 12px;
+  padding: 0 8px 0 15px;
   margin-bottom: 16px;
   background: #FBFCFD;
   box-shadow: 0 4px 4px rgba(0, 0, 0, 0.1);
@@ -2920,9 +2920,21 @@ html:not(.phone-layout) .scene360-pano canvas {
 .form-mode .contact-lines {
   direction: ltr;
   display: grid;
-  gap: 2px;
+  grid-template-columns: 20px minmax(0, 1fr);
+  column-gap: 6px;
+  row-gap: 4px;
+  align-items: center;
   min-width: 0;
+  flex: 1;
 }
+.form-mode .contact-ico {
+  width: 20px;
+  height: 15px;
+  display: grid;
+  place-items: center;
+  color: #304778;
+}
+.form-mode .contact-ico svg { display: block; }
 .form-mode .contact-lines b {
   font-family: var(--font-inter), sans-serif;
   font-weight: 700;
@@ -2931,9 +2943,7 @@ html:not(.phone-layout) .scene360-pano canvas {
   color: #2D3E6B;
 }
 .form-mode .contact-lines a {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  display: block;
   font-family: var(--font-inter), sans-serif;
   font-weight: 400;
   font-size: 11px;
@@ -2941,7 +2951,6 @@ html:not(.phone-layout) .scene360-pano canvas {
   color: #677691;
   text-decoration: none;
 }
-.form-mode .contact-lines a svg { flex: none; color: #677691; }
 .form-mode .contact-lines .contact-tel {
   font-family: var(--font-livvic), var(--font-inter), sans-serif;
   font-weight: 500;
