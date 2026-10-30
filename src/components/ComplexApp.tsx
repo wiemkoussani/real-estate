@@ -227,19 +227,20 @@ function IntroScreen({ ready, loadPct, onEnter }: { ready: boolean; loadPct: num
       <div className="intro-social">
         <span>تابعنا</span>
         <div>
-          <Social label="انستغرام"><IgIcon /></Social>
-          <Social label="فيسبوك"><FbIcon /></Social>
-          <Social label="تيك توك"><TtIcon /></Social>
+          <Social label="انستغرام" href="https://www.instagram.com/ajyadarabia"><IgIcon /></Social>
+          <Social label="فيسبوك" href="https://www.facebook.com/share/19wFaK4aW1/"><FbIcon /></Social>
+          <Social label="تيك توك" href="https://www.tiktok.com/@ajyadarabia"><TtIcon /></Social>
           <Social label="يوتيوب"><YtIcon /></Social>
-          <Social label="لينكد إن"><InIcon /></Social>
+          <Social label="لينكد إن" href="https://www.linkedin.com/in/ajyad-arabia-84a938356"><InIcon /></Social>
         </div>
       </div>
     </div>
   );
 }
 
-function Social({ label, children }: { label: string; children: React.ReactNode }) {
-  return <button type="button" className="intro-soc" aria-label={label}>{children}</button>;
+function Social({ label, href, children }: { label: string; href?: string; children: React.ReactNode }) {
+  if (!href) return <button type="button" className="intro-soc" aria-label={label}>{children}</button>;
+  return <a className="intro-soc" href={href} target="_blank" rel="noopener noreferrer" aria-label={label}>{children}</a>;
 }
 function IgIcon() {
   return <svg width="17.09" height="17.09" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.6"><rect x="3" y="3" width="18" height="18" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="0.8" fill="#fff" stroke="none" /></svg>;
