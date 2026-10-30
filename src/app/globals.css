@@ -203,8 +203,10 @@ body {
   position: absolute;
   inset: 0;
   z-index: 0;
+  box-sizing: border-box;
   border-radius: 999px;
-  background: none;
+  border: var(--ring-w) solid var(--ring-color);
+  background: var(--shade);
   pointer-events: none;
   animation: ripple var(--life) linear infinite;
 }
@@ -222,11 +224,7 @@ body {
   100%  { inset: 0; }
 }
 @keyframes ripple {
-  0% {
-    box-shadow: 0 0 0 0 transparent, 0 0 0 var(--ring-w) var(--ring-color);
-    opacity: 1;
-    animation-timing-function: cubic-bezier(.04, .2, .55, .75);
-  }
+  0%    { inset: 0; opacity: 1; animation-timing-function: cubic-bezier(.04, .2, .55, .75); }
   10.7% { opacity: 1; }
   21.4% { opacity: 1; }
   25%   { opacity: .84; }
@@ -236,11 +234,8 @@ body {
   60.7% { opacity: .28; }
   71.4% { opacity: .21; }
   78.6% { opacity: .12; }
-  85.7%,
-  100% {
-    box-shadow: 0 0 0 var(--reach) transparent, 0 0 0 calc(var(--reach) + var(--ring-w)) rgba(225, 215, 190, 0);
-    opacity: 0;
-  }
+  85.7% { inset: calc(var(--reach) * -1); opacity: 0; }
+  100%  { inset: calc(var(--reach) * -1); opacity: 0; }
 }
 .intro-count {
   margin: 26px 0 0;
