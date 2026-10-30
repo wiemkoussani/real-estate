@@ -42,6 +42,7 @@ export class OrbitEngine {
   private units: Record<string, Unit> = {};
 
   private currentFrame = 0;
+  private reportedPct = 0;
   private zoom = 1;
   private panX = 0;
   private panY = 0;
@@ -128,7 +129,6 @@ export class OrbitEngine {
     this.bind();
     this.resize();
     await this.loadOne(0, true);
-    this.events.onLoadProgress?.(28);
     void this.loadGlb();
     await this.loadUnits();
     this.syncCamera();
@@ -507,22 +507,34 @@ export class OrbitEngine {
     });
   }
 
+  /** Opening photos only. The number climbs with each finished photo and never goes back. */
+  private reportLoad(done: number, total: number) {
+    const pct = !total ? 100 : Math.min(100, Math.round((done / total) * 100));
+    if (pct <= this.reportedPct) return;
+    this.reportedPct = pct;
+    this.events.onLoadProgress?.(pct);
+  }
+
   /** Light photos on both sides of the opening view, then the rest without blocking the tour. */
   private async preloadLow() {
     const total = this.tour.totalFrames;
     if (!total) {
-      this.events.onLoadProgress?.(100);
+      this.reportLoad(1, 1);
       return;
     }
     const ring = this.ringAround(this.currentFrame, 8);
+    const pending = ring.filter((idx) => !this.frameReady(idx));
+    let done = ring.length - pending.length;
+    this.reportLoad(done, ring.length);
     const batch = 4;
-    for (let start = 0; start < ring.length; start += batch) {
+    for (let start = 0; start < pending.length; start += batch) {
       if (this.disposed) return;
-      const slice = ring.slice(start, start + batch);
+      const slice = pending.slice(start, start + batch);
       await Promise.all(slice.map((idx) => this.loadOne(idx, true)));
-      this.events.onLoadProgress?.(Math.min(95, 28 + Math.round(((start + slice.length) / ring.length) * 67)));
+      done += slice.length;
+      this.reportLoad(done, ring.length);
     }
-    this.events.onLoadProgress?.(100);
+    this.reportLoad(ring.length, ring.length);
     void this.preloadRest();
   }
 
@@ -666,7 +678,6 @@ export class OrbitEngine {
       mat.needsUpdate = true;
     });
     this.syncMeshVisibility();
-    this.events.onLoadProgress?.(100);
   }
 
   getUnits() {
