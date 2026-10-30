@@ -112,7 +112,7 @@ function ChargeSplash() {
         <span className="charge-ring" />
         <img src={INTRO_LOGO} alt="" />
       </div>
-      <p>جارٍ الشحن...</p>
+      <p dir="rtl"><span>جارٍ الشحن</span><span className="charge-dots">...</span></p>
     </div>
   );
 }
@@ -209,7 +209,7 @@ function IntroScreen({ ready, loadPct, onEnter }: { ready: boolean; loadPct: num
         <img className="intro-logo" src={INTRO_LOGO} alt="" />
         <span className="intro-rule" />
         {open ? (
-          <button type="button" className="intro-cta" onClick={onEnter}>اكتشف المزيد</button>
+          <button type="button" className="intro-cta" onClick={onEnter}><span>اكتشف المزيد</span></button>
         ) : (
           <p className="intro-count" aria-live="polite">{Math.round(loadPct)}%</p>
         )}
