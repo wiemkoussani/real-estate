@@ -195,7 +195,6 @@ body {
   border-radius: inherit;
   background: rgba(112, 152, 255, 0.6);
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
-  transform-origin: center;
   animation: swell var(--period) linear infinite;
 }
 .intro-cta::before,
@@ -204,29 +203,30 @@ body {
   position: absolute;
   inset: 0;
   z-index: 0;
-  box-sizing: border-box;
   border-radius: 999px;
-  border: var(--ring-w) solid var(--ring-color);
-  background: var(--shade);
+  background: none;
   pointer-events: none;
-  transform-origin: center;
   animation: ripple var(--life) linear infinite;
 }
 .intro-cta::after { animation-delay: calc(var(--period) * -1); }
 @keyframes swell {
-  0%    { transform: scale(1.01333, 1.05085); }
-  2.86% { transform: scale(1.01511, 1.05763); }
-  5%    { transform: scale(1.0192, 1.07322); }
-  7.14% { transform: scale(1.02133, 1.08136); }
-  10%   { transform: scale(1.02222, 1.08475); }
-  14.3% { transform: scale(1.01422, 1.05424); }
-  17.1% { transform: scale(1.01067, 1.04068); }
-  21.4% { transform: scale(1.00711, 1.02712); }
-  24.3%,
-  100%  { transform: scale(1, 1); }
+  0%    { inset: -1.5px; }
+  2.86% { inset: -1.7px; }
+  5%    { inset: -2.16px; }
+  7.14% { inset: -2.4px; }
+  10%   { inset: -2.5px; }
+  14.3% { inset: -1.6px; }
+  17.1% { inset: -1.2px; }
+  21.4% { inset: -0.8px; }
+  24.3% { inset: 0; }
+  100%  { inset: 0; }
 }
 @keyframes ripple {
-  0%    { transform: scale(1, 1); opacity: 1; animation-timing-function: cubic-bezier(.04, .2, .55, .75); }
+  0% {
+    box-shadow: 0 0 0 0 transparent, 0 0 0 var(--ring-w) var(--ring-color);
+    opacity: 1;
+    animation-timing-function: cubic-bezier(.04, .2, .55, .75);
+  }
   10.7% { opacity: 1; }
   21.4% { opacity: 1; }
   25%   { opacity: .84; }
@@ -236,9 +236,11 @@ body {
   60.7% { opacity: .28; }
   71.4% { opacity: .21; }
   78.6% { opacity: .12; }
-  85.7% { transform: scale(1.16889, 1.64407); opacity: 0; }
-  99.5% { transform: scale(1.16889, 1.64407); opacity: 0; }
-  100%  { transform: scale(1, 1); opacity: 0; }
+  85.7%,
+  100% {
+    box-shadow: 0 0 0 var(--reach) transparent, 0 0 0 calc(var(--reach) + var(--ring-w)) rgba(225, 215, 190, 0);
+    opacity: 0;
+  }
 }
 .intro-count {
   margin: 26px 0 0;
