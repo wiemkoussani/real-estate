@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Bona_Nova, Inter, Livvic, Noto_Sans_Arabic, Saira } from "next/font/google";
+import { Barlow, Bona_Nova, Inter, Livvic, Noto_Sans_Arabic, Saira } from "next/font/google";
 import "./globals.css";
 
 const notoArabic = Noto_Sans_Arabic({
@@ -37,6 +37,13 @@ const livvic = Livvic({
   display: "swap",
 });
 
+const barlow = Barlow({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  variable: "--font-barlow",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: "AXIS",
   description: "Interactive complex tours",
@@ -52,7 +59,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${notoArabic.variable} ${bonaNova.variable} ${saira.variable} ${inter.variable} ${livvic.variable}`}>
+    <html lang="en" className={`${notoArabic.variable} ${bonaNova.variable} ${saira.variable} ${inter.variable} ${livvic.variable} ${barlow.variable}`}>
       <body>{children}</body>
     </html>
   );

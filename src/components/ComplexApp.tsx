@@ -102,8 +102,51 @@ function useTour() {
   return useContext(TourCtx);
 }
 
+const INTRO_VIDEO = "/complexes/villas-ajyad/intro.mp4";
+const INTRO_LOGO = "/complexes/villas-ajyad/" + encodeURIComponent("الشعار.png");
+
+function ChargeSplash() {
+  return (
+    <div className="charge-splash" role="status" aria-live="polite">
+      <div className="charge-mark">
+        <span className="charge-ring" />
+        <img src={INTRO_LOGO} alt="" />
+      </div>
+      <p>جارٍ الشحن...</p>
+    </div>
+  );
+}
+
 export default function ComplexApp({ slug, initialTour }: { slug: string; initialTour?: TourMedia | null }) {
   const [tour, setTour] = useState<TourMedia | null>(initialTour ?? null);
+  const [splash, setSplash] = useState(true);
+  const [entered, setEntered] = useState(false);
+
+  useEffect(() => {
+    let closed = false;
+    const started = performance.now();
+    const close = () => {
+      if (closed) return;
+      closed = true;
+      setSplash(false);
+    };
+    const video = document.createElement("video");
+    video.preload = "auto";
+    video.muted = true;
+    video.playsInline = true;
+    video.src = INTRO_VIDEO;
+    video.addEventListener("canplay", close);
+    video.addEventListener("error", () => {
+      const left = Math.max(0, 2000 - (performance.now() - started));
+      window.setTimeout(close, left);
+    });
+    video.load();
+    return () => {
+      closed = true;
+      video.removeAttribute("src");
+      video.load();
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -128,18 +171,13 @@ export default function ComplexApp({ slug, initialTour }: { slug: string; initia
   }, [slug, initialTour]);
 
   if (!tour) {
-    return (
-      <div className="app">
-        <div className="boot">
-          <p>Loading…</p>
-        </div>
-      </div>
-    );
+    return <ChargeSplash />;
   }
 
   return (
     <TourCtx.Provider value={tour}>
-      <ComplexStage tour={tour} />
+      {splash && <ChargeSplash />}
+      <ComplexStage tour={tour} introOpen={!entered} onEnter={() => setEntered(true)} />
     </TourCtx.Provider>
   );
 }
@@ -153,7 +191,73 @@ function cardPhoto(tour: TourMedia, unit: Unit) {
   return plans[0] || "";
 }
 
-function ComplexStage({ tour }: { tour: TourMedia }) {
+function IntroScreen({ ready, loadPct, onEnter }: { ready: boolean; loadPct: number; onEnter: () => void }) {
+  const open = ready || loadPct >= 100;
+  const [nhc, setNhc] = useState(true);
+  const full = () => {
+    if (document.fullscreenElement) void document.exitFullscreen();
+    else void document.documentElement.requestFullscreen();
+  };
+  return (
+    <div className="intro">
+      <video className="intro-video" autoPlay muted loop playsInline preload="auto" src={INTRO_VIDEO} />
+      <div className="intro-dim" />
+      <div className="intro-vignette" />
+      <div className="intro-fade" />
+      <div className="intro-blur" />
+      <div className="intro-center">
+        <img className="intro-logo" src={INTRO_LOGO} alt="" />
+        <span className="intro-rule" />
+        {open ? (
+          <button type="button" className="intro-cta" onClick={onEnter}>اكتشف المزيد</button>
+        ) : (
+          <p className="intro-cta intro-count" aria-live="polite">{Math.round(loadPct)}%</p>
+        )}
+      </div>
+      <div className="intro-works">
+        <span>تقدم الاشغال</span>
+        <b>15%</b>
+      </div>
+      <button type="button" className="intro-full" onClick={full} aria-label="ملء الشاشة">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8" aria-hidden>
+          <path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5" />
+        </svg>
+      </button>
+      {nhc && <img className="intro-nhc" src="/complexes/villas-ajyad/nhc.png" alt="NHC" onError={() => setNhc(false)} />}
+      <div className="intro-social">
+        <span>تابعنا</span>
+        <div>
+          <Social label="انستغرام"><IgIcon /></Social>
+          <Social label="فيسبوك"><FbIcon /></Social>
+          <Social label="تيك توك"><TtIcon /></Social>
+          <Social label="يوتيوب"><YtIcon /></Social>
+          <Social label="لينكد إن"><InIcon /></Social>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Social({ label, children }: { label: string; children: React.ReactNode }) {
+  return <button type="button" className="intro-soc" aria-label={label}>{children}</button>;
+}
+function IgIcon() {
+  return <svg width="17.09" height="17.09" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.6"><rect x="3" y="3" width="18" height="18" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="0.8" fill="#fff" stroke="none" /></svg>;
+}
+function FbIcon() {
+  return <svg width="17.09" height="17.09" viewBox="0 0 24 24" fill="#fff"><path d="M14 9h3V6h-3c-2.2 0-4 1.8-4 4v2H8v3h2v7h3v-7h2.6l.4-3H13v-2c0-.6.4-1 1-1z" /></svg>;
+}
+function TtIcon() {
+  return <svg width="17.09" height="17.09" viewBox="0 0 24 24" fill="#fff"><path d="M14 4h2.2a5 5 0 0 0 3.8 3.6v2.3a7.2 7.2 0 0 1-3.8-1.1v6.4a5.8 5.8 0 1 1-5-5.7v2.4a3.4 3.4 0 1 0 2.4 3.3V4z" /></svg>;
+}
+function YtIcon() {
+  return <svg width="17.09" height="17.09" viewBox="0 0 24 24" fill="#fff"><path d="M22 12.2s0-3.2-.4-4.6c-.2-.9-.9-1.6-1.8-1.8C18.2 5.4 12 5.4 12 5.4s-6.2 0-7.8.4c-.9.2-1.6.9-1.8 1.8C2 9 2 12.2 2 12.2s0 3.2.4 4.6c.2.9.9 1.6 1.8 1.8 1.6.4 7.8.4 7.8.4s6.2 0 7.8-.4c.9-.2 1.6-.9 1.8-1.8.4-1.4.4-4.6.4-4.6zM10 15.5v-6.6l5.2 3.3-5.2 3.3z" /></svg>;
+}
+function InIcon() {
+  return <svg width="17.09" height="17.09" viewBox="0 0 24 24" fill="#fff"><path d="M6.5 9H4V20h2.5V9zM5.2 4A1.6 1.6 0 1 0 5.2 7.2 1.6 1.6 0 0 0 5.2 4zM20 20h-2.5v-5.6c0-1.6-.6-2.6-2-2.6-1 0-1.6.7-1.9 1.4-.1.2-.1.6-.1.9V20H11V9h2.4v1.5c.4-.7 1.3-1.8 3.2-1.8 2.3 0 4 1.5 4 4.8V20z" /></svg>;
+}
+
+function ComplexStage({ tour, introOpen, onEnter }: { tour: TourMedia; introOpen: boolean; onEnter: () => void }) {
   const stageRef = useRef<HTMLDivElement>(null);
   const bgRef = useRef<HTMLCanvasElement>(null);
   const bgNextRef = useRef<HTMLCanvasElement>(null);
@@ -722,13 +826,7 @@ function ComplexStage({ tour }: { tour: TourMedia }) {
 
   return (
     <div className={`app${toolsOpen ? " tools-on" : ""}${layoutReady ? " layout-ready" : ""}${filtersOpen ? " filters-open" : ""}${scene360Strip ? " strip360-on" : ""}${scene360Open ? " scene360-mode" : ""}`}>
-      {!ready && (
-        <div className="boot">
-          {tour.logoUrl ? <img src={tour.logoUrl} alt={tour.name} /> : <p>{tour.name}</p>}
-          <div className="boot-bar"><span style={{ width: `${loadPct}%` }} /></div>
-          <p>{loadPct}%</p>
-        </div>
-      )}
+      {introOpen && <IntroScreen ready={ready} loadPct={loadPct} onEnter={onEnter} />}
       <aside className={`panel ${listOpen && !scene360Open ? "open" : ""} ${formOpen ? "form-wide" : ""} ${filtersOpen ? "filters-on" : ""}`}>
         <button
           className="peek"
