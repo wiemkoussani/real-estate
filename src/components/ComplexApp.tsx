@@ -327,6 +327,21 @@ function ComplexStage({ tour, introOpen, onEnter }: { tour: TourMedia; introOpen
     }
   }, []);
 
+  useEffect(() => {
+    const urls = [...new Set(tour.scenes360.map((scene) => scene.thumbUrl || scene.url).filter(Boolean))];
+    const imgs = urls.map((src) => {
+      const img = new Image();
+      img.src = src;
+      return img;
+    });
+    return () => {
+      imgs.forEach((img) => {
+        img.onload = null;
+        img.onerror = null;
+      });
+    };
+  }, [tour.scenes360]);
+
   useLayoutEffect(() => {
     let phone = isPhoneLayout();
     const apply = (force: boolean) => {
