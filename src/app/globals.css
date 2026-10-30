@@ -162,36 +162,36 @@ body {
   position: relative;
 }
 button.intro-cta {
-  animation: intro-glow 2.4s ease-in-out infinite;
+  animation: intro-glow 2.6s ease-in-out infinite;
 }
-button.intro-cta::before,
-button.intro-cta::after {
+button.intro-cta::before {
   content: "";
   position: absolute;
   inset: 0;
-  border-radius: inherit;
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  box-shadow: 0 0 8px rgba(255, 255, 255, 0.28);
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.85);
   pointer-events: none;
-  animation: intro-ping 2.4s ease-out infinite;
+  animation: intro-ping 2.6s ease-out infinite;
 }
-button.intro-cta::after { animation-delay: 1.2s; }
 @keyframes intro-ping {
-  0% { transform: scale(1); opacity: 0.85; }
-  100% { transform: scale(1.08); opacity: 0; }
+  0% { inset: 0; opacity: 0.9; }
+  100% { inset: -12px; opacity: 0; }
 }
 @keyframes intro-glow {
-  0%, 100% { box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2), inset 0 0 0 1px rgba(255, 255, 255, 0.2); }
-  50% { box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2), inset 0 0 0 1px rgba(255, 255, 255, 0.85); }
+  0%, 100% { box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2), inset 0 0 0 1px rgba(255, 255, 255, 0.22); }
+  50% { box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2), inset 0 0 0 1px rgba(255, 255, 255, 0.9); }
 }
 .intro-count {
+  margin: 45px 0 0;
+  height: 59px;
   display: grid;
   place-items: center;
-  margin-bottom: 0;
   font-family: var(--font-barlow), sans-serif;
-  font-size: 22px;
+  font-weight: 500;
+  font-size: 28px;
   line-height: 1;
-  cursor: default;
+  color: rgba(255, 255, 255, 0.92);
+  pointer-events: none;
 }
 .intro-works {
   position: absolute;
@@ -252,11 +252,12 @@ button.intro-cta::after { animation-delay: 1.2s; }
 .intro-nhc {
   position: absolute;
   z-index: 3;
-  left: 28px;
-  bottom: 36px;
-  height: 52px;
-  width: auto;
+  left: -34px;
+  bottom: 11px;
+  width: 331px;
+  height: 124px;
   object-fit: contain;
+  object-position: left center;
 }
 .intro-social {
   position: absolute;

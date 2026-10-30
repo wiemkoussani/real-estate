@@ -211,7 +211,7 @@ function IntroScreen({ ready, loadPct, onEnter }: { ready: boolean; loadPct: num
         {open ? (
           <button type="button" className="intro-cta" onClick={onEnter}>اكتشف المزيد</button>
         ) : (
-          <p className="intro-cta intro-count" aria-live="polite">{Math.round(loadPct)}%</p>
+          <p className="intro-count" aria-live="polite">{Math.round(loadPct)}%</p>
         )}
       </div>
       <div className="intro-works">
