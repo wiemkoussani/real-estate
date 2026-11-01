@@ -2559,16 +2559,10 @@ html:not(.phone-layout) .scene360-pano {
   overflow: hidden;
   clip-path: inset(0 round 20px);
 }
-html:not(.phone-layout) .app:has(.panel.open) .scene360-pano {
-  left: calc(min(382px, 86vw) + 30px);
-}
 html:not(.phone-layout) .scene360-bar {
   left: 42px;
   right: 42px;
   bottom: 42px;
-}
-html:not(.phone-layout) .app:has(.panel.open) .scene360-bar {
-  left: calc(min(382px, 86vw) + 42px);
 }
 html:not(.phone-layout) .scene360-back {
   top: 42px;
@@ -2581,9 +2575,6 @@ html:not(.phone-layout) .scene360-back {
 html:not(.phone-layout) .scene360-back:hover {
   background: rgba(235, 224, 222, 0.92);
   color: #1b365d;
-}
-html:not(.phone-layout) .app:has(.panel.open) .scene360-back {
-  left: calc(min(382px, 86vw) + 42px);
 }
 html:not(.phone-layout) .scene360-pano canvas {
   border-radius: 20px;
@@ -2728,13 +2719,6 @@ html:not(.phone-layout) .scene360-pano canvas {
 .scene360-back:hover {
   transform: scale(1.04);
   background: #fff;
-}
-.app.scene360-mode .panel {
-  width: 0 !important;
-  height: 0 !important;
-  max-height: 0 !important;
-  pointer-events: none;
-  display: none !important;
 }
 .app.scene360-mode .dock,
 .app.scene360-mode .phone-top,
@@ -3433,9 +3417,9 @@ html:not(.phone-layout) .scene360-pano canvas {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: #1c2430;
-  color: #e8eef3;
-  border: 1px solid rgba(255,255,255,0.08);
+  background: #f7faf9;
+  color: #1b2430;
+  border: 1px solid #e6eaee;
   border-radius: 22px;
   box-shadow: 0 24px 60px rgba(0,0,0,0.45);
   padding: 0;
@@ -3465,13 +3449,13 @@ html:not(.phone-layout) .scene360-pano canvas {
   color: var(--teal);
   margin: 0 0 4px;
 }
-.site-head h2 { font-size: 22px; margin: 0; color: #fff; line-height: 1.35; }
+.site-head h2 { font-size: 22px; margin: 0; color: #1b2430; line-height: 1.35; }
 .site-close {
   width: 32px;
   height: 32px;
   border: 0;
-  background: rgba(255,255,255,0.08);
-  color: #fff;
+  background: #eef2f6;
+  color: #1b2430;
   border-radius: 50%;
   font-size: 20px;
   cursor: pointer;
@@ -3494,7 +3478,7 @@ html:not(.phone-layout) .scene360-pano canvas {
   object-position: center;
   border-radius: 12px;
   display: block;
-  background: #121820;
+  background: #e8eef3;
 }
 .site-photos.n3.tall img {
   height: 100%;
@@ -3511,12 +3495,12 @@ html:not(.phone-layout) .scene360-pano canvas {
   border-radius: 10px;
   margin-bottom: 10px;
   display: block;
-  background: #121820;
+  background: #e8eef3;
 }
-.site-lead { font-size: 15px; line-height: 1.85; color: #c5d0da; margin: 0 0 16px; }
-.site-foot { font-size: 13px; color: #97a3ae; margin-top: 14px; line-height: 1.7; }
+.site-lead { font-size: 15px; line-height: 1.85; color: #3d4a55; margin: 0 0 16px; }
+.site-foot { font-size: 13px; color: #7a8794; margin-top: 14px; line-height: 1.7; }
 .site-view { margin-bottom: 16px; }
-.site-view img { width: 100%; height: min(42vh, 360px); object-fit: cover; border-radius: 16px; display: block; background: #121820; }
+.site-view img { width: 100%; height: min(42vh, 360px); object-fit: cover; border-radius: 16px; display: block; background: #e8eef3; }
 .site-strip { display: flex; gap: 6px; overflow: auto; margin-top: 8px; padding-bottom: 4px; scrollbar-width: none; }
 .site-strip::-webkit-scrollbar { display: none; }
 .site-strip button { border: 2px solid transparent; padding: 0; border-radius: 8px; overflow: hidden; width: 72px; height: 50px; flex: none; cursor: pointer; background: none; }
@@ -3525,13 +3509,13 @@ html:not(.phone-layout) .scene360-pano canvas {
 .site-acc { display: grid; gap: 8px; }
 .site-acc-item {
   text-align: inherit;
-  border: 1px solid rgba(255,255,255,0.08);
-  background: rgba(255,255,255,0.04);
+  border: 1px solid #e6eaee;
+  background: #fff;
   border-radius: 14px;
   padding: 4px 4px 4px;
-  color: #e8eef3;
+  color: #1b2430;
 }
-.site-acc-item.on { background: rgba(45, 206, 137, 0.12); border-color: rgba(45, 206, 137, 0.35); }
+.site-acc-item.on { background: rgba(59, 125, 216, 0.1); border-color: #6ca3de; }
 .site-acc-top {
   display: flex;
   justify-content: space-between;
@@ -3547,28 +3531,28 @@ html:not(.phone-layout) .scene360-pano canvas {
   padding: 10px 12px;
 }
 .site-acc-top strong { font-size: 15px; font-weight: 800; }
-.site-acc-top small { color: #8b98a4; font-size: 12px; white-space: nowrap; }
-.site-acc-body { display: block; padding: 0 12px 12px; font-size: 14px; line-height: 1.85; color: #c5d0da; }
+.site-acc-top small { color: #7a8794; font-size: 12px; white-space: nowrap; }
+.site-acc-body { display: block; padding: 0 12px 12px; font-size: 14px; line-height: 1.85; color: #3d4a55; }
 .site-acc-body p { margin: 0 0 10px; }
 .site-acc-body p:last-child { margin-bottom: 0; }
-.site-acc-body strong { color: #fff; }
+.site-acc-body strong { color: #1b2430; }
 .site-tabs { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
 .site-tabs button {
-  border: 1px solid rgba(255,255,255,0.1);
-  background: rgba(255,255,255,0.06);
+  border: 1px solid #e1e8eb;
+  background: #fff;
   border-radius: 999px;
   padding: 7px 14px;
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
-  color: #c5d0da;
+  color: #3d4a55;
 }
 .site-tabs button.on { background: var(--teal); color: #fff; border-color: var(--teal); }
-.site-panel p { font-size: 15px; line-height: 1.75; color: #c5d0da; margin-bottom: 12px; }
+.site-panel p { font-size: 15px; line-height: 1.75; color: #3d4a55; margin-bottom: 12px; }
 .site-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
 .site-chips span {
-  background: rgba(45, 206, 137, 0.15);
-  color: #7ee0b0;
+  background: rgba(59, 125, 216, 0.12);
+  color: #2b5fad;
   font-size: 11px;
   font-weight: 700;
   padding: 5px 10px;
@@ -3768,7 +3752,7 @@ html:not(.phone-layout) .scene360-pano canvas {
   .poi-panel { border-left: 0; border-top: 1px solid #e6eaee; }
 }
 @media (max-width: 720px) {
-  .site-overlay { padding: 0; background: #1c2430; }
+  .site-overlay { padding: 0; background: #f7faf9; }
   .site-page,
   .site-page.wide {
     width: 100%;
@@ -3797,13 +3781,13 @@ html:not(.phone-layout) .scene360-pano canvas {
   .poi-dest { margin-bottom: 8px; }
   .poi-row { padding: 6px 0; font-size: 12px; gap: 6px; }
 }
-.site-empty { color: #8b98a4; padding: 24px; }
+.site-empty { color: #7a8794; padding: 24px; }
 .gal-stage {
   width: min(1280px, 98vw);
   height: 94vh;
-  background: #10161d;
-  color: #e8eef3;
-  border: 1px solid rgba(255,255,255,0.08);
+  background: #f7faf9;
+  color: #1b2430;
+  border: 1px solid #e6eaee;
   border-radius: 22px;
   box-shadow: 0 24px 60px rgba(0,0,0,0.45);
   overflow: hidden;
@@ -3820,8 +3804,8 @@ html:not(.phone-layout) .scene360-pano canvas {
   height: 40px;
   border: 0;
   border-radius: 50%;
-  background: rgba(8,12,18,0.45);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.9);
+  color: #1b2430;
   font-size: 24px;
   cursor: pointer;
 }
@@ -3838,7 +3822,7 @@ html:not(.phone-layout) .scene360-pano canvas {
   min-height: 100%;
   height: 100%;
   scroll-snap-align: start;
-  background: #10161d;
+  background: #f7faf9;
 }
 .gal-hero img {
   width: 100%;
@@ -3882,7 +3866,7 @@ html:not(.phone-layout) .scene360-pano canvas {
   min-height: 100%;
   box-sizing: border-box;
   scroll-snap-align: start;
-  background: #10161d;
+  background: #f7faf9;
 }
 .gal-board {
   position: relative;
@@ -3892,7 +3876,7 @@ html:not(.phone-layout) .scene360-pano canvas {
   flex: 1;
   min-height: 0;
   box-sizing: border-box;
-  background: #10161d;
+  background: #f7faf9;
 }
 .gal-board-title {
   position: static;
@@ -3900,7 +3884,7 @@ html:not(.phone-layout) .scene360-pano canvas {
   margin: 0;
   padding: 36px 24px 14px;
   text-align: center;
-  color: #fff;
+  color: #1b2430;
   font-size: clamp(20px, 2.6vw, 32px);
   font-weight: 800;
   letter-spacing: 0.14em;
@@ -3914,7 +3898,7 @@ html:not(.phone-layout) .scene360-pano canvas {
   border-radius: 14px;
   overflow: hidden;
   cursor: pointer;
-  background: #1a222c;
+  background: #e8eef3;
   min-height: 0;
 }
 .gal-cell img {
@@ -3968,7 +3952,7 @@ html:not(.phone-layout) .scene360-pano canvas {
   position: absolute;
   inset: 0;
   z-index: 6;
-  background: rgba(6, 10, 16, 0.88);
+  background: rgba(247, 250, 249, 0.92);
   display: grid;
   place-items: center;
   padding: 28px;

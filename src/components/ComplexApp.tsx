@@ -847,7 +847,7 @@ function ComplexStage({ tour, introOpen, onEnter }: { tour: TourMedia; introOpen
   return (
     <div className={`app${toolsOpen ? " tools-on" : ""}${layoutReady ? " layout-ready" : ""}${filtersOpen ? " filters-open" : ""}${scene360Strip ? " strip360-on" : ""}${scene360Open ? " scene360-mode" : ""}`}>
       {introOpen && <IntroScreen ready={ready} loadPct={loadPct} onEnter={onEnter} />}
-      <aside className={`panel ${listOpen && !scene360Open ? "open" : ""} ${formOpen ? "form-wide" : ""} ${filtersOpen ? "filters-on" : ""}`}>
+      <aside className={`panel ${listOpen ? "open" : ""} ${formOpen ? "form-wide" : ""} ${filtersOpen ? "filters-on" : ""}`}>
         <button
           className="peek"
           type="button"
