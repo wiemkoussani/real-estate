@@ -194,6 +194,13 @@ function cardPhoto(tour: TourMedia, unit: Unit) {
 function IntroScreen({ ready, loadPct, onEnter }: { ready: boolean; loadPct: number; onEnter: () => void }) {
   const open = ready || loadPct >= 100;
   const [nhc, setNhc] = useState(true);
+  const [fullOn, setFullOn] = useState(false);
+  useEffect(() => {
+    const sync = () => setFullOn(Boolean(document.fullscreenElement));
+    sync();
+    document.addEventListener("fullscreenchange", sync);
+    return () => document.removeEventListener("fullscreenchange", sync);
+  }, []);
   const full = () => {
     if (document.fullscreenElement) void document.exitFullscreen();
     else void document.documentElement.requestFullscreen();
@@ -218,10 +225,8 @@ function IntroScreen({ ready, loadPct, onEnter }: { ready: boolean; loadPct: num
         <span>تقدم الاشغال</span>
         <b>15%</b>
       </div>
-      <button type="button" className="intro-full" onClick={full} aria-label="ملء الشاشة">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8" aria-hidden>
-          <path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5" />
-        </svg>
+      <button type="button" className="intro-full" onClick={full} aria-label={fullOn ? "خروج من ملء الشاشة" : "ملء الشاشة"}>
+        {fullOn ? <IconFullscreenExit size={22} /> : <IconFullscreen size={22} />}
       </button>
       {nhc && <img className="intro-nhc" src="/complexes/villas-ajyad/nhc.png" alt="NHC" onError={() => setNhc(false)} />}
       <div className="intro-social">
@@ -680,7 +685,6 @@ function ComplexStage({ tour, introOpen, onEnter }: { tour: TourMedia; introOpen
   };
 
   const openScene360 = () => {
-    setFormOpen(false);
     setFiltersOpen(false);
     if (stripClosingRef.current) return;
     const phone = isPhoneLayout();

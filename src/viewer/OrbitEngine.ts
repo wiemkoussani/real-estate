@@ -43,6 +43,7 @@ export class OrbitEngine {
 
   private currentFrame = 0;
   private reportedPct = 0;
+  private openingSharpReady = false;
   private zoom = 1;
   private panX = 0;
   private panY = 0;
@@ -128,6 +129,7 @@ export class OrbitEngine {
   async start() {
     this.bind();
     this.resize();
+    const openingSharp = this.loadOpeningSharp();
     await this.loadOne(0, true);
     void this.loadGlb();
     await this.loadUnits();
@@ -135,9 +137,13 @@ export class OrbitEngine {
     this.draw("low");
     this.loop();
     await this.preloadLow();
+    await openingSharp;
     if (this.disposed) return;
+    this.openingSharpReady = true;
+    this.isNavigating = false;
+    this.draw("high");
+    this.reportLoad(1, 1);
     this.events.onReady?.();
-    this.scheduleUpgrade();
   }
 
   dispose() {
@@ -509,7 +515,8 @@ export class OrbitEngine {
 
   /** Opening photos only. The number climbs with each finished photo and never goes back. */
   private reportLoad(done: number, total: number) {
-    const pct = !total ? 100 : Math.min(100, Math.round((done / total) * 100));
+    let pct = !total ? 100 : Math.min(100, Math.round((done / total) * 100));
+    if (!this.openingSharpReady && pct >= 100) pct = 99;
     if (pct <= this.reportedPct) return;
     this.reportedPct = pct;
     this.events.onLoadProgress?.(pct);
@@ -921,9 +928,10 @@ export class OrbitEngine {
   private highDecodeTarget(img: HTMLImageElement, zoom = this.zoom) {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const { cw } = this.getDrawRect();
+    const viewW = Math.max(cw, window.innerWidth || cw);
     const srcW = img.naturalWidth || this.tour.renderW;
     const srcH = img.naturalHeight || this.tour.renderH;
-    const targetW = Math.min(srcW, MAX_BG_WIDTH, Math.max(1600, Math.ceil(cw * dpr * zoom)));
+    const targetW = Math.min(srcW, MAX_BG_WIDTH, Math.max(1600, Math.ceil(viewW * dpr * zoom)));
     const targetH = Math.round(targetW * (srcH / srcW));
     return { targetW, targetH };
   }
@@ -1021,6 +1029,47 @@ export class OrbitEngine {
     }, COMPLEX.lowResUpgradeDelay);
   }
 
+  /** Sharp photo of the opening view, started with the light photos so it is on screen first. */
+  private loadOpeningSharp(): Promise<void> {
+    const index = this.currentFrame;
+    const src = tourFrameUrl(this.tour, index, "high");
+    if (!src) return Promise.resolve();
+    return new Promise((resolve) => {
+      const done = () => resolve();
+      const image = this.highImages[index] ?? new Image();
+      if (!this.highImages[index]) {
+        image.crossOrigin = "anonymous";
+        this.highImages[index] = image;
+      }
+      const decode = () => {
+        if (this.disposed) {
+          done();
+          return;
+        }
+        if (typeof createImageBitmap !== "function" || !image.naturalWidth) {
+          done();
+          return;
+        }
+        const { targetW, targetH } = this.highDecodeTarget(image);
+        createImageBitmap(image, { resizeWidth: targetW, resizeHeight: targetH, resizeQuality: "high" })
+          .then((bmp) => {
+            this.highBitmaps[index]?.close();
+            this.highBitmaps[index] = bmp;
+            this.highDecodeQueued.add(index);
+            done();
+          })
+          .catch(done);
+      };
+      if (image.complete && image.naturalWidth) {
+        decode();
+        return;
+      }
+      image.onload = () => decode();
+      image.onerror = () => done();
+      if (!image.src) image.src = src;
+    });
+  }
+
   private fadeToHigh(index: number) {
     if (this.skipSharp() || this.turning()) return;
     if (this.isNavigating || this.currentFrame !== index) return;
@@ -1110,10 +1159,10 @@ export class OrbitEngine {
     this.renderer.setViewport(0, 0, cw, ch);
   }
 
-  /** Phone: past 20% zoom, dragging moves the picture and does not orbit. */
+  /** Phone: past 15% zoom, dragging moves the picture and does not orbit. */
   private turnLocked() {
     if (typeof document === "undefined") return false;
-    return document.documentElement.classList.contains("phone-layout") && this.zoom > 1.2;
+    return document.documentElement.classList.contains("phone-layout") && this.zoom > 1.15;
   }
 
   private applyTransform() {
