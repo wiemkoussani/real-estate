@@ -1383,8 +1383,10 @@ body {
   border-color: transparent;
   color: #1A2C5B;
   padding: 16px 12px 16px;
-  overflow: auto;
+  overflow: hidden;
+  scrollbar-width: none;
 }
+.panel-inner.form-mode::-webkit-scrollbar { display: none; }
 .peek {
   position: absolute;
   top: 50%;
@@ -3167,15 +3169,18 @@ html:not(.phone-layout) .scene360-pano canvas {
 .form-mode .err { color: #c24141; text-align: center; }
 
 .form-mode .contact-side {
+  flex: 1;
+  min-height: 0;
   height: auto;
-  min-height: 100%;
-  overflow: visible;
+  overflow: auto;
+  scrollbar-width: none;
   background: #fff;
   border-radius: 20px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
   padding: 16px 16px 20px;
   font-family: var(--font-figma-text), var(--font-inter), sans-serif;
 }
+.form-mode .contact-side::-webkit-scrollbar { display: none; }
 .form-mode .contact-top {
   display: flex;
   align-items: flex-start;
