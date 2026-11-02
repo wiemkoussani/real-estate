@@ -3315,6 +3315,29 @@ html:not(.phone-layout) .scene360-pano canvas {
   color: #fff;
   font-weight: 600;
 }
+.form-mode .contact-genders.bad button:not(.on) {
+  border-color: #e23b3b;
+}
+.form-mode .field-msg {
+  margin: 0;
+  font-weight: 600;
+  font-size: 11px;
+  line-height: 14px;
+  color: #e23b3b;
+  text-align: right;
+}
+.form-mode .form-alert {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fff1f1;
+  border: 1px solid #f3c0c0;
+  color: #e23b3b;
+  font-weight: 600;
+  font-size: 12px;
+  line-height: 16px;
+  text-align: right;
+}
 .form-mode .lead.side label {
   font-weight: 600;
   font-size: 12px;
@@ -3346,6 +3369,11 @@ html:not(.phone-layout) .scene360-pano canvas {
 .form-mode .lead.side textarea::placeholder {
   color: #B0BAC9;
   font-weight: 400;
+}
+.form-mode .lead.side label.bad input,
+.form-mode .lead.side label.bad textarea,
+.form-mode .lead.side label.bad .phone-row select {
+  border-color: #e23b3b;
 }
 .form-mode .lead.side .phone-row {
   gap: 8px;

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const nameDigit = /[0-9\u0660-\u0669\u06F0-\u06F9]/;
+const phoneLetter = /[A-Za-z\u00C0-\u024F\u0600-\u06FF]/;
 const hits = new Map<string, { n: number; t: number }>();
 
 function clientIp(req: Request) {
@@ -29,7 +31,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     const nom = String(body?.nom ?? "").trim().slice(0, 80);
     const prenom = String(body?.prenom ?? "").trim().slice(0, 80);
-    const email = String(body?.email ?? "").trim().slice(0, 120) || "none@lead.local";
+    const email = String(body?.email ?? "").trim().slice(0, 120);
     let tel = String(body?.tel ?? "").trim().slice(0, 40);
     if (tel && !tel.startsWith("+")) {
       const dial = String(body?.dial ?? "+").trim();
@@ -43,13 +45,13 @@ export async function POST(req: Request) {
     const unitDisplayId = body?.unitDisplayId ? String(body.unitDisplayId).slice(0, 40) : null;
     const complex = String(body?.complex ?? "villas-ajyad").slice(0, 80);
 
-    if (!nom || !prenom) {
+    if (!nom || !prenom || nameDigit.test(nom) || nameDigit.test(prenom)) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }
-    if (email !== "none@lead.local" && !emailRe.test(email)) {
+    if (!emailRe.test(email)) {
       return NextResponse.json({ error: "Invalid email" }, { status: 400 });
     }
-    if (!tel && email === "none@lead.local") {
+    if (!tel || phoneLetter.test(tel)) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }
 

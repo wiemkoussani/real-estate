@@ -82,6 +82,38 @@ function telFromForm(fd: FormData) {
   return `${dial}${num.replace(/^0+/, "")}`;
 }
 
+const NAME_DIGIT = /[0-9\u0660-\u0669\u06F0-\u06F9]/;
+const PHONE_LETTER = /[A-Za-z\u00C0-\u024F\u0600-\u06FF]/;
+type ContactIssue = "gender" | "nom" | "prenom" | "email" | "tel";
+
+function emailHasAtAndDot(email: string) {
+  const at = email.indexOf("@");
+  if (at <= 0 || /\s/.test(email) || email.indexOf("@", at + 1) !== -1) return false;
+  const rest = email.slice(at + 1);
+  const dot = rest.indexOf(".");
+  return dot > 0 && dot < rest.length - 1;
+}
+
+function contactIssues(input: { gender: string; nom: string; prenom: string; email: string; tel: string }) {
+  const out: Partial<Record<ContactIssue, string>> = {};
+  if (!input.gender) out.gender = "اختر اللقب: السيدة أو السيد أو لا";
+  if (!input.nom) out.nom = "أدخل اسم العائلة";
+  else if (NAME_DIGIT.test(input.nom)) out.nom = "لا يمكن أن يحتوي اسم العائلة على أرقام";
+  if (!input.prenom) out.prenom = "أدخل الاسم الأول";
+  else if (NAME_DIGIT.test(input.prenom)) out.prenom = "لا يمكن أن يحتوي الاسم الأول على أرقام";
+  if (!input.email) out.email = "أدخل بريدك الإلكتروني";
+  else if (!emailHasAtAndDot(input.email)) out.email = "يجب أن يحتوي البريد على @ ونقطة بعده";
+  if (!input.tel) out.tel = "أدخل رقم هاتفك";
+  else if (PHONE_LETTER.test(input.tel)) out.tel = "لا يمكن أن يحتوي رقم الهاتف على حروف";
+  return out;
+}
+
+function issueCountLine(n: number) {
+  if (n === 1) return "يوجد حقل واحد يحتاج إلى تصحيح قبل الإرسال.";
+  if (n === 2) return "يوجد حقلان يحتاجان إلى تصحيح قبل الإرسال.";
+  return `يوجد ${n} حقول تحتاج إلى تصحيح قبل الإرسال.`;
+}
+
 function PhoneField({ required, placeholder }: { required?: boolean; placeholder?: string }) {
   return (
     <span className="phone-row">
@@ -1532,17 +1564,40 @@ function ContactSidebar({ unit, onBack }: { unit: Unit | null; onBack: () => voi
   const [busy, setBusy] = useState(false);
   const [ok, setOk] = useState(false);
   const [err, setErr] = useState("");
-  const [gender, setGender] = useState("السيدة");
+  const [gender, setGender] = useState("");
+  const [fieldErr, setFieldErr] = useState<Partial<Record<ContactIssue, string>>>({});
+  const issueCount = Object.keys(fieldErr).length;
+
+  const clearIssue = (key: ContactIssue) => {
+    setFieldErr((cur) => {
+      if (!cur[key]) return cur;
+      const next = { ...cur };
+      delete next[key];
+      return next;
+    });
+  };
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setBusy(true);
     setErr("");
     const fd = new FormData(e.currentTarget);
+    const nom = String(fd.get("nom") || "").trim();
+    const prenom = String(fd.get("prenom") || "").trim();
+    const email = String(fd.get("email") || "").trim();
+    const telRaw = String(fd.get("tel") || "").trim();
+    const problems = contactIssues({ gender, nom, prenom, email, tel: telRaw });
+    setFieldErr(problems);
+    if (Object.keys(problems).length) {
+      const form = e.currentTarget;
+      requestAnimationFrame(() => {
+        form.querySelector(".bad, .field-msg")?.scrollIntoView({ block: "nearest" });
+      });
+      return;
+    }
     const payload = {
-      nom: String(fd.get("nom") || "").trim(),
-      prenom: String(fd.get("prenom") || "").trim(),
-      email: String(fd.get("email") || "").trim(),
+      nom,
+      prenom,
+      email,
       tel: telFromForm(fd),
       gender,
       subject: String(fd.get("subject") || "").trim(),
@@ -1552,6 +1607,7 @@ function ContactSidebar({ unit, onBack }: { unit: Unit | null; onBack: () => voi
       unitDisplayId: unit?.displayId ?? null,
       complex: tour.slug,
     };
+    setBusy(true);
     try {
       const res = await fetch("/api/leads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const json = await res.json();
@@ -1592,18 +1648,33 @@ function ContactSidebar({ unit, onBack }: { unit: Unit | null; onBack: () => voi
           <a href={`tel:${COMPLEX.contactTel}`} className="contact-tel">+966 57 555 5782</a>
         </div>
       </div>
-      <form className="lead side" onSubmit={submit}>
+      <form className="lead side" noValidate onSubmit={submit}>
         <p className="contact-ask">تحديد نوع الاستفسار</p>
-        <div className="contact-genders">
+        <div className={`contact-genders${fieldErr.gender ? " bad" : ""}`}>
           {["السيدة", "السيد", "لا"].map((g) => (
-            <button key={g} type="button" className={gender === g ? "on" : ""} onClick={() => setGender(g)}>{g}</button>
+            <button key={g} type="button" className={gender === g ? "on" : ""} onClick={() => { setGender(g); clearIssue("gender"); }}>{g}</button>
           ))}
         </div>
-        <label>اسم العائلة <input name="nom" required autoComplete="family-name" placeholder="أدخل اسم العائلة" /></label>
-        <label>الاسم الأول <input name="prenom" required autoComplete="given-name" placeholder="أدخل الاسم الأول" /></label>
-        <label>البريد الإلكتروني <input name="email" type="email" autoComplete="email" placeholder="أدخل بريدك الإلكتروني" /></label>
-        <label>رقم الهاتف
+        {fieldErr.gender && <p className="field-msg">{fieldErr.gender}</p>}
+        <label className={fieldErr.nom ? "bad" : ""}>
+          اسم العائلة
+          <input name="nom" autoComplete="family-name" placeholder="أدخل اسم العائلة" aria-invalid={fieldErr.nom ? true : undefined} onInput={() => clearIssue("nom")} />
+          {fieldErr.nom && <span className="field-msg">{fieldErr.nom}</span>}
+        </label>
+        <label className={fieldErr.prenom ? "bad" : ""}>
+          الاسم الأول
+          <input name="prenom" autoComplete="given-name" placeholder="أدخل الاسم الأول" aria-invalid={fieldErr.prenom ? true : undefined} onInput={() => clearIssue("prenom")} />
+          {fieldErr.prenom && <span className="field-msg">{fieldErr.prenom}</span>}
+        </label>
+        <label className={fieldErr.email ? "bad" : ""}>
+          البريد الإلكتروني
+          <input name="email" type="email" autoComplete="email" placeholder="أدخل بريدك الإلكتروني" aria-invalid={fieldErr.email ? true : undefined} onInput={() => clearIssue("email")} />
+          {fieldErr.email && <span className="field-msg">{fieldErr.email}</span>}
+        </label>
+        <label className={fieldErr.tel ? "bad" : ""} onInput={() => clearIssue("tel")}>
+          رقم الهاتف
           <PhoneField placeholder="أدخل رقم هاتفك" />
+          {fieldErr.tel && <span className="field-msg">{fieldErr.tel}</span>}
         </label>
         <label>هل لديك رسالة لنا؟
           <textarea name="message" placeholder="اكتب رسالتك هنا..." aria-label="هل لديك رسالة لنا؟" />
@@ -1612,6 +1683,7 @@ function ContactSidebar({ unit, onBack }: { unit: Unit | null; onBack: () => voi
           <input type="checkbox" name="favorites" />
           <span>إرسال إلى المفضلة</span>
         </label>
+        {issueCount > 0 && <p className="form-alert">{issueCountLine(issueCount)}</p>}
         {err && <p className="err">{err}</p>}
         {ok ? <p className="ok">تم الإرسال. سنتواصل معك قريباً.</p> : <button type="submit" disabled={busy}>{busy ? "…" : "إرسال طلبك"}</button>}
       </form>
