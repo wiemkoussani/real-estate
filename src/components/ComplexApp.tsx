@@ -114,6 +114,16 @@ function issueCountLine(n: number) {
   return `يوجد ${n} حقول تحتاج إلى تصحيح قبل الإرسال.`;
 }
 
+function FieldMark() {
+  return (
+    <svg className="field-mark" viewBox="0 0 16 16" width="14" height="14" aria-hidden>
+      <circle cx="8" cy="8" r="8" fill="#D83848" />
+      <path fill="#fff" d="M7.15 3.25h1.7c.22 0 .38.18.36.4l-.42 5.15a.44.44 0 0 1-.88 0L6.8 3.65c-.02-.22.14-.4.35-.4z" />
+      <circle cx="8" cy="12.15" r="1.05" fill="#fff" />
+    </svg>
+  );
+}
+
 function PhoneField({ required, placeholder }: { required?: boolean; placeholder?: string }) {
   return (
     <span className="phone-row">
@@ -1655,26 +1665,26 @@ function ContactSidebar({ unit, onBack }: { unit: Unit | null; onBack: () => voi
             <button key={g} type="button" className={gender === g ? "on" : ""} onClick={() => { setGender(g); clearIssue("gender"); }}>{g}</button>
           ))}
         </div>
-        {fieldErr.gender && <p className="field-msg">{fieldErr.gender}</p>}
+        {fieldErr.gender && <p className="field-msg"><FieldMark />{fieldErr.gender}</p>}
         <label className={fieldErr.nom ? "bad" : ""}>
           اسم العائلة
           <input name="nom" autoComplete="family-name" placeholder="أدخل اسم العائلة" aria-invalid={fieldErr.nom ? true : undefined} onInput={() => clearIssue("nom")} />
-          {fieldErr.nom && <span className="field-msg">{fieldErr.nom}</span>}
+          {fieldErr.nom && <span className="field-msg"><FieldMark />{fieldErr.nom}</span>}
         </label>
         <label className={fieldErr.prenom ? "bad" : ""}>
           الاسم الأول
           <input name="prenom" autoComplete="given-name" placeholder="أدخل الاسم الأول" aria-invalid={fieldErr.prenom ? true : undefined} onInput={() => clearIssue("prenom")} />
-          {fieldErr.prenom && <span className="field-msg">{fieldErr.prenom}</span>}
+          {fieldErr.prenom && <span className="field-msg"><FieldMark />{fieldErr.prenom}</span>}
         </label>
         <label className={fieldErr.email ? "bad" : ""}>
           البريد الإلكتروني
           <input name="email" type="email" autoComplete="email" placeholder="أدخل بريدك الإلكتروني" aria-invalid={fieldErr.email ? true : undefined} onInput={() => clearIssue("email")} />
-          {fieldErr.email && <span className="field-msg">{fieldErr.email}</span>}
+          {fieldErr.email && <span className="field-msg"><FieldMark />{fieldErr.email}</span>}
         </label>
         <label className={fieldErr.tel ? "bad" : ""} onInput={() => clearIssue("tel")}>
           رقم الهاتف
           <PhoneField placeholder="أدخل رقم هاتفك" />
-          {fieldErr.tel && <span className="field-msg">{fieldErr.tel}</span>}
+          {fieldErr.tel && <span className="field-msg"><FieldMark />{fieldErr.tel}</span>}
         </label>
         <label>هل لديك رسالة لنا؟
           <textarea name="message" placeholder="اكتب رسالتك هنا..." aria-label="هل لديك رسالة لنا؟" />
@@ -1683,7 +1693,7 @@ function ContactSidebar({ unit, onBack }: { unit: Unit | null; onBack: () => voi
           <input type="checkbox" name="favorites" />
           <span>إرسال إلى المفضلة</span>
         </label>
-        {issueCount > 0 && <p className="form-alert">{issueCountLine(issueCount)}</p>}
+        {issueCount > 0 && <p className="form-alert"><FieldMark />{issueCountLine(issueCount)}</p>}
         {err && <p className="err">{err}</p>}
         {ok ? <p className="ok">تم الإرسال. سنتواصل معك قريباً.</p> : <button type="submit" disabled={busy}>{busy ? "…" : "إرسال طلبك"}</button>}
       </form>
