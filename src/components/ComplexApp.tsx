@@ -118,8 +118,7 @@ function FieldMark() {
   return (
     <svg className="field-mark" viewBox="0 0 16 16" width="14" height="14" aria-hidden>
       <circle cx="8" cy="8" r="6.35" fill="#fff" stroke="#D83848" strokeWidth="1.6" />
-      <path fill="#D83848" d="M7.25 3.55h1.5c.2 0 .35.16.33.36l-.38 4.75a.38.38 0 0 1-.76 0l-.38-4.75c-.02-.2.13-.36.36-.36z" />
-      <circle cx="8" cy="11.65" r="0.95" fill="#D83848" />
+      <text x="8" y="8.7" textAnchor="middle" dominantBaseline="middle" fill="#D83848" fontSize="11" fontWeight="700" fontFamily="Arial, sans-serif">!</text>
     </svg>
   );
 }
