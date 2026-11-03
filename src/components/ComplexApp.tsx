@@ -729,30 +729,29 @@ function ComplexStage({ tour, introOpen, onEnter }: { tour: TourMedia; introOpen
     setFiltersOpen(false);
     if (stripClosingRef.current) return;
     const phone = isPhoneLayout();
-    setScene360Strip((open) => {
-      if (open) {
-        stripClosingRef.current = true;
-        setStripClosing(true);
-        stripCloseTimer.current = window.setTimeout(() => {
-          stripCloseTimer.current = null;
-          stripClosingRef.current = false;
-          setStripClosing(false);
-          setScene360Strip(false);
-          setScene360Open(false);
-          setActiveSceneId(null);
-        }, 420);
-        return true;
-      }
-      if (phone) setListOpen(false);
-      setScene360Open(false);
-      setActiveSceneId(tour.scenes360[0]?.id ?? null);
-      // Drop focus from the 360 button so arrow keys reach the strip handler.
-      window.setTimeout(() => {
-        (document.activeElement as HTMLElement | null)?.blur?.();
-        stripElRef.current?.focus({ preventScroll: true });
-      }, 30);
-      return true;
-    });
+    if (scene360Strip) {
+      stripClosingRef.current = true;
+      setStripClosing(true);
+      if (stripCloseTimer.current) window.clearTimeout(stripCloseTimer.current);
+      stripCloseTimer.current = window.setTimeout(() => {
+        stripCloseTimer.current = null;
+        stripClosingRef.current = false;
+        setStripClosing(false);
+        setScene360Strip(false);
+        setScene360Open(false);
+        setActiveSceneId(null);
+      }, 420);
+      return;
+    }
+    if (phone) setListOpen(false);
+    setScene360Open(false);
+    setActiveSceneId(tour.scenes360[0]?.id ?? null);
+    setScene360Strip(true);
+    // Drop focus from the 360 button so arrow keys reach the strip handler.
+    window.setTimeout(() => {
+      (document.activeElement as HTMLElement | null)?.blur?.();
+      stripElRef.current?.focus({ preventScroll: true });
+    }, 30);
   };
 
   const openScene360View = (id: string) => {
@@ -1246,11 +1245,17 @@ function ComplexStage({ tour, introOpen, onEnter }: { tour: TourMedia; introOpen
               <span className="rail-name">تواصل</span>
               <span className="rail-ico glass"><IconMail size={20} /></span>
             </button>
-            <button type="button" className="rail-fab" onClick={() => setGalleryOpen(true)}>
+            <button type="button" className="rail-fab" onClick={() => {
+              if (isPhoneLayout()) closeFilters();
+              setGalleryOpen(true);
+            }}>
               <span className="rail-name">المعرض</span>
               <span className="rail-ico glass"><IconGallery size={20} /></span>
             </button>
-            <button type="button" className="rail-fab" onClick={() => setLocationOpen(true)}>
+            <button type="button" className="rail-fab" onClick={() => {
+              if (isPhoneLayout()) closeFilters();
+              setLocationOpen(true);
+            }}>
               <span className="rail-name">الموقع</span>
               <span className="rail-ico glass"><IconPin size={20} /></span>
             </button>

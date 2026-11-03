@@ -2336,8 +2336,7 @@ html.phone-layout .dock.units.cards .unit.leaving {
   from { transform: translateY(0); opacity: 1; }
   to { transform: translateY(120%); opacity: 0; }
 }
-.scene360-strip-dock.open.closing,
-html.phone-layout .scene360-strip-dock.open.closing {
+.scene360-strip-dock.open.closing {
   animation: strip360-down 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
   pointer-events: none;
 }
@@ -4643,6 +4642,12 @@ html.phone-layout .scene360-strip-dock.open {
   /* reset PC absolute anchoring */
   transform-origin: bottom center;
   animation: strip360-up 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.scene360-strip-dock.open.closing,
+html.phone-layout .scene360-strip-dock.open.closing,
+html.phone-layout .hud.strip360-on .scene360-strip-dock.open.closing {
+  animation: strip360-down 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+  pointer-events: none;
 }
 html.phone-layout .hud {
   z-index: 8;
