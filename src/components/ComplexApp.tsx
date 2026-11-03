@@ -1259,7 +1259,10 @@ function ComplexStage({ tour, introOpen, onEnter }: { tour: TourMedia; introOpen
               <span className="rail-name">الموقع</span>
               <span className="rail-ico glass"><IconPin size={20} /></span>
             </button>
-            <button type="button" className="rail-fab" onClick={() => setHelpOpen(true)}>
+            <button type="button" className="rail-fab" onClick={() => {
+              if (isPhoneLayout()) closeFilters();
+              setHelpOpen(true);
+            }}>
               <span className="rail-name">مساعدة</span>
               <span className="rail-ico glass"><IconHelp size={20} /></span>
             </button>
