@@ -522,36 +522,25 @@ export class OrbitEngine {
     this.events.onLoadProgress?.(pct);
   }
 
-  /** Light photos on both sides of the opening view, then the rest without blocking the tour. */
+  /** All light photos before the enter button. The opening sharp photo is awaited separately. */
   private async preloadLow() {
     const total = this.tour.totalFrames;
     if (!total) {
       this.reportLoad(1, 1);
       return;
     }
-    const ring = this.ringAround(this.currentFrame, 8);
-    const pending = ring.filter((idx) => !this.frameReady(idx));
-    let done = ring.length - pending.length;
-    this.reportLoad(done, ring.length);
+    const pending = Array.from({ length: total }, (_, i) => i).filter((idx) => !this.frameReady(idx));
+    let done = total - pending.length;
+    this.reportLoad(done, total);
     const batch = 4;
     for (let start = 0; start < pending.length; start += batch) {
       if (this.disposed) return;
       const slice = pending.slice(start, start + batch);
       await Promise.all(slice.map((idx) => this.loadOne(idx, true)));
       done += slice.length;
-      this.reportLoad(done, ring.length);
+      this.reportLoad(done, total);
     }
-    this.reportLoad(ring.length, ring.length);
-    void this.preloadRest();
-  }
-
-  private async preloadRest() {
-    const total = this.tour.totalFrames;
-    for (let i = 0; i < total; i++) {
-      if (this.disposed) return;
-      if (!this.frameReady(i)) await this.loadOne(i);
-      if (i % 4 === 3) await new Promise((resolve) => setTimeout(resolve, 24));
-    }
+    this.reportLoad(total, total);
   }
 
   private ringAround(current: number, radius: number) {
