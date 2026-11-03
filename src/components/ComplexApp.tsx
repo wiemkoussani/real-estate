@@ -54,24 +54,12 @@ function mediaSrc(url: string | undefined | null) {
 
 const DIAL_CODES = [
   { d: "+966", n: "Arabie saoudite" },
-  { d: "+971", n: "Dubaï / EAU" },
-  { d: "+974", n: "Qatar" },
   { d: "+216", n: "Tunisie" },
-  { d: "+965", n: "Koweït" },
-  { d: "+973", n: "Bahreïn" },
-  { d: "+968", n: "Oman" },
-  { d: "+20", n: "Égypte" },
   { d: "+213", n: "Algérie" },
   { d: "+212", n: "Maroc" },
-  { d: "+218", n: "Libye" },
-  { d: "+33", n: "France" },
-  { d: "+32", n: "Belgique" },
-  { d: "+49", n: "Allemagne" },
-  { d: "+44", n: "Royaume-Uni" },
-  { d: "+39", n: "Italie" },
-  { d: "+34", n: "Espagne" },
-  { d: "+1", n: "USA / Canada" },
-  { d: "+90", n: "Turquie" },
+  { d: "+20", n: "Égypte" },
+  { d: "+971", n: "EAU" },
+  { d: "+965", n: "Koweït" },
 ];
 
 function telFromForm(fd: FormData) {
@@ -1506,10 +1494,10 @@ function ComplexStage({ tour, introOpen, onEnter }: { tour: TourMedia; introOpen
 
       <div
         ref={dockRef}
-        className={`dock units cards${scene360Strip || scene360Open ? " tuck" : ""}`}
+        className={`dock units cards${(scene360Strip && !stripClosing) || scene360Open ? " tuck" : ""}`}
         onPointerDown={(e) => e.stopPropagation()}
         onMouseDown={(e) => e.stopPropagation()}
-        aria-hidden={scene360Strip || scene360Open}
+        aria-hidden={(scene360Strip && !stripClosing) || scene360Open}
       >
         {filtered.map((u) => {
           const photo = cardPhoto(tour, u);
@@ -1524,7 +1512,7 @@ function ComplexStage({ tour, introOpen, onEnter }: { tour: TourMedia; introOpen
               onMouseEnter={() => engineRef.current?.setPreview(u.id)}
               onMouseLeave={() => engineRef.current?.setPreview(null)}
               onClick={() => openUnit(u)}
-              tabIndex={scene360Strip || scene360Open ? -1 : 0}
+              tabIndex={(scene360Strip && !stripClosing) || scene360Open ? -1 : 0}
             >
               <div className="card-side">
                 {photo ? <img src={photo} alt="" /> : <span className="card-img-fallback" />}
