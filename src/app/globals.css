@@ -4262,7 +4262,7 @@ html.phone-layout .intro-social > div {
 }
 html.phone-layout .intro-nhc {
   left: auto;
-  right: 2px;
+  right: -14px;
   top: 16px;
   bottom: auto;
   width: 186px;
