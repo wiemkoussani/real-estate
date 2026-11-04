@@ -425,8 +425,8 @@ function ComplexStage({ tour, introOpen, onEnter }: { tour: TourMedia; introOpen
     if (!q) return;
     const hasExact = Number.isFinite(tour.locationLat) && Number.isFinite(tour.locationLng);
     const key = hasExact
-      ? `poi-map-v15:${tour.locationLat.toFixed(5)},${tour.locationLng.toFixed(5)}`
-      : `poi-map-v15:${q}`;
+      ? `poi-map-v16:${tour.locationLat.toFixed(5)},${tour.locationLng.toFixed(5)}`
+      : `poi-map-v16:${q}`;
     try {
       const raw = sessionStorage.getItem(key);
       if (raw) {

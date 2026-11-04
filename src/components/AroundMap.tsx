@@ -53,7 +53,7 @@ export function AroundMap({
   useEffect(() => {
     let stop = false;
     const hasExact = Number.isFinite(lat) && Number.isFinite(lng);
-    const key = hasExact ? `poi-map-v15:${lat!.toFixed(5)},${lng!.toFixed(5)}` : `poi-map-v15:${query}`;
+    const key = hasExact ? `poi-map-v16:${lat!.toFixed(5)},${lng!.toFixed(5)}` : `poi-map-v16:${query}`;
     const aroundUrl = (extra: string) =>
       hasExact
         ? `/api/maps/around?lat=${lat}&lng=${lng}&address=${encodeURIComponent(query)}&${extra}`

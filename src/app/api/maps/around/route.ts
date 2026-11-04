@@ -290,7 +290,7 @@ function nearAjyad(lat: number, lng: number) {
 /** ~16 km cells so nearby pin sets can be reused when the home pin moves slightly. */
 function regionKey(lat: number, lng: number, light: boolean) {
   const cell = (v: number) => (Math.round(v / 0.15) * 0.15).toFixed(2);
-  return `v18r:${cell(lat)}:${cell(lng)}${light ? ":l" : ""}`;
+  return `v19r:${cell(lat)}:${cell(lng)}${light ? ":l" : ""}`;
 }
 
 async function loadPlaces(lat: number, lng: number, light: boolean, address?: string): Promise<PoiPlace[]> {
@@ -301,15 +301,15 @@ async function loadPlaces(lat: number, lng: number, light: boolean, address?: st
   if (light) {
     if (seed.length) return mergePlaces(seed, [], 6, 78);
     const photon = await Promise.race([
-      photonPlacesLight(lat, lng, { city, radiusKm: 6, timeoutMs: 900, limit: 6 }),
+      photonPlacesLight(lat, lng, { city, radiusKm: 10, timeoutMs: 900, limit: 6 }),
       new Promise<PoiPlace[]>((resolve) => setTimeout(() => resolve([]), 1000)),
     ]);
     return mergePlaces(photon, [], 6, 78);
   }
 
   // Full path: give Overpass more time (what used to fill the map), Photon as backup.
-  const photonP = photonPlacesLight(lat, lng, { city, radiusKm: 6, timeoutMs: 2500, limit: 10 });
-  const overP = overpassPlaces(lat, lng, { timeout: 20, radius: 6000, signalMs: 18000 });
+  const photonP = photonPlacesLight(lat, lng, { city, radiusKm: 10, timeoutMs: 2500, limit: 10 });
+  const overP = overpassPlaces(lat, lng, { timeout: 20, radius: 10000, signalMs: 18000 });
   const [photon, over] = await Promise.all([
     Promise.race([
       photonP,
@@ -342,7 +342,7 @@ export async function GET(req: Request) {
   let address = sp.get("address") || "";
 
   if (q && q.length >= 2) {
-    const qkey = `v18:${q.toLowerCase()}${light ? ":l" : ""}`;
+    const qkey = `v19:${q.toLowerCase()}${light ? ":l" : ""}`;
     const hit = cached(qkey, 30 * 60_000);
     if (hit && !fast) return jsonOk(hit);
 
@@ -358,7 +358,7 @@ export async function GET(req: Request) {
     return jsonOk({ lat, lng, address: address || q || "", places: [] }, 300);
   }
 
-  const pkey = `v18p:${lat.toFixed(4)}:${lng.toFixed(4)}${light ? ":l" : ""}`;
+  const pkey = `v19p:${lat.toFixed(4)}:${lng.toFixed(4)}${light ? ":l" : ""}`;
   const rkey = regionKey(lat, lng, light);
   const phit = cached(pkey, 30 * 60_000) as { places?: PoiPlace[] } | null;
   if (phit?.places?.length) return jsonOk({ ...phit, lat, lng, address: address || (phit as { address?: string }).address || "" });
@@ -376,7 +376,7 @@ export async function GET(req: Request) {
   if (places.length) {
     putCache(pkey, body);
     putCache(rkey, body);
-    if (q && q.length >= 2) putCache(`v18:${q.toLowerCase()}${light ? ":l" : ""}`, body);
+    if (q && q.length >= 2) putCache(`v19:${q.toLowerCase()}${light ? ":l" : ""}`, body);
   }
   return jsonOk(body);
 }
