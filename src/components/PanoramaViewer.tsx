@@ -21,6 +21,7 @@ export default function PanoramaViewer({ src, className }: Props) {
     camera.position.set(0, 0, 0.01);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     const canvas = renderer.domElement;
     canvas.style.width = "100%";
@@ -48,8 +49,11 @@ export default function PanoramaViewer({ src, className }: Props) {
           return;
         }
         tex.colorSpace = THREE.SRGBColorSpace;
-        tex.minFilter = THREE.LinearFilter;
+        // Mipmaps reduce shimmering/pixelation when the sphere is large on screen.
+        tex.generateMipmaps = true;
+        tex.minFilter = THREE.LinearMipmapLinearFilter;
         tex.magFilter = THREE.LinearFilter;
+        tex.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
         mat.map = tex;
         mat.color.set(0xffffff);
         mat.needsUpdate = true;
@@ -60,7 +64,9 @@ export default function PanoramaViewer({ src, className }: Props) {
       },
     );
 
-    let lon = 0;
+    // Start facing the equirect center (u=0.5), not the left/right wrap seam (u=0).
+    // With SphereGeometry + scale(-1,1,1), lon=0 looks at the seam; lon=180 faces the middle.
+    let lon = 180;
     let lat = 0;
     let dragging = false;
     let lastX = 0;
