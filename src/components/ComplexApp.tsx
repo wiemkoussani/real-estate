@@ -425,8 +425,8 @@ function ComplexStage({ tour, introOpen, onEnter }: { tour: TourMedia; introOpen
     if (!q) return;
     const hasExact = Number.isFinite(tour.locationLat) && Number.isFinite(tour.locationLng);
     const key = hasExact
-      ? `poi-map-v11:${tour.locationLat.toFixed(5)},${tour.locationLng.toFixed(5)}`
-      : `poi-map-v11:${q}`;
+      ? `poi-map-v12:${tour.locationLat.toFixed(5)},${tour.locationLng.toFixed(5)}`
+      : `poi-map-v12:${q}`;
     try {
       const raw = sessionStorage.getItem(key);
       if (raw) {
@@ -437,8 +437,8 @@ function ComplexStage({ tour, introOpen, onEnter }: { tour: TourMedia; introOpen
       /* ignore */
     }
     const url = hasExact
-      ? `/api/maps/around?lat=${tour.locationLat}&lng=${tour.locationLng}&address=${encodeURIComponent(q)}&light=1&pins=2`
-      : `/api/maps/around?q=${encodeURIComponent(q)}&light=1&pins=2`;
+      ? `/api/maps/around?lat=${tour.locationLat}&lng=${tour.locationLng}&address=${encodeURIComponent(q)}&light=1`
+      : `/api/maps/around?q=${encodeURIComponent(q)}&light=1`;
     const run = () => {
       void fetch(url)
         .then((r) => r.json())

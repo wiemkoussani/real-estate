@@ -53,18 +53,15 @@ export function AroundMap({
   useEffect(() => {
     let stop = false;
     const hasExact = Number.isFinite(lat) && Number.isFinite(lng);
-    const key = hasExact ? `poi-map-v11:${lat!.toFixed(5)},${lng!.toFixed(5)}` : `poi-map-v11:${query}`;
+    const key = hasExact ? `poi-map-v12:${lat!.toFixed(5)},${lng!.toFixed(5)}` : `poi-map-v12:${query}`;
     const aroundUrl = (extra: string) =>
       hasExact
         ? `/api/maps/around?lat=${lat}&lng=${lng}&address=${encodeURIComponent(query)}&${extra}`
         : `/api/maps/around?q=${encodeURIComponent(query)}&${extra}`;
     let hadGoodCache = false;
     try {
-      const tryKeys = [key];
-      // Same-version cache only (v10 = 6 km, 6 pins/type).
-      for (const k of tryKeys) {
-        const raw = sessionStorage.getItem(k);
-        if (!raw) continue;
+      const raw = sessionStorage.getItem(key);
+      if (raw) {
         const saved = JSON.parse(raw) as Payload;
         if (saved?.places?.length) {
           const pinned = hasExact
@@ -72,9 +69,7 @@ export function AroundMap({
             : saved;
           setData(pinned);
           hadGoodCache = true;
-          break;
-        }
-        if (saved?.lat && !hasExact) {
+        } else if (saved?.lat && !hasExact) {
           setData({ ...saved, places: saved.places || [] });
         }
       }
@@ -83,23 +78,18 @@ export function AroundMap({
     }
     (async () => {
       try {
+        // Paint the map center immediately (exact pin or fast geocode).
         if (!hadGoodCache) {
           if (hasExact) {
             setErr("");
-            setData((prev) =>
-              prev?.places?.length
-                ? prev
-                : { lat: lat!, lng: lng!, address: query, places: [] },
-            );
+            setData({ lat: lat!, lng: lng!, address: query, places: [] });
           } else {
-            const fastRes = await fetch(aroundUrl("fast=1"));
+            const fastRes = await fetch(aroundUrl("fast=1"), { signal: AbortSignal.timeout(5000) });
             const fast = (await fastRes.json()) as Payload & { error?: string };
             if (stop) return;
             if (fastRes.ok && fast.lat) {
               setErr("");
-              setData((prev) =>
-                prev?.places?.length ? prev : { lat: fast.lat, lng: fast.lng, address: fast.address, places: [] },
-              );
+              setData({ lat: fast.lat, lng: fast.lng, address: fast.address, places: [] });
             } else {
               setErr("تعذر تحميل الخريطة");
               return;
@@ -107,25 +97,40 @@ export function AroundMap({
           }
         }
 
-        // Always refresh pins in background; show cache first when available.
-        if (!hadGoodCache) setPlacesLoading(true);
-        const lightRes = await fetch(aroundUrl("light=1&pins=2"));
+        setPlacesLoading(true);
+        // Fast path: seed + Photon (no Overpass wait).
+        const lightRes = await fetch(aroundUrl("light=1"), { signal: AbortSignal.timeout(10000) });
         const light = (await lightRes.json()) as Payload & { error?: string };
         if (stop) return;
-        if (!lightRes.ok) {
-          if (!hadGoodCache && !hasExact) setErr("تعذر تحميل الأماكن");
-          return;
-        }
-        if (light.places?.length) {
+        if (lightRes.ok && light.places?.length) {
           setData(light);
           try {
             sessionStorage.setItem(key, JSON.stringify(light));
           } catch {
             /* ignore */
           }
-        } else if (!hadGoodCache) {
-          setData(light);
         }
+
+        // Optional enrich in background (still capped server-side).
+        void fetch(aroundUrl(""), { signal: AbortSignal.timeout(12000) })
+          .then(async (fullRes) => {
+            if (!fullRes.ok || stop) return;
+            const full = (await fullRes.json()) as Payload;
+            if (!full.places?.length) return;
+            setData((prev) => {
+              const better = !prev?.places?.length || full.places.length >= (prev.places.length || 0);
+              if (!better) return prev;
+              try {
+                sessionStorage.setItem(key, JSON.stringify(full));
+              } catch {
+                /* ignore */
+              }
+              return full;
+            });
+          })
+          .catch(() => {
+            /* keep light pins */
+          });
       } catch {
         if (!stop && !hadGoodCache) setErr("تعذر تحميل الخريطة");
       } finally {
