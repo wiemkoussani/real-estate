@@ -136,22 +136,24 @@ export function buildScenes360(paths: string[]): TourScene360[] {
     list.push(path);
     groups.set(key, list);
   }
-  return [...groups.entries()]
-    .sort((a, b) => sceneSortKey(a[0]) - sceneSortKey(b[0]) || a[0].localeCompare(b[0]))
-    .map(([key, list]) => {
-      const sorted = [...list].sort((a, b) => Number(isPanoramaPreferred(b)) - Number(isPanoramaPreferred(a)));
-      const url = sorted.find(isPanoramaPreferred) || sorted[0];
-      // Thumb-only groups (no panorama) are skipped — wait for full scene upload.
-      if (!sorted.find(isPanoramaPreferred) && list.every(isThumbPath)) return null;
-      const thumb = list.find(isThumbPath) || url;
-      return {
-        id: key.toLowerCase().replace(/\s+/g, "-"),
-        label: humanizeSceneLabel(key),
-        url,
-        thumbUrl: thumb,
-      };
-    })
-    .filter((s): s is TourScene360 => Boolean(s));
+  const scenes: TourScene360[] = [];
+  const ordered = [...groups.entries()].sort(
+    (a, b) => sceneSortKey(a[0]) - sceneSortKey(b[0]) || a[0].localeCompare(b[0]),
+  );
+  for (const [key, list] of ordered) {
+    const sorted = [...list].sort((a, b) => Number(isPanoramaPreferred(b)) - Number(isPanoramaPreferred(a)));
+    // Thumb-only groups (no panorama) are skipped — wait for full scene upload.
+    if (!sorted.find(isPanoramaPreferred) && list.every(isThumbPath)) continue;
+    const url = sorted.find(isPanoramaPreferred) || sorted[0];
+    const thumb = list.find(isThumbPath) || url;
+    scenes.push({
+      id: key.toLowerCase().replace(/\s+/g, "-"),
+      label: humanizeSceneLabel(key),
+      url,
+      thumbUrl: thumb,
+    });
+  }
+  return scenes;
 }
 
 export function localScenes360Fallback(slug: string): TourScene360[] {
