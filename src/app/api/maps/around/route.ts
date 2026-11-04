@@ -290,29 +290,32 @@ function nearAjyad(lat: number, lng: number) {
 /** ~16 km cells so nearby pin sets can be reused when the home pin moves slightly. */
 function regionKey(lat: number, lng: number, light: boolean) {
   const cell = (v: number) => (Math.round(v / 0.15) * 0.15).toFixed(2);
-  return `v16r:${cell(lat)}:${cell(lng)}${light ? ":l" : ""}`;
+  return `v17r:${cell(lat)}:${cell(lng)}${light ? ":l" : ""}`;
 }
 
 async function loadPlaces(lat: number, lng: number, light: boolean, address?: string): Promise<PoiPlace[]> {
   const city = cityHint(address);
   const seed = nearAjyad(lat, lng) ? AJYAD_POI_SEED : [];
 
-  // Photon-first (fast). Skip Overpass on light so Vercel never 504s waiting on dead mirrors.
-  // Keep pins close to the villa — city-center Photon hits look "éloignés".
-  const photon = await photonPlacesLight(lat, lng, {
-    city,
-    radiusKm: 5,
-    timeoutMs: light ? 2000 : 2800,
-    limit: light ? 8 : 12,
-  });
+  // Light path must answer instantly for the map UI.
+  // Ajyad: return the local seed only (Photon/Overpass enrich on the full call).
+  if (light) {
+    if (seed.length) return mergePlaces(seed, [], 6, 78);
+    const photon = await Promise.race([
+      photonPlacesLight(lat, lng, { city, radiusKm: 5, timeoutMs: 900, limit: 6 }),
+      new Promise<PoiPlace[]>((resolve) => setTimeout(() => resolve([]), 1000)),
+    ]);
+    return mergePlaces(photon, [], 6, 78);
+  }
 
-  if (light) return mergePlaces(seed, photon, 6, 78);
-
+  // Full path: short Photon + short Overpass races, never hang the request.
+  const photon = await Promise.race([
+    photonPlacesLight(lat, lng, { city, radiusKm: 5, timeoutMs: 1500, limit: 10 }),
+    new Promise<PoiPlace[]>((resolve) => setTimeout(() => resolve([]), 1600)),
+  ]);
   const over = await Promise.race([
-    overpassPlaces(lat, lng, { timeout: 6, radius: 5000, signalMs: 4500 }),
-    new Promise<PoiPlace[]>((resolve) => {
-      setTimeout(() => resolve([]), 4000);
-    }),
+    overpassPlaces(lat, lng, { timeout: 5, radius: 5000, signalMs: 2500 }),
+    new Promise<PoiPlace[]>((resolve) => setTimeout(() => resolve([]), 2600)),
   ]);
   return mergePlaces(mergePlaces(seed, photon, 8, 90), over, 8, 90);
 }
@@ -339,7 +342,7 @@ export async function GET(req: Request) {
   let address = sp.get("address") || "";
 
   if (q && q.length >= 2) {
-    const qkey = `v16:${q.toLowerCase()}${light ? ":l" : ""}`;
+    const qkey = `v17:${q.toLowerCase()}${light ? ":l" : ""}`;
     const hit = cached(qkey, 30 * 60_000);
     if (hit && !fast) return jsonOk(hit);
 
@@ -355,7 +358,7 @@ export async function GET(req: Request) {
     return jsonOk({ lat, lng, address: address || q || "", places: [] }, 300);
   }
 
-  const pkey = `v16p:${lat.toFixed(4)}:${lng.toFixed(4)}${light ? ":l" : ""}`;
+  const pkey = `v17p:${lat.toFixed(4)}:${lng.toFixed(4)}${light ? ":l" : ""}`;
   const rkey = regionKey(lat, lng, light);
   const phit = cached(pkey, 30 * 60_000) as { places?: PoiPlace[] } | null;
   if (phit?.places?.length) return jsonOk({ ...phit, lat, lng, address: address || (phit as { address?: string }).address || "" });
@@ -373,7 +376,7 @@ export async function GET(req: Request) {
   if (places.length) {
     putCache(pkey, body);
     putCache(rkey, body);
-    if (q && q.length >= 2) putCache(`v16:${q.toLowerCase()}${light ? ":l" : ""}`, body);
+    if (q && q.length >= 2) putCache(`v17:${q.toLowerCase()}${light ? ":l" : ""}`, body);
   }
   return jsonOk(body);
 }
