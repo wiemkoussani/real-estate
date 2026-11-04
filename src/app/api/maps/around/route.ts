@@ -298,9 +298,10 @@ async function loadPlaces(lat: number, lng: number, light: boolean, address?: st
   const seed = nearAjyad(lat, lng) ? AJYAD_POI_SEED : [];
 
   // Photon-first (fast). Skip Overpass on light so Vercel never 504s waiting on dead mirrors.
+  // Keep pins close to the villa — city-center Photon hits look "éloignés".
   const photon = await photonPlacesLight(lat, lng, {
     city,
-    radiusKm: 12,
+    radiusKm: 5,
     timeoutMs: light ? 2000 : 2800,
     limit: light ? 8 : 12,
   });
@@ -308,7 +309,7 @@ async function loadPlaces(lat: number, lng: number, light: boolean, address?: st
   if (light) return mergePlaces(seed, photon, 6, 78);
 
   const over = await Promise.race([
-    overpassPlaces(lat, lng, { timeout: 6, radius: 6000, signalMs: 4500 }),
+    overpassPlaces(lat, lng, { timeout: 6, radius: 5000, signalMs: 4500 }),
     new Promise<PoiPlace[]>((resolve) => {
       setTimeout(() => resolve([]), 4000);
     }),
