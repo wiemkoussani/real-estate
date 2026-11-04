@@ -855,7 +855,7 @@ function ComplexStage({ tour, introOpen, onEnter }: { tour: TourMedia; introOpen
       scene360ClosingRef.current = false;
       setScene360Closing(false);
       setScene360Open(false);
-    }, 300);
+    }, 420);
   };
 
   const activeScene = tour.scenes360.find((s) => s.id === activeSceneId) || null;

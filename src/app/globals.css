@@ -2524,13 +2524,13 @@ html.phone-layout .dock.units.cards .unit.leaving {
   inset: 0;
   z-index: 40;
   pointer-events: none;
-  animation: scene360-fade-in 0.32s ease both;
+  animation: scene360-fade-in 0.45s ease both;
 }
 .scene360-overlay > * {
   pointer-events: auto;
 }
 .scene360-overlay.closing {
-  animation: scene360-fade-out 0.3s ease both;
+  animation: scene360-fade-out 0.4s ease both;
   pointer-events: none;
 }
 @keyframes scene360-fade-in {
@@ -4895,7 +4895,7 @@ html.phone-layout .detail-side { max-height: 42vh; }
 
 /* Premium micro-interactions — map / gallery / filters / HUD / rail (not Enter Maquette) */
 .rail-fab .rail-ico {
-  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, color 0.18s ease;
+  transition: transform 0.32s ease, box-shadow 0.32s ease, background 0.32s ease, color 0.32s ease;
 }
 .rail-fab:hover .rail-ico.glass,
 .rail-fab:focus-visible .rail-ico.glass {
@@ -4938,12 +4938,12 @@ html.phone-layout .detail-side { max-height: 42vh; }
 .gal-cell,
 .dock.units .unit {
   transition:
-    transform 0.16s ease,
-    background 0.16s ease,
-    border-color 0.16s ease,
-    box-shadow 0.16s ease,
-    color 0.16s ease,
-    opacity 0.16s ease;
+    transform 0.3s ease,
+    background 0.3s ease,
+    border-color 0.3s ease,
+    box-shadow 0.3s ease,
+    color 0.3s ease,
+    opacity 0.3s ease;
 }
 
 .hud-tools button:hover,
@@ -5033,11 +5033,11 @@ html.phone-layout .detail-side { max-height: 42vh; }
 }
 
 .site-overlay {
-  animation: ui-overlay-in 0.28s ease both;
+  animation: ui-overlay-in 0.4s ease both;
 }
 .site-page,
 .gal-stage {
-  animation: ui-sheet-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: ui-sheet-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 @keyframes ui-overlay-in {
   from { opacity: 0; }
@@ -5059,7 +5059,7 @@ html.phone-layout .detail-side { max-height: 42vh; }
 }
 
 .site-tabs button {
-  transition: transform 0.16s ease, background 0.16s ease, border-color 0.16s ease, color 0.16s ease, box-shadow 0.16s ease;
+  transition: transform 0.3s ease, background 0.3s ease, border-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
 }
 .site-tabs button:hover {
   transform: translateY(-1px);
@@ -5076,7 +5076,7 @@ html.phone-layout .detail-side { max-height: 42vh; }
   transform: scale(1.03);
 }
 .gal-cell img {
-  transition: transform 0.35s ease;
+  transition: transform 0.45s ease;
 }
 .gal-cell:active {
   transform: scale(0.99);
