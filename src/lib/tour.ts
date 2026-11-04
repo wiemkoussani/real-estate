@@ -116,14 +116,22 @@ function isPanoramaPreferred(path: string) {
   return true;
 }
 
+/** Strip thumb suffixes so `1-thumb.webp` groups with `1.webp`. */
+function sceneGroupKey(rel: string) {
+  const parts = rel.split("/").filter(Boolean);
+  if (!parts.length) return "";
+  if (parts.length >= 2) return parts[0];
+  const base = parts[0].replace(/\.[^.]+$/, "");
+  return base.replace(/[-_]?(thumb|thumbnail|_sm|_small)$/i, "") || base;
+}
+
 /** One scene per top-level folder (cover = first image), or one scene per flat file. */
 export function buildScenes360(paths: string[]): TourScene360[] {
   const groups = new Map<string, string[]>();
   for (const path of paths) {
     const rel = relAfterKind("scene_360", path);
-    const parts = rel.split("/").filter(Boolean);
-    if (!parts.length) continue;
-    const key = parts.length >= 2 ? parts[0] : parts[0].replace(/\.[^.]+$/, "");
+    const key = sceneGroupKey(rel);
+    if (!key) continue;
     const list = groups.get(key) || [];
     list.push(path);
     groups.set(key, list);
@@ -133,6 +141,8 @@ export function buildScenes360(paths: string[]): TourScene360[] {
     .map(([key, list]) => {
       const sorted = [...list].sort((a, b) => Number(isPanoramaPreferred(b)) - Number(isPanoramaPreferred(a)));
       const url = sorted.find(isPanoramaPreferred) || sorted[0];
+      // Thumb-only groups (no panorama) are skipped — wait for full scene upload.
+      if (!sorted.find(isPanoramaPreferred) && list.every(isThumbPath)) return null;
       const thumb = list.find(isThumbPath) || url;
       return {
         id: key.toLowerCase().replace(/\s+/g, "-"),
@@ -140,7 +150,8 @@ export function buildScenes360(paths: string[]): TourScene360[] {
         url,
         thumbUrl: thumb,
       };
-    });
+    })
+    .filter((s): s is TourScene360 => Boolean(s));
 }
 
 export function localScenes360Fallback(slug: string): TourScene360[] {
@@ -152,7 +163,7 @@ export function localScenes360Fallback(slug: string): TourScene360[] {
       id: String(n),
       label: "",
       url: `/complexes/${slug}/scene_360/${n}.jpg`,
-      thumbUrl: `/complexes/${slug}/scene_360/${n}-thumb.png`,
+      thumbUrl: `/complexes/${slug}/scene_360/${n}-thumb.webp`,
     };
   });
 }

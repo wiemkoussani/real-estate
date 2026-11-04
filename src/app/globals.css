@@ -2519,6 +2519,34 @@ html.phone-layout .dock.units.cards .unit.leaving {
 }
 .rail.is-hidden { display: none; }
 
+.scene360-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+  animation: scene360-fade-in 0.32s ease both;
+}
+.scene360-overlay > * {
+  pointer-events: auto;
+}
+.scene360-overlay.closing {
+  animation: scene360-fade-out 0.3s ease both;
+  pointer-events: none;
+}
+@keyframes scene360-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes scene360-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+html:not(.phone-layout) .scene360-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+}
+
 .scene360-view {
   position: absolute;
   inset: 0;
@@ -4862,5 +4890,41 @@ html.phone-layout .detail-side { max-height: 42vh; }
   html:not(.phone-layout) .dock,
   html:not(.phone-layout) .dock.units.cards {
     display: none !important;
+  }
+}
+
+/* Accessibility: calm motion when the OS asks for reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .intro-cta::before,
+  .intro-cta::after,
+  .intro-cta > span::before,
+  .heart.on,
+  .heart.on::after {
+    animation: none !important;
+  }
+
+  .scene360-overlay,
+  .scene360-overlay.closing {
+    animation: none !important;
+    opacity: 1;
+  }
+  .scene360-overlay.closing {
+    opacity: 0;
+  }
+
+  html.phone-layout .hud.strip360-on .scene360-strip-dock.open,
+  html.phone-layout .hud.strip360-on .scene360-strip-dock.open.closing,
+  .scene360-strip-dock.open,
+  .scene360-strip-dock.open.closing {
+    animation: none !important;
   }
 }

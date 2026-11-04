@@ -212,9 +212,16 @@ export default function ComplexApp({ slug, initialTour }: { slug: string; initia
 }
 
 function cardPhoto(tour: TourMedia, unit: Unit) {
+  // Prefer ≤20KB card thumbs when present; keep full plans for detail/hover.
+  const thumb =
+    tour.plans[`type-${unit.type}-thumb.webp`] ||
+    tour.plans[`type-${unit.type}-thumb.jpg`] ||
+    Object.entries(tour.plans).find(([k]) => k.includes(`type-${unit.type}`) && /thumb/i.test(k))?.[1] ||
+    "";
+  if (thumb) return thumb;
   const plan = tourPlanUrl(tour, unit);
   if (plan) return plan;
-  const byType = Object.entries(tour.plans).find(([k]) => k.includes(`type-${unit.type}`));
+  const byType = Object.entries(tour.plans).find(([k]) => k.includes(`type-${unit.type}`) && !/thumb/i.test(k));
   if (byType) return byType[1];
   const plans = Object.values(tour.plans).filter(Boolean);
   return plans[0] || "";
@@ -337,6 +344,9 @@ function ComplexStage({ tour, introOpen, onEnter }: { tour: TourMedia; introOpen
   const stripClosingRef = useRef(false);
   const stripCloseTimer = useRef<number | null>(null);
   const [scene360Open, setScene360Open] = useState(false);
+  const [scene360Closing, setScene360Closing] = useState(false);
+  const scene360ClosingRef = useRef(false);
+  const scene360CloseTimer = useRef<number | null>(null);
   const [activeSceneId, setActiveSceneId] = useState<string | null>(null);
   const rotateHoldRef = useRef<number | null>(null);
   const zoomHoldRef = useRef<number | null>(null);
@@ -399,6 +409,13 @@ function ComplexStage({ tour, introOpen, onEnter }: { tour: TourMedia; introOpen
     return () => {
       window.removeEventListener("resize", onResize);
       mq.removeEventListener("change", onResize);
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (scene360CloseTimer.current) window.clearTimeout(scene360CloseTimer.current);
+      if (stripCloseTimer.current) window.clearTimeout(stripCloseTimer.current);
     };
   }, []);
 
@@ -742,8 +759,17 @@ function ComplexStage({ tour, introOpen, onEnter }: { tour: TourMedia; introOpen
     }, 30);
   };
 
+  const prefersReducedMotion = () =>
+    typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
   const openScene360View = (id: string) => {
     if (stripDragRef.current) return;
+    if (scene360CloseTimer.current) {
+      window.clearTimeout(scene360CloseTimer.current);
+      scene360CloseTimer.current = null;
+    }
+    scene360ClosingRef.current = false;
+    setScene360Closing(false);
     setActiveSceneId(id);
     setScene360Open(true);
   };
@@ -814,8 +840,22 @@ function ComplexStage({ tour, introOpen, onEnter }: { tour: TourMedia; introOpen
   }, []);
 
   const closeScene360 = () => {
-    setScene360Open(false);
     // Keep the strip open so the user can pick another scene.
+    if (!scene360Open || scene360ClosingRef.current) return;
+    if (prefersReducedMotion()) {
+      setScene360Open(false);
+      setScene360Closing(false);
+      return;
+    }
+    scene360ClosingRef.current = true;
+    setScene360Closing(true);
+    if (scene360CloseTimer.current) window.clearTimeout(scene360CloseTimer.current);
+    scene360CloseTimer.current = window.setTimeout(() => {
+      scene360CloseTimer.current = null;
+      scene360ClosingRef.current = false;
+      setScene360Closing(false);
+      setScene360Open(false);
+    }, 300);
   };
 
   const activeScene = tour.scenes360.find((s) => s.id === activeSceneId) || null;
@@ -873,7 +913,7 @@ function ComplexStage({ tour, introOpen, onEnter }: { tour: TourMedia; introOpen
   };
 
   return (
-    <div className={`app${toolsOpen ? " tools-on" : ""}${layoutReady ? " layout-ready" : ""}${filtersOpen ? " filters-open" : ""}${scene360Strip ? " strip360-on" : ""}${scene360Open ? " scene360-mode" : ""}`}>
+    <div className={`app${toolsOpen ? " tools-on" : ""}${layoutReady ? " layout-ready" : ""}${filtersOpen ? " filters-open" : ""}${scene360Strip ? " strip360-on" : ""}${scene360Open || scene360Closing ? " scene360-mode" : ""}`}>
       {introOpen && <IntroScreen ready={ready} loadPct={loadPct} onEnter={onEnter} />}
       <aside className={`panel ${listOpen ? "open" : ""} ${formOpen ? "form-wide" : ""} ${filtersOpen ? "filters-on" : ""}`}>
         <button
@@ -1429,14 +1469,15 @@ function ComplexStage({ tour, introOpen, onEnter }: { tour: TourMedia; introOpen
           </div>
         )}
 
-        {scene360Open && (
-          <>
+        {(scene360Open || scene360Closing) && (
+          <div className={`scene360-overlay${scene360Closing ? " closing" : ""}`} aria-hidden={scene360Closing}>
             <button
               type="button"
               className="scene360-back"
               onClick={closeScene360}
               title="Retour"
               aria-label="Retour au tour"
+              disabled={scene360Closing}
             >
               <IconBack size={22} />
             </button>
@@ -1478,7 +1519,7 @@ function ComplexStage({ tour, introOpen, onEnter }: { tour: TourMedia; introOpen
                     data-scene-id={scene.id}
                     className={`scene360-thumb${activeScene?.id === scene.id ? " on" : ""}`}
                     onClick={() => {
-                      if (stripDragRef.current) return;
+                      if (stripDragRef.current || scene360Closing) return;
                       setActiveSceneId(scene.id);
                     }}
                     aria-label={scene.label || "360 scene"}
@@ -1488,16 +1529,16 @@ function ComplexStage({ tour, introOpen, onEnter }: { tour: TourMedia; introOpen
                 ))}
               </div>
             </div>
-          </>
+          </div>
         )}
       </div>
 
       <div
         ref={dockRef}
-        className={`dock units cards${(scene360Strip && !stripClosing) || scene360Open ? " tuck" : ""}`}
+        className={`dock units cards${(scene360Strip && !stripClosing) || scene360Open || scene360Closing ? " tuck" : ""}`}
         onPointerDown={(e) => e.stopPropagation()}
         onMouseDown={(e) => e.stopPropagation()}
-        aria-hidden={(scene360Strip && !stripClosing) || scene360Open}
+        aria-hidden={(scene360Strip && !stripClosing) || scene360Open || scene360Closing}
       >
         {filtered.map((u) => {
           const photo = cardPhoto(tour, u);
@@ -1512,7 +1553,7 @@ function ComplexStage({ tour, introOpen, onEnter }: { tour: TourMedia; introOpen
               onMouseEnter={() => engineRef.current?.setPreview(u.id)}
               onMouseLeave={() => engineRef.current?.setPreview(null)}
               onClick={() => openUnit(u)}
-              tabIndex={(scene360Strip && !stripClosing) || scene360Open ? -1 : 0}
+              tabIndex={(scene360Strip && !stripClosing) || scene360Open || scene360Closing ? -1 : 0}
             >
               <div className="card-side">
                 {photo ? <img src={photo} alt="" /> : <span className="card-img-fallback" />}
