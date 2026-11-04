@@ -4893,6 +4893,212 @@ html.phone-layout .detail-side { max-height: 42vh; }
   }
 }
 
+/* Premium micro-interactions — map / gallery / filters / HUD / rail (not Enter Maquette) */
+.rail-fab .rail-ico {
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, color 0.18s ease;
+}
+.rail-fab:hover .rail-ico.glass,
+.rail-fab:focus-visible .rail-ico.glass {
+  transform: scale(1.05);
+  box-shadow: 0 4px 14px rgba(24, 39, 56, 0.14);
+}
+.rail-fab:active .rail-ico.glass {
+  transform: scale(0.96);
+}
+.rail-fab.project-toggle:hover .rail-ico.project,
+.rail-fab.project-toggle:focus-visible .rail-ico.project {
+  transform: scale(1.04);
+}
+.rail-fab.project-toggle:active .rail-ico.project {
+  transform: scale(0.97);
+}
+
+.hud-tools button,
+.hud-nav .nav-btn,
+.hud-nav .nav-compass,
+.hud-eye-in-tools,
+.hud-eye-solo,
+.hud-360,
+.compact-top .hud-360,
+.compact-top .compact-360,
+.compact-filter,
+.tool-fab,
+.filters-back,
+.filters-reset-btn,
+.filter-chip,
+.filter-choice,
+.scene360-thumb,
+.scene360-back,
+.site-close,
+.gal-close,
+.site-tabs button,
+.site-acc-top,
+.contact-back,
+.contact-genders button,
+.gal-cell,
+.dock.units .unit {
+  transition:
+    transform 0.16s ease,
+    background 0.16s ease,
+    border-color 0.16s ease,
+    box-shadow 0.16s ease,
+    color 0.16s ease,
+    opacity 0.16s ease;
+}
+
+.hud-tools button:hover,
+.hud-nav .nav-btn:hover,
+.hud-nav .nav-compass:hover,
+.hud-eye-in-tools:hover {
+  transform: scale(1.06);
+}
+.hud-tools button:active,
+.hud-nav .nav-btn:active,
+.hud-nav .nav-compass:active,
+.hud-eye-in-tools:active {
+  transform: scale(0.94);
+}
+
+.hud-eye-solo:hover,
+.hud-360:hover,
+.compact-top .hud-360:hover,
+.compact-top .compact-360:hover,
+.compact-filter:hover {
+  transform: scale(1.05);
+  background: rgba(255, 255, 255, 0.5);
+}
+.hud-eye-solo:active,
+.hud-360:active,
+.compact-top .hud-360:active,
+.compact-top .compact-360:active,
+.compact-filter:active {
+  transform: scale(0.95);
+}
+
+.tool-fab.heart-fab:hover {
+  transform: scale(1.04);
+}
+.tool-fab.heart-fab:active {
+  transform: scale(0.96);
+}
+.tool-fab.filter-fab:hover {
+  transform: scale(1.08);
+}
+.tool-fab.filter-fab:active {
+  transform: scale(0.94);
+}
+
+.filter-chip:hover,
+.filter-choice:hover {
+  border-color: #9eb6cf;
+  box-shadow: 0 2px 8px rgba(26, 143, 223, 0.12);
+}
+.filter-chip:active,
+.filter-choice:active {
+  transform: scale(0.96);
+}
+.filter-chip.on:hover,
+.filter-choice.on:hover {
+  border-color: transparent;
+  box-shadow: 0 2px 10px rgba(26, 143, 223, 0.28);
+}
+
+.filters-back:hover {
+  transform: scale(1.06);
+  background: rgba(27, 54, 93, 0.06);
+}
+.filters-back:active {
+  transform: scale(0.94);
+}
+.filters-reset-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(26, 143, 223, 0.16);
+}
+.filters-reset-btn:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.scene360-thumb:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.16);
+}
+.scene360-thumb:active {
+  transform: scale(0.97);
+}
+.scene360-back:hover {
+  transform: scale(1.06);
+}
+.scene360-back:active {
+  transform: scale(0.94);
+}
+
+.site-overlay {
+  animation: ui-overlay-in 0.28s ease both;
+}
+.site-page,
+.gal-stage {
+  animation: ui-sheet-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes ui-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes ui-sheet-in {
+  from { opacity: 0; transform: translateY(14px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.site-close:hover,
+.gal-close:hover {
+  transform: scale(1.08);
+  background: rgba(27, 54, 93, 0.08);
+}
+.site-close:active,
+.gal-close:active {
+  transform: scale(0.94);
+}
+
+.site-tabs button {
+  transition: transform 0.16s ease, background 0.16s ease, border-color 0.16s ease, color 0.16s ease, box-shadow 0.16s ease;
+}
+.site-tabs button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.08);
+}
+.site-tabs button:active {
+  transform: scale(0.97);
+}
+
+.site-acc-top:hover {
+  background: rgba(27, 54, 93, 0.04);
+}
+.gal-cell:hover img {
+  transform: scale(1.03);
+}
+.gal-cell img {
+  transition: transform 0.35s ease;
+}
+.gal-cell:active {
+  transform: scale(0.99);
+}
+
+.dock.units .unit:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
+}
+.dock.units .unit:active {
+  transform: scale(0.985);
+}
+
+.contact-back:hover,
+.contact-genders button:hover {
+  transform: scale(1.04);
+}
+.contact-back:active,
+.contact-genders button:active {
+  transform: scale(0.96);
+}
+
 /* Accessibility: calm motion when the OS asks for reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -4919,6 +5125,14 @@ html.phone-layout .detail-side { max-height: 42vh; }
   }
   .scene360-overlay.closing {
     opacity: 0;
+  }
+
+  .site-overlay,
+  .site-page,
+  .gal-stage {
+    animation: none !important;
+    opacity: 1;
+    transform: none;
   }
 
   html.phone-layout .hud.strip360-on .scene360-strip-dock.open,
