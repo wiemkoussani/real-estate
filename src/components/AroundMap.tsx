@@ -53,7 +53,7 @@ export function AroundMap({
   useEffect(() => {
     let stop = false;
     const hasExact = Number.isFinite(lat) && Number.isFinite(lng);
-    const key = hasExact ? `poi-map-v14:${lat!.toFixed(5)},${lng!.toFixed(5)}` : `poi-map-v14:${query}`;
+    const key = hasExact ? `poi-map-v15:${lat!.toFixed(5)},${lng!.toFixed(5)}` : `poi-map-v15:${query}`;
     const aroundUrl = (extra: string) =>
       hasExact
         ? `/api/maps/around?lat=${lat}&lng=${lng}&address=${encodeURIComponent(query)}&${extra}`
@@ -111,8 +111,8 @@ export function AroundMap({
           }
         }
 
-        // Optional enrich in background (still capped server-side).
-        void fetch(aroundUrl(""), { signal: AbortSignal.timeout(12000) })
+        // Background enrich: wait longer for Overpass (can take ~15–20s when slow).
+        void fetch(aroundUrl(""), { signal: AbortSignal.timeout(28000) })
           .then(async (fullRes) => {
             if (!fullRes.ok || stop) return;
             const full = (await fullRes.json()) as Payload;
@@ -130,10 +130,12 @@ export function AroundMap({
           })
           .catch(() => {
             /* keep light pins */
+          })
+          .finally(() => {
+            if (!stop) setPlacesLoading(false);
           });
       } catch {
         if (!stop && !hadGoodCache) setErr("تعذر تحميل الخريطة");
-      } finally {
         if (!stop) setPlacesLoading(false);
       }
     })();
