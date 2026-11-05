@@ -112,13 +112,97 @@ function FieldMark() {
 }
 
 function PhoneField({ required, placeholder }: { required?: boolean; placeholder?: string }) {
+  const [dial, setDial] = useState("+966");
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLSpanElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number; width: number } | null>(null);
+
+  useLayoutEffect(() => {
+    if (!open) {
+      setMenuPos(null);
+      return;
+    }
+    const place = () => {
+      const r = btnRef.current?.getBoundingClientRect();
+      if (!r) return;
+      const width = Math.max(r.width, 72);
+      const left = Math.min(r.left, window.innerWidth - width - 8);
+      setMenuPos({ top: r.bottom + 6, left: Math.max(8, left), width });
+    };
+    place();
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, true);
+    return () => {
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: PointerEvent) => {
+      const t = e.target as Node;
+      if (wrapRef.current?.contains(t)) return;
+      if ((e.target as HTMLElement | null)?.closest?.(".dial-list")) return;
+      setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("pointerdown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
   return (
     <span className="phone-row">
-      <select name="dial" defaultValue="+966" aria-label="indicatif pays">
-        {DIAL_CODES.map((c) => (
-          <option key={c.d + c.n} value={c.d}>{c.d}</option>
-        ))}
-      </select>
+      <span className={`select-wrap${open ? " open" : ""}`} ref={wrapRef}>
+        <input type="hidden" name="dial" value={dial} />
+        <button
+          ref={btnRef}
+          id="dial-btn"
+          type="button"
+          className="dial-btn"
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          aria-controls="dial-list"
+          aria-label="رمز الدولة"
+          onClick={() => setOpen((v) => !v)}
+        >
+          <span className="dial-val">{dial}</span>
+          <IconChevronDown className={`chev${open ? " up" : ""}`} />
+        </button>
+        {open && menuPos && (
+          <ul
+            id="dial-list"
+            className="dial-list"
+            role="listbox"
+            aria-label="رمز الدولة"
+            style={{ top: menuPos.top, left: menuPos.left, width: menuPos.width }}
+          >
+            {DIAL_CODES.map((c) => (
+              <li key={c.d + c.n} role="presentation">
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={c.d === dial}
+                  className={c.d === dial ? "on" : undefined}
+                  onClick={() => {
+                    setDial(c.d);
+                    setOpen(false);
+                  }}
+                >
+                  {c.d}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </span>
       <input name="tel" type="tel" required={required} autoComplete="tel" inputMode="tel" placeholder={placeholder} />
     </span>
   );
@@ -759,9 +843,6 @@ function ComplexStage({ tour, introOpen, onEnter }: { tour: TourMedia; introOpen
     }, 30);
   };
 
-  const prefersReducedMotion = () =>
-    typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
   const openScene360View = (id: string) => {
     if (stripDragRef.current) return;
     if (scene360CloseTimer.current) {
@@ -842,11 +923,6 @@ function ComplexStage({ tour, introOpen, onEnter }: { tour: TourMedia; introOpen
   const closeScene360 = () => {
     // Keep the strip open so the user can pick another scene.
     if (!scene360Open || scene360ClosingRef.current) return;
-    if (prefersReducedMotion()) {
-      setScene360Open(false);
-      setScene360Closing(false);
-      return;
-    }
     scene360ClosingRef.current = true;
     setScene360Closing(true);
     if (scene360CloseTimer.current) window.clearTimeout(scene360CloseTimer.current);
@@ -855,7 +931,7 @@ function ComplexStage({ tour, introOpen, onEnter }: { tour: TourMedia; introOpen
       scene360ClosingRef.current = false;
       setScene360Closing(false);
       setScene360Open(false);
-    }, 420);
+    }, 300);
   };
 
   const activeScene = tour.scenes360.find((s) => s.id === activeSceneId) || null;

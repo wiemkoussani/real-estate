@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import type { TourMedia } from "@/lib/tour";
 
@@ -8,6 +8,25 @@ const AroundMap = dynamic(() => import("@/components/AroundMap").then((m) => m.A
   ssr: false,
   loading: () => <div className="poi-status">Loading map…</div>,
 });
+
+const OVERLAY_FADE_MS = 300;
+
+function useOverlayClose(onClose: () => void) {
+  const [closing, setClosing] = useState(false);
+  const timer = useRef<number | null>(null);
+  useEffect(() => () => {
+    if (timer.current) window.clearTimeout(timer.current);
+  }, []);
+  const close = () => {
+    if (closing) return;
+    setClosing(true);
+    timer.current = window.setTimeout(() => {
+      timer.current = null;
+      onClose();
+    }, OVERLAY_FADE_MS);
+  };
+  return { closing, close };
+}
 
 function mediaSrc(url: string | undefined | null) {
   return url ? url : undefined;
@@ -31,7 +50,7 @@ function PhotoGrid({ urls, tall }: { urls: (string | undefined)[]; tall?: boolea
   return (
     <div className={`site-photos n${list.length}${tall ? " tall" : ""}`}>
       {list.map((src) => (
-        <img key={src} src={src} alt="" loading="lazy" decoding="async" />
+        <img key={src} src={src} alt="" loading="lazy" decoding="async" draggable={false} />
       ))}
     </div>
   );
@@ -52,15 +71,16 @@ function SiteFrame({
   wide?: boolean;
   flush?: boolean;
 }) {
+  const { closing, close } = useOverlayClose(onClose);
   return (
-    <div className="site-overlay" onClick={onClose}>
+    <div className={`site-overlay${closing ? " closing" : ""}`} onClick={close} aria-hidden={closing}>
       <article className={`site-page${wide ? " wide" : ""}`} onClick={(e) => e.stopPropagation()}>
         <header className="site-head" dir="rtl">
           <div>
             <p className="site-kicker">{kicker}</p>
             <h2>{title}</h2>
           </div>
-          <button type="button" className="site-close" onClick={onClose} aria-label="إغلاق">×</button>
+          <button type="button" className="site-close" onClick={close} disabled={closing} aria-label="إغلاق">×</button>
         </header>
         <div className={`site-body${flush ? " flush" : ""}`} dir={flush ? "ltr" : "rtl"}>
           {children}
@@ -119,7 +139,7 @@ function GalBoard({
       <div className={`gal-board n${items.length}`}>
         {items.map((src, i) => (
           <button key={src} type="button" className={`gal-cell c${i}`} onClick={() => onPick(src)}>
-            <img src={src} alt="" loading="lazy" decoding="async" onError={() => onFail(src)} />
+            <img src={src} alt="" loading="lazy" decoding="async" draggable={false} onError={() => onFail(src)} />
           </button>
         ))}
       </div>
@@ -130,6 +150,7 @@ function GalBoard({
 export function GalleryPage({ tour, onClose }: { tour: TourMedia; onClose: () => void }) {
   const [failed, setFailed] = useState<Record<string, true>>({});
   const [open, setOpen] = useState<string | null>(null);
+  const { closing, close } = useOverlayClose(onClose);
   const live = (list: string[]) => [...new Set(list.filter((src) => src && !failed[src]))];
   const hero = live([tour.galleryHero])[0];
   const exteriorBoards = chunk(live(tour.galleryExterior), 6);
@@ -137,13 +158,13 @@ export function GalleryPage({ tour, onClose }: { tour: TourMedia; onClose: () =>
   const fail = (src: string) => setFailed((f) => ({ ...f, [src]: true }));
 
   return (
-    <div className="site-overlay" onClick={onClose}>
+    <div className={`site-overlay${closing ? " closing" : ""}`} onClick={close} aria-hidden={closing}>
       <article className="gal-stage" onClick={(e) => e.stopPropagation()}>
-        <button type="button" className="gal-close" onClick={onClose} aria-label="إغلاق">×</button>
+        <button type="button" className="gal-close" onClick={close} disabled={closing} aria-label="إغلاق">×</button>
         <div className="gal-scroll">
           <section className="gal-hero">
             {hero ? (
-              <img src={hero} alt="" fetchPriority="high" decoding="async" onError={() => fail(hero)} />
+              <img src={hero} alt="" fetchPriority="high" decoding="async" draggable={false} onError={() => fail(hero)} />
             ) : (
               <div className="site-empty">ستظهر الصور هنا بعد رفعها للمشروع.</div>
             )}
@@ -158,7 +179,7 @@ export function GalleryPage({ tour, onClose }: { tour: TourMedia; onClose: () =>
         </div>
         {open && (
           <div className="gal-lite" onClick={() => setOpen(null)}>
-            <img src={open} alt="" onClick={(e) => e.stopPropagation()} />
+            <img src={open} alt="" draggable={false} onClick={(e) => e.stopPropagation()} />
             <button type="button" className="gal-close" onClick={() => setOpen(null)}>×</button>
           </div>
         )}

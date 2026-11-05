@@ -361,7 +361,28 @@ body {
   cursor: pointer;
 }
 
-.app { height: 100dvh; display: flex; overflow: hidden; }
+.app {
+  height: 100dvh;
+  display: flex;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+.app input,
+.app textarea,
+.app select,
+.app [contenteditable="true"] {
+  user-select: text;
+  -webkit-user-select: text;
+  -webkit-touch-callout: default;
+}
+.app img,
+.app canvas,
+.app svg {
+  -webkit-user-drag: none;
+  user-drag: none;
+}
 
 .panel {
   position: relative;
@@ -2524,13 +2545,13 @@ html.phone-layout .dock.units.cards .unit.leaving {
   inset: 0;
   z-index: 40;
   pointer-events: none;
-  animation: scene360-fade-in 0.45s ease both;
+  animation: scene360-fade-in 0.32s ease both;
 }
 .scene360-overlay > * {
   pointer-events: auto;
 }
 .scene360-overlay.closing {
-  animation: scene360-fade-out 0.4s ease both;
+  animation: scene360-fade-out 0.3s ease both;
   pointer-events: none;
 }
 @keyframes scene360-fade-in {
@@ -3392,7 +3413,7 @@ html:not(.phone-layout) .scene360-pano canvas {
 }
 .form-mode .lead.side input,
 .form-mode .lead.side textarea,
-.form-mode .lead.side .phone-row select {
+.form-mode .lead.side .dial-btn {
   height: 44px;
   border: 1px solid #E4E9F2;
   border-radius: 10px;
@@ -3417,26 +3438,29 @@ html:not(.phone-layout) .scene360-pano canvas {
 }
 .form-mode .lead.side label.bad input,
 .form-mode .lead.side label.bad textarea,
-.form-mode .lead.side label.bad .phone-row select {
+.form-mode .lead.side label.bad .dial-btn {
   border-color: #e23b3b;
 }
 .form-mode .lead.side .phone-row {
   gap: 8px;
 }
-.form-mode .lead.side .phone-row select {
-  width: 70px;
-  max-width: 70px;
+.form-mode .lead.side .select-wrap {
+  width: 78px;
+  flex: none;
+}
+.form-mode .lead.side .dial-btn {
+  width: 100%;
+  padding: 0 8px;
+  justify-content: center;
+  gap: 4px;
   text-align: center;
-  text-align-last: center;
   font-family: var(--font-inter), sans-serif;
   font-weight: 500;
   color: #2D3E6B;
-  padding: 0 4px;
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5' viewBox='0 0 8 5'%3E%3Cpath d='M1 1l3 3 3-3' fill='none' stroke='%232D3E6B' stroke-width='1.2'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 8px center;
-  background-size: 8px 5px;
+}
+.form-mode .lead.side .dial-btn .chev {
+  width: 12px;
+  height: 12px;
 }
 .form-mode .lead.side .phone-row input { text-align: right; }
 .form-mode .lead.side label.lead-check {
@@ -4186,23 +4210,109 @@ html:not(.phone-layout) .scene360-pano canvas {
   gap: 6px;
   align-items: stretch;
 }
-.phone-row select {
+.select-wrap {
+  position: relative;
   flex: none;
-  max-width: 88px;
+  z-index: 2;
+}
+.select-wrap.open {
+  z-index: 40;
+}
+.dial-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  min-width: 72px;
+  height: 100%;
+  margin: 0;
+  border: 1px solid #d7e3f4;
+  border-radius: 12px;
+  background: #f5f8fd;
+  color: #12214a;
+  font-family: var(--font-inter), sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+.dial-btn:hover {
+  border-color: #c5d0e4;
+}
+.dial-btn[aria-expanded="true"] {
+  border-color: #2f7df6;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(47, 125, 246, 0.18);
+}
+.dial-btn .dial-val {
+  font-variant-numeric: tabular-nums;
+}
+.dial-btn .chev {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  transition: transform 0.18s ease;
+}
+.dial-btn .chev.up {
+  transform: rotate(180deg);
+}
+.dial-list {
+  position: fixed;
+  z-index: 80;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: #fff;
+  border: 1px solid #e0e7f3;
+  border-radius: 14px;
+  box-shadow: 0 10px 28px rgba(18, 33, 74, 0.14);
+  overflow: hidden;
+  animation: dial-list-in 0.18s ease both;
+}
+@keyframes dial-list-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.dial-list li {
+  margin: 0;
+  padding: 0;
+}
+.dial-list button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 36px;
+  margin: 0;
+  padding: 8px 6px;
   border: 0;
   border-radius: 10px;
-  padding: 10px 6px;
-  font-size: 12px;
-  font-weight: 700;
-  background: #e8edf2;
-  color: #1b2430;
+  background: transparent;
+  color: #12214a;
+  font-family: var(--font-inter), sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1;
   cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.dial-list button:hover {
+  background: rgba(47, 125, 246, 0.08);
+}
+.dial-list button.on {
+  background: #2f7df6;
+  color: #fff;
 }
 .phone-row input { flex: 1; }
 .lead.side button[type="submit"] { color: #fff; }
 
-/* Phone layout: a handset, or a tablet (touch, no hover, up to 1400px). */
-@media (max-width: 540px), (max-width: 1400px) and (pointer: coarse) and (hover: none) {
+/* Phone + tablet share this UI. PC / laptop keep the desktop layout. */
+@media (max-width: 540px), (max-width: 1400px) and (pointer: coarse) {
 html.phone-layout .app {
   flex-direction: column;
   position: relative;
@@ -4895,7 +5005,7 @@ html.phone-layout .detail-side { max-height: 42vh; }
 
 /* Premium micro-interactions — map / gallery / filters / HUD / rail (not Enter Maquette) */
 .rail-fab .rail-ico {
-  transition: transform 0.32s ease, box-shadow 0.32s ease, background 0.32s ease, color 0.32s ease;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, color 0.18s ease;
 }
 .rail-fab:hover .rail-ico.glass,
 .rail-fab:focus-visible .rail-ico.glass {
@@ -4938,12 +5048,12 @@ html.phone-layout .detail-side { max-height: 42vh; }
 .gal-cell,
 .dock.units .unit {
   transition:
-    transform 0.3s ease,
-    background 0.3s ease,
-    border-color 0.3s ease,
-    box-shadow 0.3s ease,
-    color 0.3s ease,
-    opacity 0.3s ease;
+    transform 0.16s ease,
+    background 0.16s ease,
+    border-color 0.16s ease,
+    box-shadow 0.16s ease,
+    color 0.16s ease,
+    opacity 0.16s ease;
 }
 
 .hud-tools button:hover,
@@ -5033,19 +5143,35 @@ html.phone-layout .detail-side { max-height: 42vh; }
 }
 
 .site-overlay {
-  animation: ui-overlay-in 0.4s ease both;
+  animation: ui-overlay-in 0.32s ease both;
+}
+.site-overlay.closing {
+  animation: ui-overlay-out 0.3s ease both;
+  pointer-events: none;
 }
 .site-page,
 .gal-stage {
-  animation: ui-sheet-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: ui-sheet-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.site-overlay.closing .site-page,
+.site-overlay.closing .gal-stage {
+  animation: ui-sheet-out 0.3s ease both;
 }
 @keyframes ui-overlay-in {
   from { opacity: 0; }
   to { opacity: 1; }
 }
+@keyframes ui-overlay-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
 @keyframes ui-sheet-in {
   from { opacity: 0; transform: translateY(14px) scale(0.985); }
   to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes ui-sheet-out {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(10px) scale(0.985); }
 }
 
 .site-close:hover,
@@ -5059,7 +5185,7 @@ html.phone-layout .detail-side { max-height: 42vh; }
 }
 
 .site-tabs button {
-  transition: transform 0.3s ease, background 0.3s ease, border-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+  transition: transform 0.16s ease, background 0.16s ease, border-color 0.16s ease, color 0.16s ease, box-shadow 0.16s ease;
 }
 .site-tabs button:hover {
   transform: translateY(-1px);
@@ -5076,7 +5202,7 @@ html.phone-layout .detail-side { max-height: 42vh; }
   transform: scale(1.03);
 }
 .gal-cell img {
-  transition: transform 0.45s ease;
+  transition: transform 0.35s ease;
 }
 .gal-cell:active {
   transform: scale(0.99);
@@ -5097,48 +5223,4 @@ html.phone-layout .detail-side { max-height: 42vh; }
 .contact-back:active,
 .contact-genders button:active {
   transform: scale(0.96);
-}
-
-/* Accessibility: calm motion when the OS asks for reduced motion */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
-
-  .intro-cta::before,
-  .intro-cta::after,
-  .intro-cta > span::before,
-  .heart.on,
-  .heart.on::after {
-    animation: none !important;
-  }
-
-  .scene360-overlay,
-  .scene360-overlay.closing {
-    animation: none !important;
-    opacity: 1;
-  }
-  .scene360-overlay.closing {
-    opacity: 0;
-  }
-
-  .site-overlay,
-  .site-page,
-  .gal-stage {
-    animation: none !important;
-    opacity: 1;
-    transform: none;
-  }
-
-  html.phone-layout .hud.strip360-on .scene360-strip-dock.open,
-  html.phone-layout .hud.strip360-on .scene360-strip-dock.open.closing,
-  .scene360-strip-dock.open,
-  .scene360-strip-dock.open.closing {
-    animation: none !important;
-  }
 }
