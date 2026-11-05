@@ -4295,7 +4295,7 @@ html:not(.phone-layout) .scene360-pano canvas {
   background: transparent;
   color: #12214a;
   font-family: var(--font-inter), sans-serif;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
   line-height: 1;
   cursor: pointer;

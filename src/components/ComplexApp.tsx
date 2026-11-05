@@ -173,8 +173,8 @@ function PhoneField({ required, placeholder }: { required?: boolean; placeholder
           aria-label="رمز الدولة"
           onClick={() => setOpen((v) => !v)}
         >
-          <span className="dial-val">{dial}</span>
           <IconChevronDown className={`chev${open ? " up" : ""}`} />
+          <span className="dial-val">{dial}</span>
         </button>
         {open && menuPos && (
           <ul
