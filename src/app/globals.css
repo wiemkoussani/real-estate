@@ -4311,8 +4311,8 @@ html:not(.phone-layout) .scene360-pano canvas {
 .phone-row input { flex: 1; }
 .lead.side button[type="submit"] { color: #fff; }
 
-/* Phone + tablet share this UI. PC / laptop keep the desktop layout. */
-@media (max-width: 540px), (max-width: 1400px) and (pointer: coarse) {
+/* Phone + tablet share this UI (incl. window ≤ 1366px). Wide PC keeps desktop. */
+@media (max-width: 1366px), (max-width: 1400px) and (pointer: coarse) {
 html.phone-layout .app {
   flex-direction: column;
   position: relative;

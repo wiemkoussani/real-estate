@@ -1,15 +1,12 @@
-/** Phone and tablet share the same UI. Desktop / laptop keep the PC sidebar.
+/** Phone and tablet share the same UI. Wide PC / laptop keep the desktop sidebar.
 
-Rules:
-- Handset: max-width 540px
-- Tablet (finger as primary pointer), up to ~iPad Pro landscape: pointer coarse ≤ 1400px
+- ≤ 1366px wide → phone/tablet UI (covers iPads + a window resized to tablet size)
+- larger + finger as primary pointer up to 1400px → still phone/tablet (big tablets)
 
-A laptop trackpad reports pointer:fine + hover, so a 1920 Dell stays on PC layout
-even if the window is narrowed a bit. Touchscreen laptops with a mouse/trackpad as
-primary pointer also stay on PC.
+A full-size laptop (~1440–1920) stays on the PC layout.
 */
 export const PHONE_LAYOUT_MQ =
-  "(max-width: 540px), (max-width: 1400px) and (pointer: coarse)";
+  "(max-width: 1366px), (max-width: 1400px) and (pointer: coarse)";
 
 export function isPhoneLayout(): boolean {
   if (typeof window === "undefined") return false;
