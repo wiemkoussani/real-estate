@@ -381,7 +381,6 @@ body {
 .app canvas,
 .app svg {
   -webkit-user-drag: none;
-  user-drag: none;
 }
 
 .panel {
@@ -3455,6 +3454,8 @@ html:not(.phone-layout) .scene360-pano canvas {
   gap: 4px;
   text-align: center;
   font-family: var(--font-inter), sans-serif;
+  font-size: 14px;
+  line-height: 1;
   font-weight: 500;
   color: #2D3E6B;
 }
@@ -4286,15 +4287,15 @@ html:not(.phone-layout) .scene360-pano canvas {
   align-items: center;
   justify-content: center;
   width: 100%;
-  min-height: 36px;
+  min-height: 34px;
   margin: 0;
-  padding: 8px 6px;
+  padding: 7px 6px;
   border: 0;
   border-radius: 10px;
   background: transparent;
   color: #12214a;
   font-family: var(--font-inter), sans-serif;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 500;
   line-height: 1;
   cursor: pointer;
