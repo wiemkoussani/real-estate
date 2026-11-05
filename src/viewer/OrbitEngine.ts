@@ -319,14 +319,6 @@ export class OrbitEngine {
     this.fadeToHigh(this.currentFrame);
   }
 
-  /** The frame on screen upgrades to sharp. On a phone, the other frames stay light until they are shown. */
-  private prefersLowOnly() {
-    if (typeof window === "undefined") return false;
-    const coarse = window.matchMedia("(pointer: coarse)").matches;
-    const narrow = window.matchMedia("(max-width: 840px)").matches;
-    return coarse || narrow;
-  }
-
   private skipSharp() {
     return false;
   }
@@ -869,7 +861,7 @@ export class OrbitEngine {
 
   private paint(ctx: CanvasRenderingContext2D, img: CanvasImageSource, quality: "low" | "high") {
     const { cw, ch, dw, dh, dx, dy } = this.getDrawRect();
-    const { dpr, scale, w, h } = this.getBgSize(quality);
+    const { dpr, scale, z, w, h } = this.getBgSize(quality);
     const canvas = ctx.canvas;
     if (canvas.width !== w || canvas.height !== h) {
       canvas.width = w;
@@ -877,7 +869,11 @@ export class OrbitEngine {
     }
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.setTransform(dpr * scale, 0, 0, dpr * scale, 0, 0);
+    // One high-quality resample from source → screen (same idea as opening the file in a tab).
+    ctx.imageSmoothingEnabled = true;
+    if ("imageSmoothingQuality" in ctx) ctx.imageSmoothingQuality = "high";
+    const px = dpr * scale * z;
+    ctx.setTransform(px, 0, 0, px, 0, 0);
     ctx.drawImage(img, dx, dy, dw, dh);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
   }
@@ -901,7 +897,15 @@ export class OrbitEngine {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const { cw, ch } = this.getDrawRect();
     const scale = this.getBgScale(quality);
-    return { dpr, scale, w: Math.round(cw * dpr * scale), h: Math.round(ch * dpr * scale) };
+    // High: denser buffer so CSS zoom does not soften the stopped/zoomed view.
+    const z = quality === "high" ? Math.min(COMPLEX.zoomMax, Math.max(1, this.zoom)) : 1;
+    return {
+      dpr,
+      scale,
+      z,
+      w: Math.round(cw * dpr * scale * z),
+      h: Math.round(ch * dpr * scale * z),
+    };
   }
 
   private lowDecodeTarget(img: HTMLImageElement) {
@@ -914,29 +918,42 @@ export class OrbitEngine {
     return { targetW, targetH };
   }
 
+  /** Decode size for sharp stills: enough for the screen (× zoom), prefer full source. */
   private highDecodeTarget(img: HTMLImageElement, zoom = this.zoom) {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const { cw } = this.getDrawRect();
-    const viewW = Math.max(cw, window.innerWidth || cw);
+    const { cw, dw } = this.getDrawRect();
     const srcW = img.naturalWidth || this.tour.renderW;
     const srcH = img.naturalHeight || this.tour.renderH;
-    const targetW = Math.min(srcW, MAX_BG_WIDTH, Math.max(1600, Math.ceil(viewW * dpr * zoom)));
-    const targetH = Math.round(targetW * (srcH / srcW));
-    return { targetW, targetH };
+    const z = Math.min(COMPLEX.zoomMax, Math.max(1, zoom));
+    const needW = Math.ceil(Math.max(cw, dw) * dpr * z);
+    let targetW = Math.min(srcW, MAX_BG_WIDTH, Math.max(needW, Math.ceil(cw * dpr)));
+    // Avoid a useless near-full resample that only softens the photo.
+    if (targetW >= srcW * 0.9) targetW = srcW;
+    const targetH = Math.round(targetW * (srcH / Math.max(1, srcW)));
+    return { targetW, targetH, srcW };
+  }
+
+  private decodeHighBitmap(img: HTMLImageElement, zoom = this.zoom): Promise<ImageBitmap> {
+    const { targetW, targetH, srcW } = this.highDecodeTarget(img, zoom);
+    if (typeof createImageBitmap !== "function") {
+      return Promise.reject(new Error("createImageBitmap unavailable"));
+    }
+    // Full file when it fits — canvas does the only downscale, like a new tab.
+    if (targetW >= srcW) return createImageBitmap(img);
+    return createImageBitmap(img, { resizeWidth: targetW, resizeHeight: targetH, resizeQuality: "high" });
+  }
+
+  private highBitmapSharpEnough(bmp: ImageBitmap, img: HTMLImageElement, zoom = this.zoom) {
+    const { targetW } = this.highDecodeTarget(img, zoom);
+    return bmp.width >= targetW * 0.92;
   }
 
   private ensureHigh(index: number, zoom = this.zoom): Promise<void> {
-    if (this.prefersLowOnly() && zoom <= 1.01) return Promise.resolve();
     return new Promise((resolve) => {
       const finish = () => resolve();
       let highImg = this.highImages[index];
       const decode = (img: HTMLImageElement) => {
-        if (typeof createImageBitmap !== "function") {
-          finish();
-          return;
-        }
-        const { targetW, targetH } = this.highDecodeTarget(img, zoom);
-        createImageBitmap(img, { resizeWidth: targetW, resizeHeight: targetH, resizeQuality: "high" })
+        this.decodeHighBitmap(img, zoom)
           .then((bmp) => {
             this.highBitmaps[index]?.close();
             this.highBitmaps[index] = bmp;
@@ -1035,12 +1052,11 @@ export class OrbitEngine {
           done();
           return;
         }
-        if (typeof createImageBitmap !== "function" || !image.naturalWidth) {
+        if (!image.naturalWidth) {
           done();
           return;
         }
-        const { targetW, targetH } = this.highDecodeTarget(image);
-        createImageBitmap(image, { resizeWidth: targetW, resizeHeight: targetH, resizeQuality: "high" })
+        this.decodeHighBitmap(image)
           .then((bmp) => {
             this.highBitmaps[index]?.close();
             this.highBitmaps[index] = bmp;
@@ -1073,19 +1089,20 @@ export class OrbitEngine {
       highImg.src = tourFrameUrl(this.tour, index, "high");
       return;
     }
-    if (!highImg.complete) return;
-    if (this.highBitmaps[index]) {
+    if (!highImg.complete || !highImg.naturalWidth) return;
+    const existing = this.highBitmaps[index];
+    if (existing && this.highBitmapSharpEnough(existing, highImg)) {
       this.draw("high");
       return;
+    }
+    if (existing) {
+      existing.close();
+      this.highBitmaps[index] = null;
+      this.highDecodeQueued.delete(index);
     }
     if (this.highDecodeQueued.has(index)) return;
     this.highDecodeQueued.add(index);
-    if (typeof createImageBitmap !== "function") {
-      this.draw("high");
-      return;
-    }
-    const { targetW, targetH } = this.highDecodeTarget(highImg);
-    createImageBitmap(highImg, { resizeWidth: targetW, resizeHeight: targetH, resizeQuality: "high" })
+    this.decodeHighBitmap(highImg)
       .then((bmp) => {
         this.highBitmaps[index]?.close();
         this.highBitmaps[index] = bmp;
@@ -1094,6 +1111,8 @@ export class OrbitEngine {
       })
       .catch(() => {
         this.highDecodeQueued.delete(index);
+        // Still paint from the full HTMLImageElement if bitmap decode fails.
+        if (this.currentFrame === index && !this.isNavigating) this.draw("high");
       });
   }
 
