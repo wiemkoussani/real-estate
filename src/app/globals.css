@@ -4296,8 +4296,10 @@ html:not(.phone-layout) .scene360-pano canvas {
   color: #12214a;
   font-family: var(--font-inter), sans-serif;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
   line-height: 1;
+  letter-spacing: 0;
   cursor: pointer;
   user-select: none;
   -webkit-user-select: none;
@@ -4308,6 +4310,7 @@ html:not(.phone-layout) .scene360-pano canvas {
 .dial-list button.on {
   background: #2f7df6;
   color: #fff;
+  font-weight: 400;
 }
 .phone-row input { flex: 1; }
 .lead.side button[type="submit"] { color: #fff; }
