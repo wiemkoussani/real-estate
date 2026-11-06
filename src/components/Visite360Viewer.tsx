@@ -178,13 +178,18 @@ export default function Visite360Viewer({ className, startId }: Props) {
     };
   }, [nodes.length]);
 
-  const goTo = (id: string, aim?: { yaw: number; pitch: number }) => {
+  const goTo = (
+    id: string,
+    aim?: { yaw: number; pitch: number },
+    fromRail = false,
+  ) => {
     const engine = engineRef.current;
     if (!engine || engine.isBusy() || id === currentId) return;
     void engine.goTo(id, {
       animate: true,
       yaw: aim?.yaw,
       pitch: aim?.pitch,
+      fromRail,
     });
   };
 
@@ -240,7 +245,7 @@ export default function Visite360Viewer({ className, startId }: Props) {
               aria-selected={n.id === currentId}
               className={n.id === currentId ? "on" : ""}
               disabled={busy}
-              onClick={() => goTo(n.id)}
+              onClick={() => goTo(n.id, undefined, true)}
             >
               {n.label || n.id}
             </button>

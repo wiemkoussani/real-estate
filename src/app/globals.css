@@ -3275,13 +3275,13 @@ html:not(.phone-layout) .scene360-pano canvas {
 .visite360-hotspots[aria-hidden="true"] {
   opacity: 0;
 }
-/* NHC floor disk: one clear oval + center — no extra glow blobs that read as white points. */
+/* NHC floor rings — large thin white oval + center dot on the tiles. */
 .visite360-ring {
   position: absolute;
   left: 0;
   top: 0;
-  width: 88px;
-  height: 88px;
+  width: 160px;
+  height: 160px;
   margin: 0;
   padding: 0;
   border: 0;
@@ -3291,7 +3291,7 @@ html:not(.phone-layout) .scene360-pano canvas {
   pointer-events: auto;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  filter: none;
+  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.28));
 }
 .visite360-ring-glow,
 .visite360-ring-dot {
@@ -3299,44 +3299,43 @@ html:not(.phone-layout) .scene360-pano canvas {
   left: 50%;
   top: 50%;
   border-radius: 50%;
-  transform: translate(-50%, -50%) scaleY(0.4);
+  transform: translate(-50%, -50%) scaleY(0.34);
   pointer-events: none;
 }
 .visite360-ring-glow {
-  width: 72px;
-  height: 72px;
-  border: 2.5px solid rgba(255, 255, 255, 0.95);
-  background: rgba(255, 255, 255, 0.12);
-  box-shadow: 0 0 18px rgba(255, 255, 255, 0.45);
+  width: 136px;
+  height: 136px;
+  border: 3px solid #fff;
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 22px rgba(255, 255, 255, 0.55);
   animation: visite360-pulse 1.9s ease-in-out infinite;
 }
 .visite360-ring-dot {
-  width: 10px;
-  height: 10px;
+  width: 14px;
+  height: 14px;
   background: #fff;
-  box-shadow: 0 0 8px rgba(255, 255, 255, 0.85);
+  box-shadow: 0 0 12px rgba(255, 255, 255, 1);
 }
 .visite360-ring:hover .visite360-ring-glow,
 .visite360-ring:focus-visible .visite360-ring-glow {
-  border-color: #fff;
-  background: rgba(255, 255, 255, 0.2);
-  box-shadow: 0 0 22px rgba(255, 255, 255, 0.65);
+  background: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 0 28px rgba(255, 255, 255, 0.7);
 }
 @keyframes visite360-pulse {
   0%,
   100% {
-    transform: translate(-50%, -50%) scaleY(0.4) scale(1);
-    opacity: 0.92;
+    transform: translate(-50%, -50%) scaleY(0.34) scale(1);
+    opacity: 0.95;
   }
   50% {
-    transform: translate(-50%, -50%) scaleY(0.4) scale(1.08);
+    transform: translate(-50%, -50%) scaleY(0.34) scale(1.08);
     opacity: 1;
   }
 }
 .visite360-rooms {
   position: absolute;
-  left: 0;
-  right: 0;
+  left: 50%;
+  right: auto;
   bottom: max(14px, env(safe-area-inset-bottom));
   z-index: 4;
   display: flex;
@@ -3344,10 +3343,10 @@ html:not(.phone-layout) .scene360-pano canvas {
   flex-wrap: nowrap;
   align-items: center;
   gap: 8px;
-  width: 100%;
-  max-width: none;
+  width: calc(100% - 20px);
+  max-width: calc(100% - 20px);
   box-sizing: border-box;
-  padding: 10px max(14px, env(safe-area-inset-right)) 10px max(14px, env(safe-area-inset-left));
+  padding: 10px 12px;
   overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
@@ -3357,8 +3356,9 @@ html:not(.phone-layout) .scene360-pano canvas {
   /* Parent .visite360 is touch-action:none — re-enable pan so the rail scrolls like NHC. */
   touch-action: pan-x;
   cursor: grab;
-  border-radius: 0;
-  background: rgba(22, 24, 28, 0.55);
+  transform: translateX(-50%);
+  border-radius: 16px;
+  background: rgba(28, 30, 34, 0.72);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
@@ -3395,8 +3395,8 @@ html:not(.phone-layout) .scene360-pano canvas {
   color: #fff;
 }
 .visite360-rooms button.on {
-  background: #c8f8e6;
-  color: #177b65;
+  background: #b8f0dc;
+  color: #0f6b58;
 }
 .visite360.is-busy .visite360-ring,
 .visite360.is-busy .visite360-rooms button {
@@ -5590,29 +5590,30 @@ html.phone-layout .visite360 {
   width: 100%;
   height: 100%;
 }
-/* Phone rings stay large like NHC — do not shrink them mid-air. */
+/* Phone: keep NHC-sized rings (large floor disks). */
 html.phone-layout .visite360-ring {
-  width: 80px;
-  height: 80px;
+  width: 140px;
+  height: 140px;
 }
 html.phone-layout .visite360-ring-glow {
-  width: 66px;
-  height: 66px;
-  border-width: 2.5px;
+  width: 118px;
+  height: 118px;
+  border-width: 3px;
 }
 html.phone-layout .visite360-ring-dot {
-  width: 9px;
-  height: 9px;
+  width: 13px;
+  height: 13px;
 }
 html.phone-layout .visite360-rooms {
-  left: 0;
-  right: 0;
+  left: 50%;
+  right: auto;
   bottom: max(10px, env(safe-area-inset-bottom));
-  width: 100%;
-  max-width: none;
+  width: calc(100% - 16px);
+  max-width: calc(100% - 16px);
   gap: 6px;
-  padding: 8px max(12px, env(safe-area-inset-right)) 8px max(12px, env(safe-area-inset-left));
-  transform: none;
+  padding: 8px 10px;
+  transform: translateX(-50%);
+  border-radius: 14px;
 }
 html.phone-layout .visite360-rooms button {
   height: 34px;

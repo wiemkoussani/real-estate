@@ -74,14 +74,19 @@ const ENTRY_LOOK: Record<string, { yaw: number; pitch: number }> = {
 const PRIMARY_ROOM_SET = new Set<string>(PRIMARY_ROOM_ORDER);
 
 const DEG = Math.PI / 180;
-/** NHC shows a couple of walk targets in view — not every graph link. */
-const MAX_HOTSPOTS = 3;
+/**
+ * NHC: usually 2 big floor rings in open doorways — click to enter, return ring
+ * appears in the next room so you can walk back.
+ */
+const MAX_HOTSPOTS = 2;
 /** Ignore distant graph links that punch through walls. */
-const MAX_HOTSPOT_DIST = 420;
+const MAX_HOTSPOT_DIST = 480;
 /** Same-floor gate (Layama Y is eye height). */
 const SAME_FLOOR_Y = 90;
 /** Eye-level look after enter / settle (slightly down reads more natural). */
 const EYE_LAT = -4;
+/** Layama node Y ≈ eye height — floor plane for NHC rings is y ≈ 0. */
+const EYE_HEIGHT = 152;
 /** Default FOV once mapped from Layama's ultra-wide export. */
 const DEFAULT_FOV = 72;
 
@@ -154,6 +159,8 @@ export class Visite360Engine {
   private nodeById = new Map<string, Visite360Node>();
   private outs = new Map<string, Visite360Edge[]>();
   private currentId: string | null = null;
+  /** Room we walked from — always keep a return floor ring (NHC come-back). */
+  private previousId: string | null = null;
 
   private lon = 0;
   private lat = EYE_LAT;
@@ -180,6 +187,7 @@ export class Visite360Engine {
   private hotspotDirty = true;
   private camFwd = new THREE.Vector3();
   private tmpDir = new THREE.Vector3();
+  private tmpPos = new THREE.Vector3();
 
   constructor(opts: Visite360EngineOptions) {
     this.canvas = opts.canvas;
@@ -248,7 +256,14 @@ export class Visite360Engine {
 
   async goTo(
     nodeId: string,
-    opts?: { animate?: boolean; via?: Visite360Edge; yaw?: number; pitch?: number },
+    opts?: {
+      animate?: boolean;
+      via?: Visite360Edge;
+      yaw?: number;
+      pitch?: number;
+      /** Bottom room rail jump (NHC): go to that part even without a floor ring. */
+      fromRail?: boolean;
+    },
   ) {
     const node = this.nodeById.get(String(nodeId));
     if (!node || this.disposed) return;
@@ -281,32 +296,45 @@ export class Visite360Engine {
 
     let lookLon: number;
     let lookLat: number;
+    let approachFov: number;
+    let approachDur: number;
+
     if (opts?.yaw != null && opts?.pitch != null) {
+      // Floor-ring click: dive toward that doorway (NHC walk-in).
       lookLon = wrapLon(opts.yaw);
       lookLat = approachLookLat(opts.pitch);
+      approachFov = clamp(this.fov * 0.64, 42, 58);
+      approachDur = 680;
     } else if (edge) {
+      // Direct graph link (rail or ring): approach that doorway.
       lookLon = wrapLon(edge.yaw);
       lookLat = approachLookLat(edge.pitch);
+      approachFov = clamp(this.fov * 0.64, 42, 58);
+      approachDur = 680;
     } else {
-      const aim = this.aimToward(this.currentId, node.id);
-      lookLon = aim ? aim.yaw : entry.lon;
-      lookLat = aim ? approachLookLat(aim.pitch) : entry.lat;
+      // Rail jump with no direct doorway — NHC still goes there: soft turn, then land
+      // in the room's open entry view (don't aim through walls).
+      lookLon = entry.lon;
+      lookLat = entry.lat;
+      approachFov = clamp(this.fov * 0.9, 50, 72);
+      approachDur = opts?.fromRail ? 520 : 600;
     }
 
     this.onBusy?.(true);
+    // NHC: hide rings during the walk, then redraw in the new room.
+    this.onHotspots?.([]);
     void this.loadFaces(node.id).catch(() => {});
 
     this.anim = {
       phase: "approach",
       t0: performance.now(),
-      dur: 720,
+      dur: approachDur,
       fromLon: this.lon,
       fromLat: this.lat,
       toLon: this.lon + shortestDelta(this.lon, lookLon),
       toLat: lookLat,
       fromFov: this.fov,
-      // Zoom into the doorway / ring — NHC walk-in feel.
-      toFov: clamp(this.fov * 0.62, 40, 56),
+      toFov: approachFov,
       toId: node.id,
       settleLon: lookLon,
     };
@@ -328,16 +356,26 @@ export class Visite360Engine {
   }
 
   /**
-   * Face into the open room at eye level (NHC / Virtual Visions) — never the
-   * nearest wall or the door behind you.
+   * Face into the open room at eye level (NHC):
+   * - First open: curated hallway view (never a closed door).
+   * - After a walk from `fromId`: look INTO the room (opposite the entry doorway)
+   *   so the return floor ring sits behind you until you turn — same as NHC.
    */
-  private entryLook(nodeId: string) {
+  private entryLook(nodeId: string, fromId?: string | null) {
+    if (fromId && fromId !== nodeId) {
+      const back = this.outs.get(nodeId)?.find((e) => e.to === fromId);
+      if (back) {
+        return { lon: wrapLon(back.yaw + 180), lat: EYE_LAT };
+      }
+    }
+
     const curated = ENTRY_LOOK[nodeId];
     if (curated) {
       return { lon: wrapLon(curated.yaw), lat: curated.pitch };
     }
+
     const ranked = this.rankedNeighbors(nodeId);
-    // Skip ultra-near stubs (those are wall/door faces). Prefer a deep open view.
+    // Skip ultra-near stubs (wall/door faces). Prefer a deep open view.
     const intoRoom =
       ranked.find((r) => r.dist >= 240 && r.dist <= 480) ??
       ranked.find((r) => r.dist >= 180) ??
@@ -364,6 +402,9 @@ export class Visite360Engine {
   private async setScene(node: Visite360Node) {
     const tex = await this.loadFaces(node.id);
     if (this.disposed) return;
+    if (this.currentId && this.currentId !== node.id) {
+      this.previousId = this.currentId;
+    }
     this.scene.background = tex;
     this.currentId = node.id;
     this.onNodeChange?.(node);
@@ -429,6 +470,8 @@ export class Visite360Engine {
     for (const { edge } of this.rankedNeighbors(nodeId).slice(0, 4)) {
       void this.loadFaces(edge.to).catch(() => {});
     }
+    // Prefetch the return room so come-back feels instant like NHC.
+    if (this.previousId) void this.loadFaces(this.previousId).catch(() => {});
   }
 
   private applyCamera() {
@@ -440,53 +483,83 @@ export class Visite360Engine {
 
   private emitHotspots() {
     if (!this.currentId || !this.onHotspots) return;
+    // NHC hides floor rings while walking between rooms.
+    if (this.anim) {
+      this.onHotspots([]);
+      return;
+    }
     const w = this.canvas.clientWidth;
     const h = this.canvas.clientHeight;
-    // Prefer mid-range doorways (open floor ahead) over ultra-near wall stubs.
-    const neighbors = this.rankedNeighbors(this.currentId)
-      .slice()
-      .sort((a, b) => {
-        const score = (d: number) => Math.abs(d - 220);
-        return score(a.dist) - score(b.dist) || a.dist - b.dist;
-      })
-      .slice(0, MAX_HOTSPOTS);
+    const ranked = this.rankedNeighbors(this.currentId);
+    const cur = this.nodeById.get(this.currentId);
+    const origin = cur ? nodePos(cur) : null;
+
+    // NHC: return path first, then the best open doorways ahead.
+    const candidates: { edge: Visite360Edge; dist: number; priority: number }[] = [];
+    const seen = new Set<string>();
+
+    if (this.previousId && this.previousId !== this.currentId) {
+      const back = this.outs.get(this.currentId)?.find((e) => e.to === this.previousId);
+      if (back) {
+        const target = this.nodeById.get(back.to);
+        const dist = origin && target ? origin.distanceTo(nodePos(target)) : 200;
+        candidates.push({ edge: back, dist, priority: 0 });
+        seen.add(back.to);
+      }
+    }
+
+    for (const item of ranked) {
+      if (seen.has(item.edge.to)) continue;
+      // Ultra-near stubs sit on door faces — skip (return path exempt above).
+      if (item.dist < 125) continue;
+      candidates.push({
+        edge: item.edge,
+        dist: item.dist,
+        priority: 1 + Math.abs(item.dist - 260) / 400,
+      });
+      seen.add(item.edge.to);
+    }
+
+    candidates.sort((a, b) => a.priority - b.priority || a.dist - b.dist);
+    const neighbors = candidates.slice(0, MAX_HOTSPOTS);
     const out: HotspotScreen[] = [];
 
     this.camera.getWorldDirection(this.camFwd);
-    // Looking straight at the tiles → rings foreshorten into white dots/dashes. Be stricter.
-    const minFacing = this.lat < -28 ? 0.55 : 0.38;
+    const minFacing = this.lat < -32 ? 0.4 : 0.18;
 
     for (const { edge, dist } of neighbors) {
       const target = this.nodeById.get(edge.to);
       /**
-       * NHC: one clean disk on the OPEN floor toward the doorway — not mid-air,
-       * not glued to the wall base. Steeper pitch = closer on the floor (in front
-       * of the door); shallower = farther toward a distant room.
+       * NHC-perfect placement: project a point on the FLOOR plane in the doorway
+       * bearing, just inside the threshold — never mid-air / wall / closed door.
+       * Classic lon: horizon dir = (cos θ, 0, sin θ).
        */
-      const ringPitch =
-        dist < 170 ? -44 : dist < 300 ? -36 : -30;
-      this.dirFromYawPitch(edge.yaw, ringPitch, this.tmpDir);
-      const facing = this.tmpDir.dot(this.camFwd);
+      const yaw = edge.yaw * DEG;
+      const ringDist = clamp(dist * 0.38, 115, 195);
+      this.tmpPos.set(Math.cos(yaw) * ringDist, -EYE_HEIGHT, Math.sin(yaw) * ringDist);
+      const len = this.tmpPos.length();
+      if (len < 1e-4) continue;
+      const facing = this.tmpPos.dot(this.camFwd) / len;
       if (facing < minFacing) continue;
 
-      const projected = this.tmpDir.clone().project(this.camera);
+      const projected = this.tmpPos.project(this.camera);
       const x = (projected.x * 0.5 + 0.5) * w;
       const y = (-projected.y * 0.5 + 0.5) * h;
-      const inFront = projected.z < 1;
-      // Keep rings in the walkable floor band — never on the room rail / sky.
-      const onScreen =
-        x > w * 0.08 &&
-        x < w * 0.92 &&
-        y > h * 0.38 &&
-        y < h - 110;
-      if (!inFront || !onScreen || this.anim) continue;
+      const inFront = projected.z < 1 && projected.z > -1;
+      // Rings live on the floor band (lower view), above the room rail.
+      const onFloor =
+        x > w * 0.04 &&
+        x < w * 0.96 &&
+        y > h * 0.36 &&
+        y < h - 88;
+      if (!inFront || !onFloor) continue;
 
       out.push({
         to: edge.to,
         label: target?.label ?? edge.to,
         x,
         y,
-        scale: clamp(1.45 - dist / 520, 1, 1.55),
+        scale: clamp(1.75 - ringDist / 320, 1.15, 1.95),
         visible: true,
         yaw: edge.yaw,
         pitch: edge.pitch,
@@ -542,13 +615,13 @@ export class Visite360Engine {
 
     const destFov = this.mapFov(node.fov0);
 
-    // After the swap, settle into the open room view (NHC) — not stuck on a wall.
-    const into = this.entryLook(node.id);
+    // NHC settle: face into the room (away from the doorway you just came through).
+    const into = this.entryLook(node.id, this.previousId);
     const endLon = into.lon;
     this.anim = {
       phase: "settle",
       t0: performance.now(),
-      dur: 460,
+      dur: 520,
       fromLon: this.lon,
       fromLat: this.lat,
       toLon: this.lon + shortestDelta(this.lon, endLon),
@@ -576,7 +649,7 @@ export class Visite360Engine {
           void this.finishApproach();
         } else {
           this.lon = wrapLon(this.anim.settleLon);
-          this.lat = EYE_LAT;
+          this.lat = this.anim.toLat;
           this.fov = this.anim.toFov;
           this.targetFov = this.fov;
           this.anim = null;
