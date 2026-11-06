@@ -3182,7 +3182,10 @@ html:not(.phone-layout) .scene360-pano canvas {
   border-left: 4px solid transparent;
   border-right: 4px solid transparent;
   border-bottom: 8px solid #D85B5B;
-  transform-origin: 50% 14px;
+  /* 0×0 border-triangle: pivot in px around the face center under the tip */
+  transform-origin: 0 13px;
+  will-change: transform;
+  transition: transform 0.08s linear;
 }
 
 /* Visite 360 — fullscreen PC + phone */
@@ -3252,12 +3255,13 @@ html:not(.phone-layout) .scene360-pano canvas {
 .visite360-hotspots[aria-hidden="true"] {
   opacity: 0;
 }
+/* NHC / Virtual Visions–size floor rings (large ovals on the floor, not tiny mid-air dots). */
 .visite360-ring {
   position: absolute;
   left: 0;
   top: 0;
-  width: 64px;
-  height: 64px;
+  width: 112px;
+  height: 112px;
   margin: 0;
   padding: 0;
   border: 0;
@@ -3267,7 +3271,8 @@ html:not(.phone-layout) .scene360-pano canvas {
   pointer-events: auto;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: opacity 0.18s ease;
+  transition: opacity 0.18s ease, filter 0.18s ease;
+  filter: drop-shadow(0 14px 22px rgba(0, 0, 0, 0.4));
 }
 .visite360-ring-glow,
 .visite360-ring-dot {
@@ -3275,42 +3280,42 @@ html:not(.phone-layout) .scene360-pano canvas {
   left: 50%;
   top: 50%;
   border-radius: 50%;
-  transform: translate(-50%, -50%) scaleY(0.42);
+  transform: translate(-50%, -50%) scaleY(0.34);
   pointer-events: none;
 }
 .visite360-ring-glow {
-  width: 52px;
-  height: 52px;
-  border: 2.5px solid rgba(255, 255, 255, 0.95);
-  background: radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.02) 62%, transparent 70%);
+  width: 96px;
+  height: 96px;
+  border: 3.5px solid rgba(255, 255, 255, 0.98);
+  background: radial-gradient(circle at 50% 40%, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.08) 52%, transparent 72%);
   box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.2),
-    0 0 22px rgba(255, 255, 255, 0.5),
-    0 10px 24px rgba(15, 23, 42, 0.3);
-  animation: visite360-pulse 1.9s ease-in-out infinite;
+    0 0 0 1px rgba(255, 255, 255, 0.4),
+    0 0 34px rgba(255, 255, 255, 0.62),
+    inset 0 0 22px rgba(255, 255, 255, 0.22);
+  animation: visite360-pulse 1.85s ease-in-out infinite;
 }
 .visite360-ring-dot {
-  width: 11px;
-  height: 11px;
+  width: 16px;
+  height: 16px;
   background: #fff;
-  box-shadow: 0 0 12px rgba(255, 255, 255, 0.95);
+  box-shadow: 0 0 16px rgba(255, 255, 255, 1);
 }
 .visite360-ring:hover .visite360-ring-glow,
 .visite360-ring:focus-visible .visite360-ring-glow {
   border-color: #fff;
   box-shadow:
-    0 0 0 2px rgba(200, 248, 230, 0.65),
-    0 0 26px rgba(255, 255, 255, 0.8),
-    0 10px 26px rgba(15, 23, 42, 0.34);
+    0 0 0 2px rgba(200, 248, 230, 0.75),
+    0 0 36px rgba(255, 255, 255, 0.9),
+    inset 0 0 24px rgba(255, 255, 255, 0.26);
 }
 @keyframes visite360-pulse {
   0%,
   100% {
-    transform: translate(-50%, -50%) scaleY(0.42) scale(1);
-    opacity: 0.92;
+    transform: translate(-50%, -50%) scaleY(0.34) scale(1);
+    opacity: 0.95;
   }
   50% {
-    transform: translate(-50%, -50%) scaleY(0.42) scale(1.1);
+    transform: translate(-50%, -50%) scaleY(0.34) scale(1.1);
     opacity: 1;
   }
 }
@@ -5403,9 +5408,14 @@ html.phone-layout .detail {
   grid-template-rows: 1fr;
   background: #000;
 }
+/* Stage shrinks/grows with the white sheet so the villa scales with the drag. */
 html.phone-layout .detail.phone-sheet .detail-stage {
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: var(--sheet-h, 52vh);
+  inset: auto;
 }
 html.phone-layout .detail-top {
   top: max(10px, env(safe-area-inset-top));
@@ -5435,19 +5445,22 @@ html.phone-layout .detail-tabs button {
   padding: 0 10px;
   font-size: 12px;
 }
+/* Phone: Final / 1st / RDC stacked vertically (one above the other). */
 html.phone-layout .floor-float {
   top: auto;
   bottom: calc(var(--sheet-h, 52vh) + 18px);
   right: 14px;
   transform: none;
+  flex-direction: column-reverse;
+  align-items: stretch;
   gap: 8px;
 }
 /* Figma floor pills ≈ 88×62–66 ÷ 2.162 ≈ 41×31 */
 html.phone-layout .floor-float button {
-  min-width: 41px;
-  height: 31px;
-  padding: 0 10px;
-  font-size: 10px;
+  min-width: 52px;
+  height: 32px;
+  padding: 0 12px;
+  font-size: 11px;
 }
 /* Figma Compass 287×90 ÷ 2.162 ≈ 133×42 */
 html.phone-layout .detail-stage .spin.compass {
@@ -5474,10 +5487,17 @@ html.phone-layout .detail.phone-sheet .detail-side::-webkit-scrollbar {
   width: 0;
   height: 0;
 }
-/* Phone: no logo / email / phone contact rectangle */
-html.phone-layout .form-mode .contact-info,
-html.phone-layout .contact-info {
-  display: none !important;
+/* Phone: keep contact card (logo / email / phone) visible in the sheet */
+html.phone-layout .form-mode .contact-info {
+  display: flex;
+  height: auto;
+  min-height: 66px;
+  padding: 8px 10px 8px 12px;
+  margin-bottom: 12px;
+}
+html.phone-layout .form-mode .contact-logo {
+  width: 56px;
+  height: 54px;
 }
 /* Form grows with content; the sheet scrolls — button stays full height */
 html.phone-layout .detail.phone-sheet .lead.side,
@@ -5511,7 +5531,11 @@ html.phone-layout .detail.visit-full {
 }
 html.phone-layout .detail.visit-full.phone-sheet .detail-stage {
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  inset: auto;
   z-index: 1;
 }
 html.phone-layout .detail.visit-full .detail-side[hidden] {
@@ -5539,18 +5563,19 @@ html.phone-layout .visite360 {
   width: 100%;
   height: 100%;
 }
+/* Phone rings stay large like NHC — do not shrink them mid-air. */
 html.phone-layout .visite360-ring {
-  width: 58px;
-  height: 58px;
+  width: 104px;
+  height: 104px;
 }
 html.phone-layout .visite360-ring-glow {
-  width: 46px;
-  height: 46px;
-  border-width: 2px;
+  width: 88px;
+  height: 88px;
+  border-width: 3px;
 }
 html.phone-layout .visite360-ring-dot {
-  width: 10px;
-  height: 10px;
+  width: 14px;
+  height: 14px;
 }
 html.phone-layout .visite360-rooms {
   left: 50%;

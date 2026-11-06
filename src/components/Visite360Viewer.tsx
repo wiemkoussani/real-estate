@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { visite360FaceUrl, visite360GraphUrl } from "@/lib/complex";
 import {
   Visite360Engine,
+  PRIMARY_ROOM_ORDER,
   type HotspotScreen,
   type Visite360Graph,
   type Visite360Node,
@@ -17,8 +18,7 @@ type Props = {
 
 /**
  * Fullscreen Layama cubemap tour: drag to look, click floor rings to walk in.
- * Cubemap faces + graph load from Supabase public media (ajyad visite @ 2048).
- * Hotspot angles + click transitions follow Virtual Visions / Layama graph edges.
+ * Faces + graph from local public/visite360 (Virtual Visions–style walk).
  */
 export default function Visite360Viewer({ className, startId }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
@@ -50,6 +50,9 @@ export default function Visite360Viewer({ className, startId }: Props) {
       onBusy: (v) => {
         if (!disposed) setBusy(v);
       },
+      onError: (message) => {
+        if (!disposed) setError(message);
+      },
     });
     engineRef.current = engine;
 
@@ -67,11 +70,23 @@ export default function Visite360Viewer({ className, startId }: Props) {
           graph.nodes.find((n) => /main\s*entrance/i.test(n.label))?.id ||
           (graph.nodes[0] ? String(graph.nodes[0].id) : null);
 
-        await engine.loadGraph(graph, preferred ?? undefined);
+        // Prefer Virtual Visions tour nodes when the graph includes filler spots.
+        const primaryIds = new Set<string>(PRIMARY_ROOM_ORDER);
+        const trimmed: Visite360Graph = {
+          ...graph,
+          nodes: graph.nodes.filter((n) => primaryIds.has(String(n.id))),
+          edges: graph.edges.filter(
+            (e) => primaryIds.has(String(e.from)) && primaryIds.has(String(e.to)),
+          ),
+        };
+        const tourGraph = trimmed.nodes.length >= 8 ? trimmed : graph;
+
+        await engine.loadGraph(tourGraph, preferred ?? undefined);
         if (disposed) return;
         setNodes(engine.getNodes());
         setCurrentId(engine.getCurrentId() ?? "");
         setReady(true);
+        setError(null);
       } catch (e) {
         if (!disposed) {
           setError(e instanceof Error ? e.message : "Failed to load Visite 360");

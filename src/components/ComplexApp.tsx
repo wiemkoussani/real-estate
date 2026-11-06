@@ -1915,7 +1915,16 @@ function Spin360({ type, folder }: { type: number; folder: string }) {
     warmAround(0);
     const onResize = () => draw(idxRef.current);
     window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
+    const wrap = wrapRef.current;
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined" && wrap) {
+      ro = new ResizeObserver(() => draw(idxRef.current));
+      ro.observe(wrap);
+    }
+    return () => {
+      window.removeEventListener("resize", onResize);
+      ro?.disconnect();
+    };
   }, [type, folder, tour, warmAround, draw]);
 
   useEffect(() => {
@@ -1930,6 +1939,9 @@ function Spin360({ type, folder }: { type: number; folder: string }) {
   }, [idx, warmAround, draw]);
 
   const spin = (dir: 1 | -1) => setIdx((v) => (v + dir + n) % n);
+
+  // Needle tracks orbit frame so N stays geographic; negate so it counter-rotates with the view.
+  const headingDeg = n > 0 ? -((idx / n) * 360) : 0;
 
   return (
     <div
@@ -1955,7 +1967,7 @@ function Spin360({ type, folder }: { type: number; folder: string }) {
       <div className="spin compass">
         <button type="button" onClick={() => spin(-1)} aria-label="تدوير لليسار">‹</button>
         <span className="compass-face" aria-hidden>
-          <i className="compass-ptr" />
+          <i className="compass-ptr" style={{ transform: `rotate(${headingDeg}deg)` }} />
           <b>N</b>
         </span>
         <button type="button" onClick={() => spin(1)} aria-label="تدوير لليمين">›</button>
@@ -1978,7 +1990,8 @@ function VillaTour({
   const tour = useTour();
   const [tab, setTab] = useState<"plan" | "visit">("plan");
   const floors = COMPLEX.villa360?.floors ?? [];
-  const floorOrder = [...floors].reverse();
+  // RDC → 1st → Final (do not reverse)
+  const floorOrder = floors;
   const [floor, setFloor] = useState(floors[0]?.id ?? "");
   const floorFolder =
     floors.find((f) => f.id === floor)?.subfolder ?? floors[0]?.subfolder ?? "RDC";

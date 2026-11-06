@@ -38,13 +38,46 @@ export type HotspotScreen = {
 
 export const FACE_ORDER = ["px", "nx", "py", "ny", "pz", "nz"] as const;
 
+/**
+ * Virtual Visions room rail order (tour nodes only — graph also has filler spots).
+ * Keep walk / rail limited to this set so the tour matches the reference UX.
+ */
+export const PRIMARY_ROOM_ORDER = [
+  "10000", // Main Entrance
+  "10003", // Dining Entrance
+  "10002", // Living Room 1
+  "10001", // Hall 1
+  "10006", // Hall 3
+  "10005", // Kitchen
+  "10008", // Hall 4
+  "10010", // Hall 5
+  "10007", // Bedroom 1
+  "10012", // Hall 6
+  "10011", // Bedroom 2
+  "10009", // Bathroom
+  "10013", // Suite Bedroom
+  "10014", // Suite Dressing
+  "10015", // Suite Bathroom
+  "10016", // Dining Room
+  "10004", // Hall 2
+  "10017", // Living Room 2
+] as const;
+
+const PRIMARY_ROOM_SET = new Set<string>(PRIMARY_ROOM_ORDER);
+
 const DEG = Math.PI / 180;
-/** Virtual Visions / Layama: a few walk targets in view, not every graph link. */
+/** Virtual Visions: a few walk targets in view, not every graph link. */
 const MAX_HOTSPOTS = 5;
 /** Ignore distant graph links that punch through walls. */
-const MAX_HOTSPOT_DIST = 380;
+const MAX_HOTSPOT_DIST = 460;
 /** Same-floor gate (Layama Y is eye height). */
 const SAME_FLOOR_Y = 90;
+/** Eye-level look after enter / settle (slightly down reads more natural). */
+const EYE_LAT = -4;
+/** Floor-ring pitch so markers sit on the ground like NHC / Virtual Visions. */
+const FLOOR_RING_PITCH = -30;
+/** Default FOV once mapped from Layama's ultra-wide export. */
+const DEFAULT_FOV = 72;
 
 function clamp(v: number, a: number, b: number) {
   return Math.max(a, Math.min(b, v));
@@ -71,16 +104,12 @@ function nodePos(n: Visite360Node) {
 }
 
 /**
- * Graph pitch0 came from Layama's up-vector Y (near 90° when upright).
- * Convert to a calm eye-level look — never a floor/ceiling dive.
+ * Graph yaw0/pitch0 were derived from Layama's UP vector — not usable as look.
+ * Face toward the nearest doorway at eye level instead (Virtual Visions feel).
  */
-function nodeLat(pitch0: number) {
-  return clamp((90 - pitch0) * 0.2, -8, 10);
-}
-
-/** Soften authored floor-ring pitch so approach aims at the doorway, not the tiles. */
-function approachLat(pitch: number) {
-  return clamp(pitch * 0.35 - 4, -16, 12);
+function approachLookLat(edgePitch: number) {
+  // Dive toward the floor ring then settle — Virtual Visions walk-in feel.
+  return clamp(edgePitch * 0.55 - 4, -28, -4);
 }
 
 export type Visite360EngineOptions = {
@@ -89,6 +118,7 @@ export type Visite360EngineOptions = {
   onNodeChange?: (node: Visite360Node) => void;
   onHotspots?: (hotspots: HotspotScreen[]) => void;
   onBusy?: (busy: boolean) => void;
+  onError?: (message: string) => void;
 };
 
 type AnimState = {
@@ -102,6 +132,8 @@ type AnimState = {
   fromFov: number;
   toFov: number;
   toId: string;
+  /** Keep this yaw after cubemap swap (VV keeps facing the walk direction). */
+  settleLon: number;
 };
 
 export class Visite360Engine {
@@ -118,9 +150,9 @@ export class Visite360Engine {
   private currentId: string | null = null;
 
   private lon = 0;
-  private lat = 0;
-  private fov = 75;
-  private targetFov = 75;
+  private lat = EYE_LAT;
+  private fov = DEFAULT_FOV;
+  private targetFov = DEFAULT_FOV;
 
   private pointerDown = false;
   private dragged = false;
@@ -129,7 +161,6 @@ export class Visite360Engine {
   private pointerId: number | null = null;
 
   private anim: AnimState | null = null;
-  private pendingSwap: string | null = null;
 
   private raf = 0;
   private disposed = false;
@@ -137,6 +168,7 @@ export class Visite360Engine {
   private onNodeChange?: Visite360EngineOptions["onNodeChange"];
   private onHotspots?: Visite360EngineOptions["onHotspots"];
   private onBusy?: Visite360EngineOptions["onBusy"];
+  private onError?: Visite360EngineOptions["onError"];
   private canvas: HTMLCanvasElement;
   private ro: ResizeObserver;
   private hotspotDirty = true;
@@ -149,6 +181,7 @@ export class Visite360Engine {
     this.onNodeChange = opts.onNodeChange;
     this.onHotspots = opts.onHotspots;
     this.onBusy = opts.onBusy;
+    this.onError = opts.onError;
 
     this.renderer = new THREE.WebGLRenderer({
       canvas: opts.canvas,
@@ -158,8 +191,9 @@ export class Visite360Engine {
     });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    this.scene.background = new THREE.Color(0x0b1220);
 
-    this.camera = new THREE.PerspectiveCamera(75, 1, 0.1, 100);
+    this.camera = new THREE.PerspectiveCamera(DEFAULT_FOV, 1, 0.1, 100);
     this.camera.position.set(0, 0, 0);
 
     this.bindPointer();
@@ -189,7 +223,13 @@ export class Visite360Engine {
   }
 
   getNodes() {
-    return this.graph?.nodes.map((n) => ({ ...n, id: String(n.id) })) ?? [];
+    if (!this.graph) return [];
+    const byId = new Map(this.graph.nodes.map((n) => [String(n.id), { ...n, id: String(n.id) }]));
+    const primary = PRIMARY_ROOM_ORDER.map((id) => byId.get(id)).filter(
+      (n): n is Visite360Node => !!n,
+    );
+    if (primary.length > 0) return primary;
+    return this.graph.nodes.map((n) => ({ ...n, id: String(n.id) }));
   }
 
   getCurrentId() {
@@ -208,14 +248,18 @@ export class Visite360Engine {
     if (!node || this.disposed) return;
     if (this.anim) return;
 
-    const destLon = wrapLon(node.yaw0);
-    const destLat = nodeLat(node.pitch0);
     const destFov = this.mapFov(node.fov0);
+    const entry = this.entryLook(node.id);
 
     if (!opts?.animate || !this.currentId || this.currentId === node.id) {
-      await this.setScene(node);
-      this.lon = destLon;
-      this.lat = destLat;
+      try {
+        await this.setScene(node);
+      } catch (e) {
+        this.onError?.(e instanceof Error ? e.message : "Failed to load scene");
+        return;
+      }
+      this.lon = entry.lon;
+      this.lat = entry.lat;
       this.fov = destFov;
       this.targetFov = destFov;
       this.applyCamera();
@@ -232,34 +276,32 @@ export class Visite360Engine {
     let lookLat: number;
     if (opts?.yaw != null && opts?.pitch != null) {
       lookLon = wrapLon(opts.yaw);
-      lookLat = approachLat(opts.pitch);
+      lookLat = approachLookLat(opts.pitch);
     } else if (edge) {
-      // Keep edge yaw (ring direction) but soften pitch so we don't dive into the floor.
       lookLon = wrapLon(edge.yaw);
-      lookLat = approachLat(edge.pitch);
+      lookLat = approachLookLat(edge.pitch);
     } else {
-      // Room-bar jump with no direct edge: aim toward the target in world space.
       const aim = this.aimToward(this.currentId, node.id);
-      lookLon = aim ? aim.yaw : destLon;
-      lookLat = aim ? approachLat(aim.pitch) : destLat;
+      lookLon = aim ? aim.yaw : entry.lon;
+      lookLat = aim ? approachLookLat(aim.pitch) : entry.lat;
     }
 
     this.onBusy?.(true);
-    this.pendingSwap = node.id;
     void this.loadFaces(node.id).catch(() => {});
 
     this.anim = {
       phase: "approach",
       t0: performance.now(),
-      dur: 620,
+      dur: 720,
       fromLon: this.lon,
       fromLat: this.lat,
       toLon: this.lon + shortestDelta(this.lon, lookLon),
       toLat: lookLat,
       fromFov: this.fov,
-      // Mild zoom into the doorway — Virtual Visions style, not a floor dive.
-      toFov: clamp(this.fov * 0.78, 48, 70),
+      // Zoom into the doorway / ring — NHC walk-in feel.
+      toFov: clamp(this.fov * 0.62, 40, 56),
       toId: node.id,
+      settleLon: lookLon,
     };
   }
 
@@ -274,8 +316,24 @@ export class Visite360Engine {
   }
 
   private mapFov(fov0: number) {
-    if (fov0 > 120) return clamp(58 + (fov0 - 120) * 0.3, 55, 82);
-    return clamp(fov0, 45, 95);
+    if (fov0 > 120) return clamp(58 + (fov0 - 120) * 0.35, 58, 78);
+    return clamp(fov0, 48, 88);
+  }
+
+  /**
+   * Face into the room at eye level (Virtual Visions), not straight into the
+   * nearest wall hotspot. Prefer a mid-range doorway when available.
+   */
+  private entryLook(nodeId: string) {
+    const ranked = this.rankedNeighbors(nodeId);
+    const intoRoom =
+      ranked.find((r) => r.dist >= 180 && r.dist <= 420) ??
+      ranked.find((r) => r.dist >= 120) ??
+      ranked[0];
+    if (intoRoom) {
+      return { lon: wrapLon(intoRoom.edge.yaw), lat: EYE_LAT };
+    }
+    return { lon: 0, lat: EYE_LAT };
   }
 
   private aimToward(fromId: string, toId: string) {
@@ -317,9 +375,9 @@ export class Visite360Engine {
           resolve(tex);
         },
         undefined,
-        (err) => {
+        () => {
           this.loadQueue.delete(nodeId);
-          reject(err);
+          reject(new Error(`Cubemap ${nodeId} failed to load`));
         },
       );
     });
@@ -335,6 +393,8 @@ export class Visite360Engine {
     for (const edge of this.outs.get(nodeId) ?? []) {
       const target = this.nodeById.get(edge.to);
       if (!target) continue;
+      // Stay inside the Virtual Visions tour set (skip filler graph nodes).
+      if (PRIMARY_ROOM_SET.size && !PRIMARY_ROOM_SET.has(edge.to)) continue;
       const p = nodePos(target);
       const dist = origin.distanceTo(p);
       const dy = Math.abs(p.y - origin.y);
@@ -375,22 +435,27 @@ export class Visite360Engine {
 
     for (const { edge, dist } of neighbors) {
       const target = this.nodeById.get(edge.to);
-      // Authored edge pitch places rings on the floor / doorway — do not remap.
-      this.dirFromYawPitch(edge.yaw, edge.pitch, this.tmpDir);
+      // Strategic floor placement: authored yaw, distance-biased pitch on the ground.
+      const authored = Number.isFinite(edge.pitch) ? edge.pitch : FLOOR_RING_PITCH;
+      const floorBias = FLOOR_RING_PITCH - dist / 55;
+      const ringPitch = clamp(Math.min(authored, floorBias), -48, -18);
+      this.dirFromYawPitch(edge.yaw, ringPitch, this.tmpDir);
       const facing = this.tmpDir.dot(this.camFwd);
-      if (facing < 0.08) continue;
+      if (facing < 0.02) continue;
 
       const projected = this.tmpDir.clone().project(this.camera);
       const x = (projected.x * 0.5 + 0.5) * w;
       const y = (-projected.y * 0.5 + 0.5) * h;
       const inFront = projected.z < 1;
-      const onScreen = x > 16 && x < w - 16 && y > 16 && y < h - 16;
+      // Keep rings above the room rail, on the floor plane.
+      const onScreen = x > 10 && x < w - 10 && y > 20 && y < h - 88;
       out.push({
         to: edge.to,
         label: target?.label ?? edge.to,
         x,
         y,
-        scale: clamp(1.18 - dist / 520, 0.72, 1.18),
+        // Near doors = large NHC rings; far ones slightly smaller.
+        scale: clamp(1.85 - dist / 380, 0.95, 1.9),
         visible: inFront && onScreen && !this.anim,
         yaw: edge.yaw,
         pitch: edge.pitch,
@@ -423,33 +488,41 @@ export class Visite360Engine {
   private async finishApproach() {
     if (!this.anim || this.anim.phase !== "approach") return;
     const node = this.nodeById.get(this.anim.toId);
+    const settleLon = this.anim.settleLon;
     if (!node) {
       this.anim = null;
       this.onBusy?.(false);
       return;
     }
 
-    await this.setScene(node);
+    try {
+      await this.setScene(node);
+    } catch (e) {
+      this.anim = null;
+      this.onBusy?.(false);
+      this.onError?.(e instanceof Error ? e.message : "Failed to load scene");
+      return;
+    }
     if (this.disposed) return;
 
-    const destLon = wrapLon(node.yaw0);
-    const destLat = nodeLat(node.pitch0);
     const destFov = this.mapFov(node.fov0);
 
+    // After the swap, lift to eye level while keeping the walk heading (NHC enter).
+    const into = this.entryLook(node.id);
+    const endLon = settleLon ?? into.lon;
     this.anim = {
       phase: "settle",
       t0: performance.now(),
-      dur: 420,
+      dur: 460,
       fromLon: this.lon,
       fromLat: this.lat,
-      toLon: this.lon + shortestDelta(this.lon, destLon),
-      // Always settle at eye level so we never leave the user staring at tiles.
-      toLat: destLat,
+      toLon: this.lon + shortestDelta(this.lon, endLon),
+      toLat: EYE_LAT,
       fromFov: this.fov,
       toFov: destFov,
       toId: node.id,
+      settleLon: endLon,
     };
-    this.pendingSwap = null;
   }
 
   private tick = () => {
@@ -467,13 +540,10 @@ export class Visite360Engine {
         if (this.anim.phase === "approach") {
           void this.finishApproach();
         } else {
-          const n = this.nodeById.get(this.anim.toId);
-          if (n) {
-            this.lon = wrapLon(n.yaw0);
-            this.lat = nodeLat(n.pitch0);
-            this.fov = this.mapFov(n.fov0);
-            this.targetFov = this.fov;
-          }
+          this.lon = wrapLon(this.anim.settleLon);
+          this.lat = EYE_LAT;
+          this.fov = this.anim.toFov;
+          this.targetFov = this.fov;
           this.anim = null;
           this.onBusy?.(false);
           this.hotspotDirty = true;
@@ -510,8 +580,8 @@ export class Visite360Engine {
     if (Math.abs(dx) + Math.abs(dy) > 2) this.dragged = true;
     this.lastX = e.clientX;
     this.lastY = e.clientY;
-    this.lon = wrapLon(this.lon - dx * 0.16);
-    this.lat = clamp(this.lat + dy * 0.16, -80, 80);
+    this.lon = wrapLon(this.lon - dx * 0.18);
+    this.lat = clamp(this.lat + dy * 0.16, -70, 70);
     this.hotspotDirty = true;
   };
 
@@ -531,7 +601,7 @@ export class Visite360Engine {
   private onWheel = (e: WheelEvent) => {
     e.preventDefault();
     if (this.anim) return;
-    this.targetFov = clamp(this.targetFov + e.deltaY * 0.045, 36, 92);
+    this.targetFov = clamp(this.targetFov + e.deltaY * 0.04, 38, 90);
   };
 
   private bindPointer() {
