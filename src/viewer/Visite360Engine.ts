@@ -37,10 +37,10 @@ export type HotspotScreen = {
 };
 
 /**
- * Layama px/nx are swapped vs Three.js CubeTexture +X/−X sampling — without this
- * swap, lon 0 shows the closed door and lon 180 never reaches the open hallway.
+ * Standard CubeTextureLoader order. Do NOT swap px/nx — Three.js scene.background
+ * samples cube maps with flipEnvMap = -1, so camera look +X shows the −X face (nx).
  */
-export const FACE_ORDER = ["nx", "px", "py", "ny", "pz", "nz"] as const;
+export const FACE_ORDER = ["px", "nx", "py", "ny", "pz", "nz"] as const;
 
 /**
  * Virtual Visions room rail order (tour nodes only — graph also has filler spots).
@@ -68,11 +68,11 @@ export const PRIMARY_ROOM_ORDER = [
 ] as const;
 
 /**
- * First look after px/nx swap: lon 0 = +X = open hallway (nx file).
- * NHC opens into the room — never the closed entrance door.
+ * First open: look +X (lon 0). With flipEnvMap that samples nx = open hallway,
+ * never px = closed entrance door (which appears when looking −X / lon 180).
  */
 const ENTRY_LOOK: Record<string, { yaw: number; pitch: number }> = {
-  "10000": { yaw: 0, pitch: -5 }, // Main Entrance → open hallway
+  "10000": { yaw: 0, pitch: -5 },
 };
 
 const PRIMARY_ROOM_SET = new Set<string>(PRIMARY_ROOM_ORDER);
@@ -283,11 +283,12 @@ export class Visite360Engine {
         this.onError?.(e instanceof Error ? e.message : "Failed to load scene");
         return;
       }
-      // Always open looking into the room (NHC), never a wall/door close-up.
+      // Always open looking into the room (NHC), never the closed entrance door.
       this.lon = entry.lon;
       this.lat = entry.lat;
-      this.fov = destFov;
-      this.targetFov = destFov;
+      // Slightly wider so the first frame reads as a room, not a door close-up.
+      this.fov = Math.max(destFov, 76);
+      this.targetFov = this.fov;
       this.applyCamera();
       this.hotspotDirty = true;
       return;
@@ -481,8 +482,10 @@ export class Visite360Engine {
   private applyCamera() {
     this.camera.fov = this.fov;
     this.camera.updateProjectionMatrix();
+    // Classic lon/lat aim. Scene.background CubeTexture flips X (flipEnvMap=-1),
+    // so lon 0 (+X look) shows nx hallway; lon 180 shows px door.
     this.dirFromYawPitch(this.lon, this.lat, this.tmpDir);
-    this.camera.lookAt(this.tmpDir);
+    this.camera.lookAt(this.tmpDir.x, this.tmpDir.y, this.tmpDir.z);
   }
 
   private emitHotspots() {
