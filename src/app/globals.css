@@ -3101,6 +3101,9 @@ html:not(.phone-layout) .scene360-pano canvas {
 .detail-stage .spin-wrap {
   position: absolute;
   inset: 0;
+  width: 100%;
+  height: 100%;
+  background: #E8EDF2;
 }
 .detail-stage .spin-wrap canvas {
   display: block;
@@ -3109,6 +3112,7 @@ html:not(.phone-layout) .scene360-pano canvas {
   object-fit: cover;
   touch-action: none;
   cursor: grab;
+  background: #E8EDF2;
 }
 .detail-stage .spin-wrap canvas:active {
   cursor: grabbing;
@@ -5444,19 +5448,18 @@ html.phone-layout .app.layout-ready.scene360-mode .panel.open.form-wide {
 html.phone-layout .detail {
   grid-template-columns: 1fr;
   grid-template-rows: 1fr;
-  background: #000;
+  /* Match stage fill — never leave a black band above the villa */
+  background: #E8EDF2;
 }
-/* Stage height tracks the white sheet: enlarge sheet → villa shrinks, and vice versa. */
+/* Stage height tracks the white sheet: enlarge sheet → villa shrinks, and vice versa.
+   Use inset shorthand only (do not set top/… then inset:auto — that clears the edges). */
 html.phone-layout .detail.phone-sheet .detail-stage {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: var(--sheet-h, 52vh);
-  inset: auto;
+  inset: 0 0 var(--sheet-h, 52vh) 0;
   z-index: 1;
   min-height: 18vh;
   background: #E8EDF2;
+  overflow: hidden;
 }
 html.phone-layout .detail-top {
   top: max(10px, env(safe-area-inset-top));
@@ -5548,21 +5551,20 @@ html.phone-layout .detail.phone-sheet .form-mode .lead.side {
   min-height: 0;
   overflow: visible;
   box-shadow: none;
-  padding-bottom: 8px;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
 }
+/* Submit stays in document flow at the end of the form — not sticky over fields while scrolling */
 html.phone-layout .form-mode .lead.side button[type="submit"],
 html.phone-layout .lead.side button[type="submit"] {
   flex: none;
   flex-shrink: 0;
-  position: sticky;
-  bottom: calc(6px + env(safe-area-inset-bottom));
-  z-index: 2;
+  position: static;
   width: 100%;
   height: 48px;
   min-height: 48px;
   max-height: 48px;
-  margin-top: 8px;
-  box-shadow: 0 -12px 18px #fff;
+  margin-top: 12px;
+  box-shadow: none;
 }
 
 /* Visite 360 — plein ecran phone */
@@ -5573,11 +5575,7 @@ html.phone-layout .detail.visit-full {
 }
 html.phone-layout .detail.visit-full.phone-sheet .detail-stage {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  inset: auto;
+  inset: 0;
   z-index: 1;
 }
 html.phone-layout .detail.visit-full .detail-side[hidden] {
