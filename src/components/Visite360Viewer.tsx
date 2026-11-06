@@ -17,7 +17,8 @@ type Props = {
 
 /**
  * Fullscreen Layama cubemap tour: drag to look, click floor rings to walk in.
- * Faces resolve via COMPLEX.assetBase (local public/ or Supabase).
+ * Cubemap faces + graph load from Supabase public media (ajyad visite @ 2048).
+ * Hotspot angles + click transitions follow Virtual Visions / Layama graph edges.
  */
 export default function Visite360Viewer({ className, startId }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
@@ -91,10 +92,14 @@ export default function Visite360Viewer({ className, startId }: Props) {
     el?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
   }, [currentId]);
 
-  const goTo = (id: string) => {
+  const goTo = (id: string, aim?: { yaw: number; pitch: number }) => {
     const engine = engineRef.current;
     if (!engine || engine.isBusy() || id === currentId) return;
-    void engine.goTo(id, { animate: true });
+    void engine.goTo(id, {
+      animate: true,
+      yaw: aim?.yaw,
+      pitch: aim?.pitch,
+    });
   };
 
   return (
@@ -115,12 +120,21 @@ export default function Visite360Viewer({ className, startId }: Props) {
               key={h.to}
               type="button"
               className="visite360-ring"
-              style={{ left: h.x, top: h.y }}
+              style={{
+                left: h.x,
+                top: h.y,
+                transform: `translate(-50%, -50%) scale(${h.scale})`,
+              }}
               aria-label={h.label || "Go"}
               disabled={busy}
+              onPointerDown={(e) => {
+                // Don't let the canvas start a drag when pressing a ring.
+                e.stopPropagation();
+              }}
               onClick={(e) => {
                 e.stopPropagation();
-                goTo(h.to);
+                e.preventDefault();
+                goTo(h.to, { yaw: h.yaw, pitch: h.pitch });
               }}
             >
               <span className="visite360-ring-glow" />

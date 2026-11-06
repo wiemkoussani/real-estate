@@ -58,6 +58,8 @@ export class OrbitEngine {
   private previewId: string | null = null;
   private frameHeadings: number[] = [];
   private approaching = false;
+  /** When true (scene 360 open), ignore all maquette drag / zoom / click. */
+  private inputLocked = false;
   private zoomOx = 0;
   private zoomOy = 0;
   private isDragging = false;
@@ -311,6 +313,12 @@ export class OrbitEngine {
   setFocus(id: string | null) {
     this.focusedId = id;
     this.syncMeshVisibility();
+  }
+
+  /** Freeze the aerial maquette while the exterior 360 overlay is open. */
+  setInputLocked(locked: boolean) {
+    this.inputLocked = locked;
+    if (locked) this.endDrag();
   }
 
   setPreview(id: string | null) {
@@ -707,13 +715,17 @@ export class OrbitEngine {
     if (!mesh) return;
     this.approaching = true;
     this.isNavigating = false;
-    this.highlight(id);
+    // Clear hover/preview so tint doesn't float on the wrong frame during the spin.
+    this.hoveredId = null;
+    this.previewId = null;
+    this.syncMeshVisibility();
     const best = this.bestFrameForUnit(id);
     if (best !== this.currentFrame) {
       await this.goToFrame(best);
       if (this.disposed) return;
-      this.highlight(id);
     }
+    // Tint only once we're on the best frame — house + color stay locked for the zoom.
+    this.highlight(id);
     const box = this.projectUnit(mesh);
     if (!box) {
       this.approaching = false;
@@ -1216,7 +1228,13 @@ export class OrbitEngine {
   }
 
   private uiBlock(t: EventTarget | null) {
-    return (t as HTMLElement | null)?.closest("button, a, input, select, textarea, nav, .hud, .panel, .modal, .tour, .detail, .bottom-controls, .rail, .dock, .compact-top");
+    if (this.inputLocked) return true;
+    if (this.container.closest(".scene360-mode")) return true;
+    return Boolean(
+      (t as HTMLElement | null)?.closest(
+        "button, a, input, select, textarea, nav, .hud, .panel, .modal, .tour, .detail, .bottom-controls, .rail, .dock, .compact-top, .scene360-overlay, .scene360-view, .scene360-pano, .scene360-bar, .scene360-strip, .scene360-strip-dock, .scene360-back",
+      ),
+    );
   }
 
   private beginDrag(x: number, y: number) {
@@ -1334,7 +1352,7 @@ export class OrbitEngine {
   };
 
   private onPointerDown = (e: PointerEvent) => {
-    if (this.approaching || e.button !== 0) return;
+    if (this.inputLocked || this.approaching || e.button !== 0) return;
     if (this.uiBlock(e.target)) return;
     e.preventDefault();
     try {
@@ -1366,7 +1384,7 @@ export class OrbitEngine {
   };
 
   private onTouchStart = (e: TouchEvent) => {
-    if (this.approaching) return;
+    if (this.inputLocked || this.approaching) return;
     if (this.uiBlock(e.target)) return;
     const t = e.touches[0];
     if (!t) return;
@@ -1428,8 +1446,9 @@ export class OrbitEngine {
   };
 
   private onWheel = (e: WheelEvent) => {
+    if (this.inputLocked || this.uiBlock(e.target)) return;
     const t = e.target as HTMLElement | null;
-    if (t?.closest(".scene360-strip, .scene360-strip-dock, .hud, .scene360-bar, .scene360-view")) return;
+    if (t?.closest(".scene360-strip, .scene360-strip-dock, .hud, .scene360-bar, .scene360-view, .scene360-overlay, .scene360-pano")) return;
     e.preventDefault();
     this.zoomBy(e.deltaY > 0 ? -COMPLEX.zoomStep : COMPLEX.zoomStep);
   };
@@ -1462,8 +1481,7 @@ export class OrbitEngine {
   }
 
   private onClick = (e: MouseEvent) => {
-    const t = e.target as HTMLElement | null;
-    if (t?.closest("button, a, input, select, textarea, nav, .hud, .panel, .modal, .tour, .detail, .bottom-controls, .rail, .dock, .compact-top")) return;
+    if (this.inputLocked || this.uiBlock(e.target)) return;
     if (this.moved || this.approaching || this.panMode) return;
     const unit = this.hit(e);
     if (unit) this.events.onSelect?.(unit);

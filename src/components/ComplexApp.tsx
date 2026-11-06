@@ -558,7 +558,8 @@ function ComplexStage({ tour, introOpen, onEnter }: { tour: TourMedia; introOpen
     approachedRef.current = u.id;
     setSelected(u);
     setTourUnit(null);
-    en.setFocus(u.id);
+    // Focus/tint is applied inside approach() after the orbit turn, so color
+    // doesn't drift off the house while the aerial spins.
     await en.approach(u.id);
     busyRef.current = false;
   };
@@ -623,6 +624,10 @@ function ComplexStage({ tour, introOpen, onEnter }: { tour: TourMedia; introOpen
   useEffect(() => {
     engineRef.current?.setPanMode(panMode);
   }, [panMode, ready]);
+
+  useEffect(() => {
+    engineRef.current?.setInputLocked(scene360Open || scene360Closing);
+  }, [scene360Open, scene360Closing, ready]);
 
   useEffect(() => {
     const syncFs = () => setIsFullscreen(Boolean(document.fullscreenElement));
@@ -991,7 +996,7 @@ function ComplexStage({ tour, introOpen, onEnter }: { tour: TourMedia; introOpen
   };
 
   return (
-    <div className={`app${toolsOpen ? " tools-on" : ""}${layoutReady ? " layout-ready" : ""}${filtersOpen || filtersClosing ? " filters-open" : ""}${scene360Strip ? " strip360-on" : ""}${scene360Open || scene360Closing ? " scene360-mode" : ""}`}>
+    <div className={`app${toolsOpen ? " tools-on" : ""}${layoutReady ? " layout-ready" : ""}${filtersOpen || filtersClosing ? " filters-open" : ""}${scene360Strip ? " strip360-on" : ""}${scene360Open || scene360Closing ? " scene360-mode" : ""}${tourUnit ? " tour-open" : ""}`}>
       {introOpen && <IntroScreen ready={ready} loadPct={loadPct} onEnter={onEnter} />}
       <aside className={`panel ${listOpen ? "open" : ""} ${formOpen ? "form-wide" : ""} ${filtersOpen ? "filters-on" : ""}`}>
         <button
@@ -1375,7 +1380,7 @@ function ComplexStage({ tour, introOpen, onEnter }: { tour: TourMedia; introOpen
           </div>
         </nav>
 
-        {!scene360Open && (
+        {!scene360Open && !tourUnit && (
           <div
             className={`hud${scene360Strip ? " strip360-on" : ""}`}
             onPointerDown={(e) => e.stopPropagation()}
@@ -1979,7 +1984,7 @@ function VillaTour({
     floors.find((f) => f.id === floor)?.subfolder ?? floors[0]?.subfolder ?? "RDC";
   const badge = STATUS_AR[unit.status] ?? unit.status;
   const [isPhone, setIsPhone] = useState(false);
-  const [sheetHeight, setSheetHeight] = useState(0.28);
+  const [sheetHeight, setSheetHeight] = useState(0.52);
   const dragRef = useRef<{ startY: number; startH: number } | null>(null);
 
   useEffect(() => {
@@ -2000,7 +2005,7 @@ function VillaTour({
     if (!dragRef.current || !isPhone) return;
     const dy = dragRef.current.startY - e.clientY;
     const next = dragRef.current.startH + dy / window.innerHeight;
-    setSheetHeight(Math.min(0.5, Math.max(0.2, next)));
+    setSheetHeight(Math.min(0.72, Math.max(0.32, next)));
   };
 
   const onSheetPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {

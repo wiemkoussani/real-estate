@@ -2785,6 +2785,19 @@ html:not(.phone-layout) .scene360-pano canvas {
 .app.scene360-mode .scene360-strip-dock {
   display: none !important;
 }
+/* Top/bottom margins around the 360 window must not spin the maquette behind. */
+.app.scene360-mode .stage {
+  cursor: default !important;
+}
+.app.scene360-mode .stage > .bg,
+.app.scene360-mode .stage > .bg-next,
+.app.scene360-mode .stage > .webgl {
+  pointer-events: none !important;
+}
+.app.scene360-mode .scene360-overlay {
+  pointer-events: auto;
+  touch-action: none;
+}
 .scene360-strip-dock {
   display: none;
 }
@@ -2982,7 +2995,8 @@ html:not(.phone-layout) .scene360-pano canvas {
 .detail {
   position: absolute;
   inset: 0;
-  z-index: 5;
+  /* Above map HUD (z-index 8) so exterior tools never sit over the villa/form */
+  z-index: 20;
   display: grid;
   /* Figma AXIS: stage left (~1560), contact sidebar right (~360) */
   grid-template-columns: 1fr minmax(320px, 360px);
@@ -2990,6 +3004,9 @@ html:not(.phone-layout) .scene360-pano canvas {
   background: #E8EEF3;
   color: #1a2330;
   overflow: hidden;
+}
+.app.tour-open .hud {
+  display: none !important;
 }
 .detail.phone-sheet {
   grid-template-columns: 1fr;
@@ -3031,9 +3048,15 @@ html:not(.phone-layout) .scene360-pano canvas {
   border-radius: 28px 28px 0 0;
   background: #ffffff;
   box-shadow: 0 -8px 40px rgba(15, 23, 42, 0.12);
-  overflow: auto;
+  overflow: hidden;
   overscroll-behavior: none;
   touch-action: pan-y;
+  scrollbar-width: none;
+}
+.detail.phone-sheet .detail-side::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 .sheet-handle {
   display: none;
@@ -3145,6 +3168,9 @@ html:not(.phone-layout) .scene360-pano canvas {
   font-weight: 700;
   color: #35404D;
   letter-spacing: 0.02em;
+  /* N sits a hair lower in the face */
+  padding-top: 2px;
+  box-sizing: border-box;
 }
 .detail-stage .spin.compass .compass-ptr {
   position: absolute;
@@ -3230,16 +3256,18 @@ html:not(.phone-layout) .scene360-pano canvas {
   position: absolute;
   left: 0;
   top: 0;
-  width: 56px;
-  height: 56px;
+  width: 64px;
+  height: 64px;
   margin: 0;
   padding: 0;
   border: 0;
   background: transparent;
   transform: translate(-50%, -50%);
+  transform-origin: center center;
   pointer-events: auto;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+  transition: opacity 0.18s ease;
 }
 .visite360-ring-glow,
 .visite360-ring-dot {
@@ -3247,88 +3275,96 @@ html:not(.phone-layout) .scene360-pano canvas {
   left: 50%;
   top: 50%;
   border-radius: 50%;
-  transform: translate(-50%, -50%) scaleY(0.55);
+  transform: translate(-50%, -50%) scaleY(0.42);
   pointer-events: none;
 }
 .visite360-ring-glow {
-  width: 44px;
-  height: 44px;
-  border: 2.5px solid rgba(255, 255, 255, 0.92);
+  width: 52px;
+  height: 52px;
+  border: 2.5px solid rgba(255, 255, 255, 0.95);
+  background: radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.02) 62%, transparent 70%);
   box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.25),
-    0 0 18px rgba(255, 255, 255, 0.55),
-    0 8px 20px rgba(15, 23, 42, 0.28);
-  animation: visite360-pulse 1.8s ease-in-out infinite;
+    0 0 0 1px rgba(255, 255, 255, 0.2),
+    0 0 22px rgba(255, 255, 255, 0.5),
+    0 10px 24px rgba(15, 23, 42, 0.3);
+  animation: visite360-pulse 1.9s ease-in-out infinite;
 }
 .visite360-ring-dot {
-  width: 10px;
-  height: 10px;
+  width: 11px;
+  height: 11px;
   background: #fff;
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.95);
 }
 .visite360-ring:hover .visite360-ring-glow,
 .visite360-ring:focus-visible .visite360-ring-glow {
   border-color: #fff;
   box-shadow:
-    0 0 0 2px rgba(59, 125, 216, 0.55),
-    0 0 22px rgba(255, 255, 255, 0.75),
-    0 8px 22px rgba(15, 23, 42, 0.32);
+    0 0 0 2px rgba(200, 248, 230, 0.65),
+    0 0 26px rgba(255, 255, 255, 0.8),
+    0 10px 26px rgba(15, 23, 42, 0.34);
 }
 @keyframes visite360-pulse {
   0%,
   100% {
-    transform: translate(-50%, -50%) scaleY(0.55) scale(1);
-    opacity: 0.95;
+    transform: translate(-50%, -50%) scaleY(0.42) scale(1);
+    opacity: 0.92;
   }
   50% {
-    transform: translate(-50%, -50%) scaleY(0.55) scale(1.08);
+    transform: translate(-50%, -50%) scaleY(0.42) scale(1.1);
     opacity: 1;
   }
 }
 .visite360-rooms {
   position: absolute;
-  left: 12px;
-  right: 12px;
-  bottom: max(16px, env(safe-area-inset-bottom));
+  left: 50%;
+  right: auto;
+  bottom: max(18px, env(safe-area-inset-bottom));
   z-index: 4;
   display: flex;
   flex-direction: row;
   align-items: center;
   gap: 8px;
-  padding: 8px 4px;
+  width: min(920px, calc(100% - 24px));
+  max-width: calc(100% - 24px);
+  padding: 10px 12px;
   overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.35) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
   pointer-events: auto;
+  transform: translateX(-50%);
+  border-radius: 18px;
+  background: rgba(22, 24, 28, 0.55);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
 }
 .visite360-rooms::-webkit-scrollbar {
   height: 4px;
 }
 .visite360-rooms::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.3);
   border-radius: 999px;
 }
 .visite360-rooms button {
   flex: none;
-  height: 36px;
+  height: 34px;
   padding: 0 14px;
   border: 0;
-  border-radius: 999px;
-  background: rgba(32, 36, 42, 0.78);
-  color: #fff;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.88);
   font-family: "Noto Sans Arabic", "Segoe UI", sans-serif;
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
 }
 .visite360-rooms button:hover {
-  background: rgba(48, 54, 64, 0.9);
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
 }
 .visite360-rooms button.on {
   background: #c8f8e6;
@@ -3716,6 +3752,8 @@ html:not(.phone-layout) .scene360-pano canvas {
   color: #304778;
 }
 .form-mode .lead.side {
+  display: flex;
+  flex-direction: column;
   margin: 0 -3px 0;
   background: #FFFFFF;
   border-radius: 20px;
@@ -3725,6 +3763,12 @@ html:not(.phone-layout) .scene360-pano canvas {
   flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
+  scrollbar-width: none;
+}
+.form-mode .lead.side::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 .form-mode .contact-ask {
   margin: 0 0 -4px;
@@ -3894,7 +3938,14 @@ html:not(.phone-layout) .scene360-pano canvas {
   transform: rotate(-45deg) translateY(-1px);
 }
 .form-mode .lead.side button[type="submit"] {
+  flex: none;
+  flex-shrink: 0;
+  align-self: stretch;
+  box-sizing: border-box;
+  width: 100%;
   height: 48px;
+  min-height: 48px;
+  max-height: 48px;
   margin-top: 4px;
   border: 0;
   border-radius: 24px;
@@ -4886,7 +4937,8 @@ html.phone-layout .compact-agency-logo {
 html.phone-layout .compact-agency-logo img {
   width: auto;
   height: 50px;
-  max-width: 80px;
+  /* Figma Image 124.92×108.1 ÷ 2.162 ≈ 58×50 */
+  max-width: 58px;
   object-fit: contain;
   border-radius: 0;
 }
@@ -4897,9 +4949,10 @@ html.phone-layout .phone-top .compact-project {
   pointer-events: none;
 }
 html.phone-layout .compact-project-logo {
+  /* Figma Villas Ajyad 212.89×103.78 ÷ 2.162 ≈ 98×48 */
   height: 48px;
   width: auto;
-  max-width: 100%;
+  max-width: 98px;
   object-fit: contain;
 }
 html.phone-layout .compact-project-name {
@@ -5358,45 +5411,96 @@ html.phone-layout .detail-top {
   top: max(10px, env(safe-area-inset-top));
   left: 12px;
   right: 12px;
-  gap: 10px;
+  gap: 8px;
 }
+/* Figma Button 86.48×86.48 ÷ 2.162 ≈ 40 */
 html.phone-layout .tool-back {
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
 }
+/* Figma Header pill ≈ 483×85 ÷ 2.162 ≈ 223×39 */
 html.phone-layout .detail-tabs {
   flex: 1;
-  max-width: min(420px, calc(100% - 56px));
-  padding: 5px 6px;
-  gap: 8px;
+  max-width: min(223px, calc(100% - 52px));
+  padding: 4px 5px;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 999px;
 }
 html.phone-layout .detail-tabs button {
   flex: 1;
-  height: 36px;
-  padding: 0 12px;
-  font-size: 13px;
+  height: 30px;
+  padding: 0 10px;
+  font-size: 12px;
 }
 html.phone-layout .floor-float {
   top: auto;
-  bottom: calc(var(--sheet-h, 28vh) + 18px);
+  bottom: calc(var(--sheet-h, 52vh) + 18px);
   right: 14px;
   transform: none;
   gap: 8px;
 }
+/* Figma floor pills ≈ 88×62–66 ÷ 2.162 ≈ 41×31 */
 html.phone-layout .floor-float button {
-  min-width: 64px;
-  height: 42px;
-  padding: 0 14px;
-  font-size: 13px;
+  min-width: 41px;
+  height: 31px;
+  padding: 0 10px;
+  font-size: 10px;
 }
+/* Figma Compass 287×90 ÷ 2.162 ≈ 133×42 */
 html.phone-layout .detail-stage .spin.compass {
-  bottom: calc(var(--sheet-h, 28vh) + 14px);
-  width: min(260px, 70vw);
-  height: 64px;
-  padding: 8px 12px;
+  bottom: calc(var(--sheet-h, 52vh) + 14px);
+  width: min(133px, 48vw);
+  height: 42px;
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid #fff;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border-radius: 999px;
 }
 html.phone-layout .detail.phone-sheet .detail-side {
   padding: 0 18px calc(14px + env(safe-area-inset-bottom));
+  /* White sheet scrolls without a visible scrollbar */
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+html.phone-layout .detail.phone-sheet .detail-side::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+/* Phone: no logo / email / phone contact rectangle */
+html.phone-layout .form-mode .contact-info,
+html.phone-layout .contact-info {
+  display: none !important;
+}
+/* Form grows with content; the sheet scrolls — button stays full height */
+html.phone-layout .detail.phone-sheet .lead.side,
+html.phone-layout .detail.phone-sheet .form-mode .lead.side {
+  flex: none;
+  min-height: 0;
+  overflow: visible;
+  box-shadow: none;
+  padding-bottom: 8px;
+}
+html.phone-layout .form-mode .lead.side button[type="submit"],
+html.phone-layout .lead.side button[type="submit"] {
+  flex: none;
+  flex-shrink: 0;
+  position: sticky;
+  bottom: calc(6px + env(safe-area-inset-bottom));
+  z-index: 2;
+  width: 100%;
+  height: 48px;
+  min-height: 48px;
+  max-height: 48px;
+  margin-top: 8px;
+  box-shadow: 0 -12px 18px #fff;
 }
 
 /* Visite 360 — plein ecran phone */
@@ -5436,27 +5540,30 @@ html.phone-layout .visite360 {
   height: 100%;
 }
 html.phone-layout .visite360-ring {
-  width: 48px;
-  height: 48px;
+  width: 58px;
+  height: 58px;
 }
 html.phone-layout .visite360-ring-glow {
-  width: 38px;
-  height: 38px;
+  width: 46px;
+  height: 46px;
   border-width: 2px;
 }
 html.phone-layout .visite360-ring-dot {
-  width: 9px;
-  height: 9px;
+  width: 10px;
+  height: 10px;
 }
 html.phone-layout .visite360-rooms {
-  left: 8px;
-  right: 8px;
+  left: 50%;
+  right: auto;
   bottom: max(12px, env(safe-area-inset-bottom));
+  width: calc(100% - 16px);
+  max-width: calc(100% - 16px);
   gap: 6px;
-  padding: 6px 2px;
+  padding: 8px 10px;
+  transform: translateX(-50%);
 }
 html.phone-layout .visite360-rooms button {
-  height: 34px;
+  height: 32px;
   padding: 0 12px;
   font-size: 12px;
 }

@@ -129,8 +129,15 @@ export function planUrl(unit: Unit) {
 export const VISITE360_FACES = ["px", "nx", "py", "ny", "pz", "nz"] as const;
 export type Visite360Face = (typeof VISITE360_FACES)[number];
 
+/** Public Supabase media root for the Ajyad interior tour (2048 cubemap faces). */
+const VISITE360_SUPABASE_BASE =
+  (typeof process !== "undefined" && process.env.NEXT_PUBLIC_SUPABASE_URL
+    ? `${process.env.NEXT_PUBLIC_SUPABASE_URL.replace(/\/$/, "")}/storage/v1/object/public/media/villas-ajyad/visite360`
+    : "") ||
+  "https://bmsyikmojhvdzwynojoo.supabase.co/storage/v1/object/public/media/villas-ajyad/visite360";
+
 export function visite360Base() {
-  return `${COMPLEX.assetBase}/visite360`;
+  return VISITE360_SUPABASE_BASE;
 }
 
 export function visite360GraphUrl() {
