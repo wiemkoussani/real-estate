@@ -88,7 +88,7 @@
     },
     {
       "id": "10007",
-      "label": "Bedroom 1",
+      "label": "Hall near stairs",
       "pos": [
         2973.85,
         151.783,
@@ -112,7 +112,7 @@
     },
     {
       "id": "10009",
-      "label": "Bathroom",
+      "label": "Dining Hall",
       "pos": [
         3300.98,
         151.783,
@@ -136,7 +136,7 @@
     },
     {
       "id": "10011",
-      "label": "Bedroom 2",
+      "label": "Living Hall",
       "pos": [
         3202.6,
         151.783,
@@ -160,7 +160,7 @@
     },
     {
       "id": "10013",
-      "label": "Suite Bedroom",
+      "label": "Living Room 3",
       "pos": [
         2941.93,
         151.783,
@@ -172,7 +172,7 @@
     },
     {
       "id": "10014",
-      "label": "Suite Dressing",
+      "label": "Stair Hall",
       "pos": [
         3076.01,
         151.783,
@@ -184,7 +184,7 @@
     },
     {
       "id": "10015",
-      "label": "Suite Bathroom",
+      "label": "Stair Landing",
       "pos": [
         2754.76,
         277.006,
@@ -196,7 +196,7 @@
     },
     {
       "id": "10016",
-      "label": "Dining Room",
+      "label": "Upper Landing",
       "pos": [
         2760.84,
         414.442,
@@ -244,7 +244,7 @@
     },
     {
       "id": "10020",
-      "label": "Guest Room",
+      "label": "Bedroom 1",
       "pos": [
         3194.97,
         493.169,
@@ -376,7 +376,7 @@
     },
     {
       "id": "10031",
-      "label": "Master Bed",
+      "label": "Bedroom 2",
       "pos": [
         3025.8,
         493.169,
@@ -388,7 +388,7 @@
     },
     {
       "id": "10032",
-      "label": "Master Bath",
+      "label": "Suite Bedroom",
       "pos": [
         2972.8,
         493.169,
@@ -400,7 +400,7 @@
     },
     {
       "id": "10033",
-      "label": "Kids Room",
+      "label": "Suite Dressing",
       "pos": [
         3170.72,
         493.169,
@@ -448,7 +448,7 @@
     },
     {
       "id": "10037",
-      "label": "Utility",
+      "label": "Bathroom",
       "pos": [
         3323.55,
         493.169,

@@ -43,8 +43,8 @@ export type HotspotScreen = {
 export const FACE_ORDER = ["px", "nx", "py", "ny", "pz", "nz"] as const;
 
 /**
- * Virtual Visions room rail order (tour nodes only — graph also has filler spots).
- * Keep walk / rail limited to this set so the tour matches the reference UX.
+ * Tour rail — IDs match real cubemap content (Layama cameras were mislabeled before).
+ * Bedroom/Bathroom point at actual bed / bath panoramas, not nearby halls.
  */
 export const PRIMARY_ROOM_ORDER = [
   "10000", // Main Entrance
@@ -55,24 +55,31 @@ export const PRIMARY_ROOM_ORDER = [
   "10005", // Kitchen
   "10008", // Hall 4
   "10010", // Hall 5
-  "10007", // Bedroom 1
-  "10012", // Hall 6
-  "10011", // Bedroom 2
-  "10009", // Bathroom
-  "10013", // Suite Bedroom
-  "10014", // Suite Dressing
-  "10015", // Suite Bathroom
-  "10016", // Dining Room
+  "10020", // Bedroom 1
+  "10007", // Hall near stairs
+  "10031", // Bedroom 2
+  "10037", // Bathroom
+  "10032", // Suite Bedroom
+  "10033", // Suite Dressing
+  "10009", // Dining Hall
+  "10016", // Upper Landing
   "10004", // Hall 2
   "10017", // Living Room 2
 ] as const;
 
 /**
- * First open: look +X (lon 0). With flipEnvMap that samples nx = open hallway,
- * never px = closed entrance door (which appears when looking −X / lon 180).
+ * Curated camera look-lons (already flipEnvMap-corrected) so rail / first open
+ * faces into the room — never a blank wall or closed door.
  */
 const ENTRY_LOOK: Record<string, { yaw: number; pitch: number }> = {
-  "10000": { yaw: 0, pitch: -5 },
+  "10000": { yaw: 0, pitch: -5 }, // Main Entrance → hallway (nx)
+  "10020": { yaw: 90, pitch: -4 }, // Bedroom 1 → into room
+  "10031": { yaw: -6, pitch: -4 }, // Bedroom 2 → into suite
+  "10032": { yaw: -20, pitch: -4 }, // Suite Bedroom → bed / lounge
+  "10033": { yaw: 90, pitch: -4 }, // Dressing → toward bath opening
+  "10037": { yaw: 90, pitch: -4 }, // Bathroom → vanity / shower
+  "10002": { yaw: 0, pitch: -4 }, // Living Room 1
+  "10005": { yaw: 0, pitch: -4 }, // Kitchen
 };
 
 const PRIMARY_ROOM_SET = new Set<string>(PRIMARY_ROOM_ORDER);
@@ -82,11 +89,11 @@ const DEG = Math.PI / 180;
  * NHC: usually 2 big floor rings in open doorways — click to enter, return ring
  * appears in the next room so you can walk back.
  */
-const MAX_HOTSPOTS = 3;
+const MAX_HOTSPOTS = 4;
 /** Ignore distant graph links that punch through walls. */
-const MAX_HOTSPOT_DIST = 480;
+const MAX_HOTSPOT_DIST = 520;
 /** Same-floor gate (Layama Y is eye height). */
-const SAME_FLOOR_Y = 90;
+const SAME_FLOOR_Y = 120;
 /** Eye-level look after enter / settle (slightly down reads more natural). */
 const EYE_LAT = -4;
 /** Layama node Y ≈ eye height — floor plane for NHC rings is y ≈ 0. */
@@ -103,6 +110,15 @@ function wrapLon(lon: number) {
   while (v > 180) v -= 360;
   while (v < -180) v += 360;
   return v;
+}
+
+/**
+ * Graph / Layama edge.yaw is a WORLD doorway bearing (cubemap face content).
+ * Three.js scene.background CubeTexture uses flipEnvMap = -1, so the camera
+ * longitude that *shows* that doorway is mirrored on X: look = 180 − worldYaw.
+ */
+function lookFromWorld(worldYaw: number) {
+  return wrapLon(180 - worldYaw);
 }
 
 function shortestDelta(from: number, to: number) {
@@ -305,24 +321,29 @@ export class Visite360Engine {
     let approachDur: number;
 
     if (opts?.yaw != null && opts?.pitch != null) {
-      // Floor-ring click: dive toward that doorway (NHC walk-in).
+      // Floor-ring click: dive toward that doorway (yaw is already camera look-lon).
       lookLon = wrapLon(opts.yaw);
       lookLat = approachLookLat(opts.pitch);
       approachFov = clamp(this.fov * 0.64, 42, 58);
       approachDur = 680;
+    } else if (opts?.fromRail) {
+      // Room rail: jump straight into the destination's open view (never aim a
+      // long graph edge through walls — that landed people in the wrong room).
+      lookLon = entry.lon;
+      lookLat = entry.lat;
+      approachFov = clamp(this.fov * 0.9, 50, 72);
+      approachDur = 480;
     } else if (edge) {
-      // Direct graph link (rail or ring): approach that doorway.
-      lookLon = wrapLon(edge.yaw);
+      // Walk via doorway: aim at the visual bearing (flipEnvMap-corrected).
+      lookLon = lookFromWorld(edge.yaw);
       lookLat = approachLookLat(edge.pitch);
       approachFov = clamp(this.fov * 0.64, 42, 58);
       approachDur = 680;
     } else {
-      // Rail jump with no direct doorway — NHC still goes there: soft turn, then land
-      // in the room's open entry view (don't aim through walls).
       lookLon = entry.lon;
       lookLat = entry.lat;
       approachFov = clamp(this.fov * 0.9, 50, 72);
-      approachDur = opts?.fromRail ? 520 : 600;
+      approachDur = 600;
     }
 
     this.onBusy?.(true);
@@ -370,24 +391,27 @@ export class Visite360Engine {
     if (fromId && fromId !== nodeId) {
       const back = this.outs.get(nodeId)?.find((e) => e.to === fromId);
       if (back) {
-        return { lon: wrapLon(back.yaw + 180), lat: EYE_LAT };
+        // Look into the room = opposite the entry doorway (flipEnvMap-corrected).
+        return { lon: lookFromWorld(back.yaw + 180), lat: EYE_LAT };
       }
     }
 
     const curated = ENTRY_LOOK[nodeId];
     if (curated) {
+      // Curated values are already camera look-lons (not world yaw).
       return { lon: wrapLon(curated.yaw), lat: curated.pitch };
     }
 
     const ranked = this.rankedNeighbors(nodeId);
-    // Skip ultra-near stubs (wall/door faces). Prefer a deep open view.
+    // Prefer a deep open view into the room (not a wall stub).
     const intoRoom =
       ranked.find((r) => r.dist >= 240 && r.dist <= 480) ??
       ranked.find((r) => r.dist >= 180) ??
       ranked.find((r) => r.dist >= 140) ??
+      ranked[0] ??
       null;
     if (intoRoom) {
-      return { lon: wrapLon(intoRoom.edge.yaw), lat: EYE_LAT };
+      return { lon: lookFromWorld(intoRoom.edge.yaw), lat: EYE_LAT };
     }
     return { lon: 0, lat: EYE_LAT };
   }
@@ -462,10 +486,14 @@ export class Visite360Engine {
       ranked.push({ edge, dist, dy });
     }
     ranked.sort((a, b) => a.dist - b.dist || a.dy - b.dy);
-    // One ring per doorway direction — overlapping yaws were sending people to the wrong room.
+    // One ring per visual doorway — compare flipEnvMap look bearings so nearby
+    // wrong rooms don't steal the ring for a door that leads somewhere else.
     const unique: typeof ranked = [];
     for (const item of ranked) {
-      const clash = unique.some((u) => Math.abs(shortestDelta(u.edge.yaw, item.edge.yaw)) < 28);
+      const look = lookFromWorld(item.edge.yaw);
+      const clash = unique.some(
+        (u) => Math.abs(shortestDelta(lookFromWorld(u.edge.yaw), look)) < 22,
+      );
       if (!clash) unique.push(item);
     }
     return unique;
@@ -518,7 +546,7 @@ export class Visite360Engine {
     for (const item of ranked) {
       if (seen.has(item.edge.to)) continue;
       // Ultra-near stubs sit on door faces — skip (return path exempt above).
-      if (item.dist < 125) continue;
+      if (item.dist < 90) continue;
       candidates.push({
         edge: item.edge,
         dist: item.dist,
@@ -532,16 +560,17 @@ export class Visite360Engine {
     const out: HotspotScreen[] = [];
 
     this.camera.getWorldDirection(this.camFwd);
-    const minFacing = this.lat < -35 ? 0.35 : 0.12;
+    const minFacing = this.lat < -35 ? 0.28 : 0.06;
 
     for (const { edge, dist } of neighbors) {
       const target = this.nodeById.get(edge.to);
       /**
-       * Floor-plane ring in the doorway bearing (NHC): just inside the threshold.
-       * Same classic spherical basis as the camera after the px/nx face swap.
+       * Floor ring on the *visual* doorway (flipEnvMap-corrected look bearing).
+       * Click aim uses the same look-lon so walk-in matches what you see.
        */
-      const yaw = edge.yaw * DEG;
-      const ringDist = clamp(dist * 0.4, 100, 200);
+      const lookYaw = lookFromWorld(edge.yaw);
+      const yaw = lookYaw * DEG;
+      const ringDist = clamp(dist * 0.42, 90, 210);
       this.tmpPos.set(Math.cos(yaw) * ringDist, -EYE_HEIGHT, Math.sin(yaw) * ringDist);
       const len = this.tmpPos.length();
       if (len < 1e-4) continue;
@@ -553,10 +582,10 @@ export class Visite360Engine {
       const y = (-projected.y * 0.5 + 0.5) * h;
       const inFront = projected.z < 1 && projected.z > -1;
       const onFloor =
-        x > w * 0.03 &&
-        x < w * 0.97 &&
-        y > h * 0.3 &&
-        y < h - 80;
+        x > w * 0.02 &&
+        x < w * 0.98 &&
+        y > h * 0.22 &&
+        y < h - 64;
       if (!inFront || !onFloor) continue;
 
       out.push({
@@ -566,7 +595,7 @@ export class Visite360Engine {
         y,
         scale: clamp(1.9 - ringDist / 300, 1.25, 2.15),
         visible: true,
-        yaw: edge.yaw,
+        yaw: lookYaw,
         pitch: edge.pitch,
       });
     }
