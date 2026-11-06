@@ -1956,6 +1956,23 @@ function Spin360({ type, folder }: { type: number; folder: string }) {
   }, [idx, warmAround, draw]);
 
   const spin = (dir: 1 | -1) => setIdx((v) => (v + dir + n) % n);
+  const holdRef = useRef<number | null>(null);
+
+  const stopHold = () => {
+    if (holdRef.current != null) {
+      window.clearInterval(holdRef.current);
+      holdRef.current = null;
+    }
+  };
+
+  const startHold = (dir: 1 | -1, el: HTMLElement, pointerId: number) => {
+    stopHold();
+    el.setPointerCapture?.(pointerId);
+    spin(dir);
+    holdRef.current = window.setInterval(() => spin(dir), 70);
+  };
+
+  useEffect(() => () => stopHold(), []);
 
   // Same as maquette HUD: needle rotates; letter snaps to N / NE / E / …
   const headingDeg = n > 0 ? (idx / n) * 360 : 0;
@@ -1985,12 +2002,38 @@ function Spin360({ type, folder }: { type: number; folder: string }) {
       <canvas ref={canvasRef} />
       {loading && <div className="tour-load">Loading…</div>}
       <div className="spin compass">
-        <button type="button" onClick={() => spin(-1)} aria-label="تدوير لليسار">‹</button>
+        <button
+          type="button"
+          aria-label="تدوير لليسار"
+          onPointerDown={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            startHold(-1, e.currentTarget, e.pointerId);
+          }}
+          onPointerUp={stopHold}
+          onPointerCancel={stopHold}
+          onPointerLeave={stopHold}
+        >
+          ‹
+        </button>
         <span className="compass-face" aria-hidden>
           <i className="compass-ptr" style={{ transform: `rotate(${headingDeg}deg)` }} />
           <b>{headingDir}</b>
         </span>
-        <button type="button" onClick={() => spin(1)} aria-label="تدوير لليمين">›</button>
+        <button
+          type="button"
+          aria-label="تدوير لليمين"
+          onPointerDown={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            startHold(1, e.currentTarget, e.pointerId);
+          }}
+          onPointerUp={stopHold}
+          onPointerCancel={stopHold}
+          onPointerLeave={stopHold}
+        >
+          ›
+        </button>
       </div>
     </div>
   );

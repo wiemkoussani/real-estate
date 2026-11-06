@@ -66,20 +66,14 @@ export const PRIMARY_ROOM_ORDER = [
 const PRIMARY_ROOM_SET = new Set<string>(PRIMARY_ROOM_ORDER);
 
 const DEG = Math.PI / 180;
-/** Virtual Visions: a few walk targets in view, not every graph link. */
-const MAX_HOTSPOTS = 5;
+/** NHC shows a couple of walk targets in view — not every graph link. */
+const MAX_HOTSPOTS = 3;
 /** Ignore distant graph links that punch through walls. */
-const MAX_HOTSPOT_DIST = 460;
+const MAX_HOTSPOT_DIST = 420;
 /** Same-floor gate (Layama Y is eye height). */
 const SAME_FLOOR_Y = 90;
 /** Eye-level look after enter / settle (slightly down reads more natural). */
 const EYE_LAT = -4;
-/**
- * Layama node Y is eye height (~152). Floor rings must sit on y≈0, not on the
- * authored edge pitch (those ~-12° aims are mid-doorway look-through, NHC puts
- * disks on the tiles).
- */
-const EYE_HEIGHT = 152;
 /** Default FOV once mapped from Layama's ultra-wide export. */
 const DEFAULT_FOV = 72;
 
@@ -434,41 +428,52 @@ export class Visite360Engine {
     if (!this.currentId || !this.onHotspots) return;
     const w = this.canvas.clientWidth;
     const h = this.canvas.clientHeight;
-    const neighbors = this.rankedNeighbors(this.currentId).slice(0, MAX_HOTSPOTS);
+    // Prefer mid-range doorways (open floor ahead) over ultra-near wall stubs.
+    const neighbors = this.rankedNeighbors(this.currentId)
+      .slice()
+      .sort((a, b) => {
+        const score = (d: number) => Math.abs(d - 220);
+        return score(a.dist) - score(b.dist) || a.dist - b.dist;
+      })
+      .slice(0, MAX_HOTSPOTS);
     const out: HotspotScreen[] = [];
 
     this.camera.getWorldDirection(this.camFwd);
+    // Looking straight at the tiles → rings foreshorten into white dots/dashes. Be stricter.
+    const minFacing = this.lat < -28 ? 0.55 : 0.38;
 
     for (const { edge, dist } of neighbors) {
       const target = this.nodeById.get(edge.to);
-      // NHC: ring on the floor in the doorway bearing — NOT at authored mid-air pitch.
-      // Place a bit in front of the destination (door threshold), then drop to the floor plane.
-      const horiz = Math.max(dist, 60);
-      const ringDist = clamp(horiz * 0.34, 85, 220);
-      const yaw = edge.yaw * DEG;
-      this.tmpDir.set(
-        Math.sin(yaw) * ringDist,
-        -EYE_HEIGHT,
-        Math.cos(yaw) * ringDist,
-      );
-      const len = this.tmpDir.length();
-      if (len < 1e-4) continue;
-      const facing = this.tmpDir.dot(this.camFwd) / len;
-      if (facing < 0.1) continue;
+      /**
+       * NHC: one clean disk on the OPEN floor toward the doorway — not mid-air,
+       * not glued to the wall base. Steeper pitch = closer on the floor (in front
+       * of the door); shallower = farther toward a distant room.
+       */
+      const ringPitch =
+        dist < 170 ? -44 : dist < 300 ? -36 : -30;
+      this.dirFromYawPitch(edge.yaw, ringPitch, this.tmpDir);
+      const facing = this.tmpDir.dot(this.camFwd);
+      if (facing < minFacing) continue;
 
-      const projected = this.tmpDir.project(this.camera);
+      const projected = this.tmpDir.clone().project(this.camera);
       const x = (projected.x * 0.5 + 0.5) * w;
       const y = (-projected.y * 0.5 + 0.5) * h;
-      const inFront = projected.z < 1 && projected.z > -1;
-      // Floor band: lower half of the view, above the room rail.
-      const onScreen = x > 12 && x < w - 12 && y > h * 0.28 && y < h - 100;
+      const inFront = projected.z < 1;
+      // Keep rings in the walkable floor band — never on the room rail / sky.
+      const onScreen =
+        x > w * 0.08 &&
+        x < w * 0.92 &&
+        y > h * 0.38 &&
+        y < h - 110;
+      if (!inFront || !onScreen || this.anim) continue;
+
       out.push({
         to: edge.to,
         label: target?.label ?? edge.to,
         x,
         y,
-        scale: clamp(1.7 - ringDist / 280, 0.95, 1.75),
-        visible: inFront && onScreen && !this.anim,
+        scale: clamp(1.45 - dist / 520, 1, 1.55),
+        visible: true,
         yaw: edge.yaw,
         pitch: edge.pitch,
       });
