@@ -63,6 +63,14 @@ export const PRIMARY_ROOM_ORDER = [
   "10017", // Living Room 2
 ] as const;
 
+/**
+ * First look (classic Three.js lon: 0=+X door, 180=−X hallway on Main Entrance).
+ * Cubemap-verified — NHC opens into the room, never on the entrance door.
+ */
+const ENTRY_LOOK: Record<string, { yaw: number; pitch: number }> = {
+  "10000": { yaw: 180, pitch: -6 }, // Main Entrance → hallway (nx)
+};
+
 const PRIMARY_ROOM_SET = new Set<string>(PRIMARY_ROOM_ORDER);
 
 const DEG = Math.PI / 180;
@@ -256,6 +264,7 @@ export class Visite360Engine {
         this.onError?.(e instanceof Error ? e.message : "Failed to load scene");
         return;
       }
+      // Always open looking into the room (NHC), never a wall/door close-up.
       this.lon = entry.lon;
       this.lat = entry.lat;
       this.fov = destFov;
@@ -319,15 +328,21 @@ export class Visite360Engine {
   }
 
   /**
-   * Face into the room at eye level (Virtual Visions), not straight into the
-   * nearest wall hotspot. Prefer a mid-range doorway when available.
+   * Face into the open room at eye level (NHC / Virtual Visions) — never the
+   * nearest wall or the door behind you.
    */
   private entryLook(nodeId: string) {
+    const curated = ENTRY_LOOK[nodeId];
+    if (curated) {
+      return { lon: wrapLon(curated.yaw), lat: curated.pitch };
+    }
     const ranked = this.rankedNeighbors(nodeId);
+    // Skip ultra-near stubs (those are wall/door faces). Prefer a deep open view.
     const intoRoom =
-      ranked.find((r) => r.dist >= 180 && r.dist <= 420) ??
-      ranked.find((r) => r.dist >= 120) ??
-      ranked[0];
+      ranked.find((r) => r.dist >= 240 && r.dist <= 480) ??
+      ranked.find((r) => r.dist >= 180) ??
+      ranked.find((r) => r.dist >= 140) ??
+      null;
     if (intoRoom) {
       return { lon: wrapLon(intoRoom.edge.yaw), lat: EYE_LAT };
     }
@@ -340,7 +355,7 @@ export class Visite360Engine {
     if (!from || !to) return null;
     const d = nodePos(to).sub(nodePos(from));
     if (d.lengthSq() < 1e-6) return null;
-    // Layama graph yaw = atan2(dx, dz) — NOT atan2(dz, dx).
+    // Same frame as authored edge.yaw (used as classic panorama lon).
     const yaw = Math.atan2(d.x, d.z) / DEG;
     const pitch = Math.asin(clamp(d.y / d.length(), -1, 1)) / DEG;
     return { yaw: wrapLon(yaw), pitch: clamp(pitch, -55, 55) };
@@ -419,7 +434,6 @@ export class Visite360Engine {
   private applyCamera() {
     this.camera.fov = this.fov;
     this.camera.updateProjectionMatrix();
-    // Same spherical basis as Layama edges: yaw=atan2(x,z), pitch=elevation.
     this.dirFromYawPitch(this.lon, this.lat, this.tmpDir);
     this.camera.lookAt(this.tmpDir);
   }
@@ -482,14 +496,18 @@ export class Visite360Engine {
   }
 
   /**
-   * Layama / Motiva look vector: yaw 0 = +Z, yaw +90 = +X, pitch 0 = horizon.
-   * Matches graph edge.yaw = atan2(dx, dz).
+   * Classic Three.js cube panorama (same as webgl_panorama_cube):
+   * lon 0 = +X, lon 90 = +Z, lon 180 = −X, lon −90 = −Z.
+   * Graph edge.yaw is already authored in this spherical frame for doorway aims.
    */
   private dirFromYawPitch(yawDeg: number, pitchDeg: number, out: THREE.Vector3) {
-    const yaw = yawDeg * DEG;
-    const pitch = pitchDeg * DEG;
-    const c = Math.cos(pitch);
-    return out.set(c * Math.sin(yaw), Math.sin(pitch), c * Math.cos(yaw));
+    const phi = (90 - pitchDeg) * DEG;
+    const theta = yawDeg * DEG;
+    return out.set(
+      Math.sin(phi) * Math.cos(theta),
+      Math.cos(phi),
+      Math.sin(phi) * Math.sin(theta),
+    );
   }
 
   private resize() {
@@ -524,9 +542,9 @@ export class Visite360Engine {
 
     const destFov = this.mapFov(node.fov0);
 
-    // After the swap, lift to eye level while keeping the walk heading (NHC enter).
+    // After the swap, settle into the open room view (NHC) — not stuck on a wall.
     const into = this.entryLook(node.id);
-    const endLon = settleLon ?? into.lon;
+    const endLon = into.lon;
     this.anim = {
       phase: "settle",
       t0: performance.now(),
@@ -534,7 +552,7 @@ export class Visite360Engine {
       fromLon: this.lon,
       fromLat: this.lat,
       toLon: this.lon + shortestDelta(this.lon, endLon),
-      toLat: EYE_LAT,
+      toLat: into.lat,
       fromFov: this.fov,
       toFov: destFov,
       toId: node.id,
