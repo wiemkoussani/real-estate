@@ -193,16 +193,41 @@ export class OrbitEngine {
     void this.goToFrame(best);
   }
 
-  /** Shortest-path jump to an orbit frame (phone longitude). */
+  /** Shortest-path spin to an orbit frame, then settle (smooth turn before approach). */
   async goToFrame(index: number) {
     const n = this.tour.totalFrames;
     if (!n || index < 0 || index >= n || index === this.currentFrame) return;
     const forward = (index - this.currentFrame + n) % n;
     const backward = (this.currentFrame - index + n) % n;
     const dir: 1 | -1 = forward <= backward ? 1 : -1;
-    if (!this.frameReady(index)) await this.loadOne(index);
+    const steps = Math.min(forward, backward);
+    if (steps <= 0) return;
+
+    for (let s = 1; s <= steps; s++) {
+      void this.loadOne((this.currentFrame + dir * s + n) % n);
+    }
+    await this.loadOne(index);
     if (this.disposed || !this.frameReady(index)) return;
-    this.commitFrame(index, dir);
+
+    this.isNavigating = true;
+    this.cancelUpgrade();
+    // ~36ms/frame, clamped so short hops stay soft and long hops don't drag.
+    const duration = Math.min(1100, Math.max(320, steps * 36));
+    let advanced = 0;
+    await this.tween(duration, (e) => {
+      const targetStep = Math.min(steps, Math.round(e * steps));
+      while (advanced < targetStep) {
+        const next = (this.currentFrame + dir + n) % n;
+        if (!this.frameReady(next)) break;
+        this.commitFrame(next, dir);
+        advanced += 1;
+      }
+    });
+    if (this.disposed) return;
+    if (this.currentFrame !== index && this.frameReady(index)) {
+      this.commitFrame(index, dir);
+    }
+    this.isNavigating = false;
   }
 
   /** Frame where the unit sits closest to screen center (visible longitude). */

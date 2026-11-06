@@ -124,3 +124,19 @@ export function planUrl(unit: Unit) {
   const file = unit.planImage.replace(/^assets\//, "");
   return `${COMPLEX.assetBase}/${file}`;
 }
+
+/** Visite 360 Layama cubemap faces: nx ny nz px py pz @ 2048. */
+export const VISITE360_FACES = ["px", "nx", "py", "ny", "pz", "nz"] as const;
+export type Visite360Face = (typeof VISITE360_FACES)[number];
+
+export function visite360Base() {
+  return `${COMPLEX.assetBase}/visite360`;
+}
+
+export function visite360GraphUrl() {
+  return `${visite360Base()}/graph.json`;
+}
+
+export function visite360FaceUrl(nodeId: string, face: Visite360Face) {
+  return `${visite360Base()}/2048/${nodeId}_${face}.jpg`;
+}
