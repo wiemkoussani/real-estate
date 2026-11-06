@@ -130,8 +130,8 @@ export const VISITE360_FACES = ["px", "nx", "py", "ny", "pz", "nz"] as const;
 export type Visite360Face = (typeof VISITE360_FACES)[number];
 
 /**
- * Serve cubemaps from local public/ (symlink to ajyad visite).
- * Supabase public media was returning 403 and broke the whole tour.
+ * Cubemaps shipped in public/visite360/1024 (real files, not a local symlink —
+ * Vercel/GitHub cannot follow /home/... symlinks, which made the tour black).
  */
 export function visite360Base() {
   return `${COMPLEX.assetBase}/visite360`;
@@ -142,5 +142,5 @@ export function visite360GraphUrl() {
 }
 
 export function visite360FaceUrl(nodeId: string, face: Visite360Face) {
-  return `${visite360Base()}/2048/${nodeId}_${face}.jpg`;
+  return `${visite360Base()}/1024/${nodeId}_${face}.jpg`;
 }

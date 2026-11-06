@@ -1858,7 +1858,7 @@ function Spin360({ type, folder }: { type: number; folder: string }) {
     canvas.style.width = `${w}px`;
     canvas.style.height = `${h}px`;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.fillStyle = "#e8edf2";
+    ctx.fillStyle = "#E8EDF2";
     ctx.fillRect(0, 0, w, h);
     const scale = Math.max(w / img.naturalWidth, h / img.naturalHeight);
     ctx.drawImage(img, (w - img.naturalWidth * scale) / 2, (h - img.naturalHeight * scale) / 2, img.naturalWidth * scale, img.naturalHeight * scale);
@@ -1871,7 +1871,13 @@ function Spin360({ type, folder }: { type: number; folder: string }) {
     if (!n) return;
     const index = ((i % n) + n) % n;
     const existing = images.current[index];
-    if (existing?.complete && existing.naturalWidth) return;
+    if (existing?.complete && existing.naturalWidth) {
+      if (idxRef.current === index) {
+        setLoading(false);
+        draw(index);
+      }
+      return;
+    }
     if (loadingSet.current.has(index)) return;
     loadingSet.current.add(index);
     const img = existing ?? new Image();
@@ -1882,20 +1888,20 @@ function Spin360({ type, folder }: { type: number; folder: string }) {
       loadingSet.current.delete(index);
       return;
     }
-    if (img.src !== src) {
-      img.onload = () => {
-        loadingSet.current.delete(index);
-        if (idxRef.current === index) {
-          setLoading(false);
-          draw(index);
-        }
-      };
-      img.onerror = () => {
-        loadingSet.current.delete(index);
-        if (idxRef.current === index) setLoading(false);
-      };
-      img.src = src;
-    }
+    const finish = (ok: boolean) => {
+      loadingSet.current.delete(index);
+      if (idxRef.current !== index) return;
+      if (ok) {
+        setLoading(false);
+        draw(index);
+      } else {
+        setLoading(false);
+      }
+    };
+    img.onload = () => finish(true);
+    img.onerror = () => finish(false);
+    if (img.src !== src) img.src = src;
+    else if (img.complete && img.naturalWidth) finish(true);
   }, [n, tour, type, folder, draw]);
 
   const warmAround = useCallback((center: number) => {
@@ -1940,8 +1946,8 @@ function Spin360({ type, folder }: { type: number; folder: string }) {
 
   const spin = (dir: 1 | -1) => setIdx((v) => (v + dir + n) % n);
 
-  // Needle tracks orbit frame so N stays geographic; negate so it counter-rotates with the view.
-  const headingDeg = n > 0 ? -((idx / n) * 360) : 0;
+  // Needle turns with the villa: swipe right advances frames → needle turns the same way.
+  const headingDeg = n > 0 ? (idx / n) * 360 : 0;
 
   return (
     <div
@@ -1957,7 +1963,7 @@ function Spin360({ type, folder }: { type: number; folder: string }) {
         if (!dragging.current) return;
         const d = e.clientX - startX.current;
         if (Math.abs(d) > 8) {
-          spin(d > 0 ? -1 : 1);
+          spin(d > 0 ? 1 : -1);
           startX.current = e.clientX;
         }
       }}
