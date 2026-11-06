@@ -5437,12 +5437,17 @@ html.phone-layout .detail {
   grid-template-rows: 1fr;
   background: #000;
 }
-/* Keep the stage full-bleed behind the sheet — resizing it with --sheet-h
-   blanked the Spin360 canvas (black gap). Cover/uncover via the sheet instead. */
+/* Stage height tracks the white sheet: enlarge sheet → villa shrinks, and vice versa. */
 html.phone-layout .detail.phone-sheet .detail-stage {
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: var(--sheet-h, 52vh);
+  inset: auto;
   z-index: 1;
+  min-height: 18vh;
+  background: #E8EDF2;
 }
 html.phone-layout .detail-top {
   top: max(10px, env(safe-area-inset-top));
@@ -5473,9 +5478,10 @@ html.phone-layout .detail-tabs button {
   font-size: 12px;
 }
 /* Phone: Final / 1st / RDC stacked vertically (one above the other). */
+/* Inside the stage (already above the sheet) — pin to stage bottom, not sheet-h again. */
 html.phone-layout .floor-float {
   top: auto;
-  bottom: calc(var(--sheet-h, 52vh) + 18px);
+  bottom: 18px;
   right: 14px;
   transform: none;
   flex-direction: column-reverse;
@@ -5491,7 +5497,7 @@ html.phone-layout .floor-float button {
 }
 /* Figma Compass 287×90 ÷ 2.162 ≈ 133×42 */
 html.phone-layout .detail-stage .spin.compass {
-  bottom: calc(var(--sheet-h, 52vh) + 14px);
+  bottom: 14px;
   width: min(133px, 48vw);
   height: 42px;
   padding: 6px 10px;

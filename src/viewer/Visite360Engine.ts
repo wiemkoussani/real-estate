@@ -74,8 +74,12 @@ const MAX_HOTSPOT_DIST = 460;
 const SAME_FLOOR_Y = 90;
 /** Eye-level look after enter / settle (slightly down reads more natural). */
 const EYE_LAT = -4;
-/** Floor-ring pitch so markers sit on the ground like NHC / Virtual Visions. */
-const FLOOR_RING_PITCH = -30;
+/**
+ * Layama node Y is eye height (~152). Floor rings must sit on y≈0, not on the
+ * authored edge pitch (those ~-12° aims are mid-doorway look-through, NHC puts
+ * disks on the tiles).
+ */
+const EYE_HEIGHT = 152;
 /** Default FOV once mapped from Layama's ultra-wide export. */
 const DEFAULT_FOV = 72;
 
@@ -193,7 +197,7 @@ export class Visite360Engine {
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.scene.background = new THREE.Color(0x0b1220);
 
-    this.camera = new THREE.PerspectiveCamera(DEFAULT_FOV, 1, 0.1, 100);
+    this.camera = new THREE.PerspectiveCamera(DEFAULT_FOV, 1, 0.05, 2000);
     this.camera.position.set(0, 0, 0);
 
     this.bindPointer();
@@ -437,25 +441,33 @@ export class Visite360Engine {
 
     for (const { edge, dist } of neighbors) {
       const target = this.nodeById.get(edge.to);
-      // Keep authored yaw (doorway bearing). Soft floor bias on pitch only so rings sit on the ground.
-      const ringPitch = Number.isFinite(edge.pitch)
-        ? clamp(Math.min(edge.pitch, -16), -48, -12)
-        : FLOOR_RING_PITCH;
-      this.dirFromYawPitch(edge.yaw, ringPitch, this.tmpDir);
-      const facing = this.tmpDir.dot(this.camFwd);
-      if (facing < 0.08) continue;
+      // NHC: ring on the floor in the doorway bearing — NOT at authored mid-air pitch.
+      // Place a bit in front of the destination (door threshold), then drop to the floor plane.
+      const horiz = Math.max(dist, 60);
+      const ringDist = clamp(horiz * 0.34, 85, 220);
+      const yaw = edge.yaw * DEG;
+      this.tmpDir.set(
+        Math.sin(yaw) * ringDist,
+        -EYE_HEIGHT,
+        Math.cos(yaw) * ringDist,
+      );
+      const len = this.tmpDir.length();
+      if (len < 1e-4) continue;
+      const facing = this.tmpDir.dot(this.camFwd) / len;
+      if (facing < 0.1) continue;
 
-      const projected = this.tmpDir.clone().project(this.camera);
+      const projected = this.tmpDir.project(this.camera);
       const x = (projected.x * 0.5 + 0.5) * w;
       const y = (-projected.y * 0.5 + 0.5) * h;
-      const inFront = projected.z < 1;
-      const onScreen = x > 16 && x < w - 16 && y > 24 && y < h - 96;
+      const inFront = projected.z < 1 && projected.z > -1;
+      // Floor band: lower half of the view, above the room rail.
+      const onScreen = x > 12 && x < w - 12 && y > h * 0.28 && y < h - 100;
       out.push({
         to: edge.to,
         label: target?.label ?? edge.to,
         x,
         y,
-        scale: clamp(1.55 - dist / 420, 0.85, 1.6),
+        scale: clamp(1.7 - ringDist / 280, 0.95, 1.75),
         visible: inFront && onScreen && !this.anim,
         yaw: edge.yaw,
         pitch: edge.pitch,

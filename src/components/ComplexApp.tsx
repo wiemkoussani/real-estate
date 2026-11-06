@@ -2038,7 +2038,8 @@ function VillaTour({
     if (!dragRef.current || !isPhone) return;
     const dy = dragRef.current.startY - e.clientY;
     const next = dragRef.current.startH + dy / window.innerHeight;
-    setSheetHeight(Math.min(0.72, Math.max(0.32, next)));
+    // Min 25% sheet; max 80% so the villa above still stays visible.
+    setSheetHeight(Math.min(0.8, Math.max(0.25, next)));
   };
 
   const onSheetPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
