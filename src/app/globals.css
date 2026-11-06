@@ -3158,15 +3158,15 @@ html:not(.phone-layout) .scene360-pano canvas {
 }
 .detail-stage .spin.compass .compass-face {
   position: relative;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   display: grid;
   place-items: center;
   font-family: var(--font-inter), "Segoe UI", sans-serif;
   font-size: 12px;
   font-weight: 700;
-  color: #35404D;
+  color: #1a2330;
   letter-spacing: 0;
   box-sizing: border-box;
   flex: none;
@@ -3176,7 +3176,8 @@ html:not(.phone-layout) .scene360-pano canvas {
   z-index: 1;
   line-height: 1;
   font-weight: 700;
-  /* Keep N readable; needle orbits around it */
+  font-variant-numeric: tabular-nums;
+  /* Same as maquette HUD: letter stays upright; needle orbits */
   transform: translateY(1px);
 }
 .detail-stage .spin.compass .compass-ptr {
@@ -3188,23 +3189,23 @@ html:not(.phone-layout) .scene360-pano canvas {
   margin: 0;
   border: 0;
   background: transparent;
-  /* Red tip sits above N with clear gap; rotates around face center */
   transform-origin: 50% 50%;
   will-change: transform;
-  transition: transform 0.12s linear;
+  transition: transform 0.25s ease-out;
   pointer-events: none;
 }
+/* Same proportion as maquette .compass-needle::after — a bit smaller */
 .detail-stage .spin.compass .compass-ptr::before {
   content: "";
   position: absolute;
-  top: 1px;
+  top: 3px;
   left: 50%;
   width: 0;
   height: 0;
-  margin-left: -5px;
-  border-left: 5px solid transparent;
-  border-right: 5px solid transparent;
-  border-bottom: 9px solid #E11D2E;
+  margin-left: -4px;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-bottom: 7px solid var(--red, #E11D2E);
 }
 
 /* Visite 360 — fullscreen PC + phone */
@@ -3340,39 +3341,44 @@ html:not(.phone-layout) .scene360-pano canvas {
 }
 .visite360-rooms {
   position: absolute;
-  left: 50%;
-  right: auto;
-  bottom: max(18px, env(safe-area-inset-bottom));
+  left: 0;
+  right: 0;
+  bottom: max(14px, env(safe-area-inset-bottom));
   z-index: 4;
   display: flex;
   flex-direction: row;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 8px;
-  width: min(920px, calc(100% - 24px));
-  max-width: calc(100% - 24px);
-  padding: 10px 12px;
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
+  padding: 10px max(14px, env(safe-area-inset-right)) 10px max(14px, env(safe-area-inset-left));
   overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
   pointer-events: auto;
-  transform: translateX(-50%);
-  border-radius: 18px;
+  /* Parent .visite360 is touch-action:none — re-enable pan so the rail scrolls like NHC. */
+  touch-action: pan-x;
+  cursor: grab;
+  border-radius: 0;
   background: rgba(22, 24, 28, 0.55);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
 }
-.visite360-rooms::-webkit-scrollbar {
-  height: 4px;
+.visite360-rooms.is-dragging {
+  cursor: grabbing;
+  user-select: none;
 }
-.visite360-rooms::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.3);
-  border-radius: 999px;
+.visite360-rooms::-webkit-scrollbar {
+  display: none;
+  height: 0;
 }
 .visite360-rooms button {
-  flex: none;
+  flex: 0 0 auto;
   height: 36px;
   padding: 0 16px;
   border: 0;
@@ -3387,6 +3393,7 @@ html:not(.phone-layout) .scene360-pano canvas {
   white-space: nowrap;
   line-height: 1.2;
   cursor: pointer;
+  touch-action: pan-x;
   transition: background 0.15s ease, color 0.15s ease;
 }
 .visite360-rooms button:hover {
@@ -5430,14 +5437,12 @@ html.phone-layout .detail {
   grid-template-rows: 1fr;
   background: #000;
 }
-/* Stage shrinks/grows with the white sheet so the villa scales with the drag. */
+/* Keep the stage full-bleed behind the sheet — resizing it with --sheet-h
+   blanked the Spin360 canvas (black gap). Cover/uncover via the sheet instead. */
 html.phone-layout .detail.phone-sheet .detail-stage {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: var(--sheet-h, 52vh);
-  inset: auto;
+  inset: 0;
+  z-index: 1;
 }
 html.phone-layout .detail-top {
   top: max(10px, env(safe-area-inset-top));
@@ -5600,14 +5605,14 @@ html.phone-layout .visite360-ring-dot {
   height: 14px;
 }
 html.phone-layout .visite360-rooms {
-  left: 50%;
-  right: auto;
-  bottom: max(12px, env(safe-area-inset-bottom));
-  width: calc(100% - 16px);
-  max-width: calc(100% - 16px);
+  left: 0;
+  right: 0;
+  bottom: max(10px, env(safe-area-inset-bottom));
+  width: 100%;
+  max-width: none;
   gap: 6px;
-  padding: 8px 10px;
-  transform: translateX(-50%);
+  padding: 8px max(12px, env(safe-area-inset-right)) 8px max(12px, env(safe-area-inset-left));
+  transform: none;
 }
 html.phone-layout .visite360-rooms button {
   height: 34px;

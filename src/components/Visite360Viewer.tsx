@@ -107,6 +107,77 @@ export default function Visite360Viewer({ className, startId }: Props) {
     el?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
   }, [currentId]);
 
+  // NHC-style click-hold drag to reveal the rest of the room rail.
+  useEffect(() => {
+    const bar = barRef.current;
+    if (!bar || nodes.length === 0) return;
+
+    let active = false;
+    let dragged = false;
+    let pointerId: number | null = null;
+    let startX = 0;
+    let startScroll = 0;
+
+    const onDown = (e: PointerEvent) => {
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      active = true;
+      dragged = false;
+      pointerId = e.pointerId;
+      startX = e.clientX;
+      startScroll = bar.scrollLeft;
+      bar.classList.add("is-dragging");
+      try {
+        bar.setPointerCapture(e.pointerId);
+      } catch {
+        /* ignore */
+      }
+    };
+
+    const onMove = (e: PointerEvent) => {
+      if (!active || pointerId !== e.pointerId) return;
+      const dx = e.clientX - startX;
+      if (Math.abs(dx) > 4) dragged = true;
+      if (dragged) {
+        bar.scrollLeft = startScroll - dx;
+        e.preventDefault();
+      }
+    };
+
+    const onUp = (e: PointerEvent) => {
+      if (pointerId !== e.pointerId) return;
+      active = false;
+      pointerId = null;
+      bar.classList.remove("is-dragging");
+      try {
+        bar.releasePointerCapture(e.pointerId);
+      } catch {
+        /* ignore */
+      }
+      // Swallow the click that follows a drag so we don't jump rooms by accident.
+      if (dragged) {
+        const block = (ev: Event) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          bar.removeEventListener("click", block, true);
+        };
+        bar.addEventListener("click", block, true);
+        window.setTimeout(() => bar.removeEventListener("click", block, true), 0);
+      }
+      dragged = false;
+    };
+
+    bar.addEventListener("pointerdown", onDown);
+    bar.addEventListener("pointermove", onMove);
+    bar.addEventListener("pointerup", onUp);
+    bar.addEventListener("pointercancel", onUp);
+    return () => {
+      bar.removeEventListener("pointerdown", onDown);
+      bar.removeEventListener("pointermove", onMove);
+      bar.removeEventListener("pointerup", onUp);
+      bar.removeEventListener("pointercancel", onUp);
+    };
+  }, [nodes.length]);
+
   const goTo = (id: string, aim?: { yaw: number; pitch: number }) => {
     const engine = engineRef.current;
     if (!engine || engine.isBusy() || id === currentId) return;

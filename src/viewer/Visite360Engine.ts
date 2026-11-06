@@ -342,9 +342,9 @@ export class Visite360Engine {
     if (!from || !to) return null;
     const d = nodePos(to).sub(nodePos(from));
     if (d.lengthSq() < 1e-6) return null;
-    d.normalize();
-    const yaw = Math.atan2(d.z, d.x) / DEG;
-    const pitch = Math.asin(clamp(d.y, -1, 1)) / DEG;
+    // Layama graph yaw = atan2(dx, dz) — NOT atan2(dz, dx).
+    const yaw = Math.atan2(d.x, d.z) / DEG;
+    const pitch = Math.asin(clamp(d.y / d.length(), -1, 1)) / DEG;
     return { yaw: wrapLon(yaw), pitch: clamp(pitch, -55, 55) };
   }
 
@@ -403,7 +403,13 @@ export class Visite360Engine {
       ranked.push({ edge, dist, dy });
     }
     ranked.sort((a, b) => a.dist - b.dist || a.dy - b.dy);
-    return ranked;
+    // One ring per doorway direction — overlapping yaws were sending people to the wrong room.
+    const unique: typeof ranked = [];
+    for (const item of ranked) {
+      const clash = unique.some((u) => Math.abs(shortestDelta(u.edge.yaw, item.edge.yaw)) < 28);
+      if (!clash) unique.push(item);
+    }
+    return unique;
   }
 
   private prefetchNeighbors(nodeId: string) {
@@ -415,13 +421,9 @@ export class Visite360Engine {
   private applyCamera() {
     this.camera.fov = this.fov;
     this.camera.updateProjectionMatrix();
-    const phi = (90 - this.lat) * DEG;
-    const theta = this.lon * DEG;
-    this.camera.lookAt(
-      Math.sin(phi) * Math.cos(theta),
-      Math.cos(phi),
-      Math.sin(phi) * Math.sin(theta),
-    );
+    // Same spherical basis as Layama edges: yaw=atan2(x,z), pitch=elevation.
+    this.dirFromYawPitch(this.lon, this.lat, this.tmpDir);
+    this.camera.lookAt(this.tmpDir);
   }
 
   private emitHotspots() {
@@ -435,27 +437,25 @@ export class Visite360Engine {
 
     for (const { edge, dist } of neighbors) {
       const target = this.nodeById.get(edge.to);
-      // Strategic floor placement: authored yaw, distance-biased pitch on the ground.
-      const authored = Number.isFinite(edge.pitch) ? edge.pitch : FLOOR_RING_PITCH;
-      const floorBias = FLOOR_RING_PITCH - dist / 55;
-      const ringPitch = clamp(Math.min(authored, floorBias), -48, -18);
+      // Keep authored yaw (doorway bearing). Soft floor bias on pitch only so rings sit on the ground.
+      const ringPitch = Number.isFinite(edge.pitch)
+        ? clamp(Math.min(edge.pitch, -16), -48, -12)
+        : FLOOR_RING_PITCH;
       this.dirFromYawPitch(edge.yaw, ringPitch, this.tmpDir);
       const facing = this.tmpDir.dot(this.camFwd);
-      if (facing < 0.02) continue;
+      if (facing < 0.08) continue;
 
       const projected = this.tmpDir.clone().project(this.camera);
       const x = (projected.x * 0.5 + 0.5) * w;
       const y = (-projected.y * 0.5 + 0.5) * h;
       const inFront = projected.z < 1;
-      // Keep rings above the room rail, on the floor plane.
-      const onScreen = x > 10 && x < w - 10 && y > 20 && y < h - 88;
+      const onScreen = x > 16 && x < w - 16 && y > 24 && y < h - 96;
       out.push({
         to: edge.to,
         label: target?.label ?? edge.to,
         x,
         y,
-        // Near doors = large NHC rings; far ones slightly smaller.
-        scale: clamp(1.85 - dist / 380, 0.95, 1.9),
+        scale: clamp(1.55 - dist / 420, 0.85, 1.6),
         visible: inFront && onScreen && !this.anim,
         yaw: edge.yaw,
         pitch: edge.pitch,
@@ -464,15 +464,15 @@ export class Visite360Engine {
     this.onHotspots(out);
   }
 
-  /** `pitchDeg` is elevation (0 = horizon, negative = floor), matching graph edges. */
+  /**
+   * Layama / Motiva look vector: yaw 0 = +Z, yaw +90 = +X, pitch 0 = horizon.
+   * Matches graph edge.yaw = atan2(dx, dz).
+   */
   private dirFromYawPitch(yawDeg: number, pitchDeg: number, out: THREE.Vector3) {
-    const phi = (90 - pitchDeg) * DEG;
-    const theta = yawDeg * DEG;
-    return out.set(
-      Math.sin(phi) * Math.cos(theta),
-      Math.cos(phi),
-      Math.sin(phi) * Math.sin(theta),
-    );
+    const yaw = yawDeg * DEG;
+    const pitch = pitchDeg * DEG;
+    const c = Math.cos(pitch);
+    return out.set(c * Math.sin(yaw), Math.sin(pitch), c * Math.cos(yaw));
   }
 
   private resize() {

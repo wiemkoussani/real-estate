@@ -1849,9 +1849,9 @@ function Spin360({ type, folder }: { type: number; folder: string }) {
     if (!canvas || !wrap || !img?.complete || !img.naturalWidth) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    const w = wrap.clientWidth;
-    const h = wrap.clientHeight;
-    if (!w || !h) return;
+    const w = Math.max(1, wrap.clientWidth);
+    const h = Math.max(1, wrap.clientHeight);
+    if (wrap.clientWidth < 2 || wrap.clientHeight < 2) return;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     canvas.width = Math.round(w * dpr);
     canvas.height = Math.round(h * dpr);
@@ -1861,7 +1861,13 @@ function Spin360({ type, folder }: { type: number; folder: string }) {
     ctx.fillStyle = "#E8EDF2";
     ctx.fillRect(0, 0, w, h);
     const scale = Math.max(w / img.naturalWidth, h / img.naturalHeight);
-    ctx.drawImage(img, (w - img.naturalWidth * scale) / 2, (h - img.naturalHeight * scale) / 2, img.naturalWidth * scale, img.naturalHeight * scale);
+    ctx.drawImage(
+      img,
+      (w - img.naturalWidth * scale) / 2,
+      (h - img.naturalHeight * scale) / 2,
+      img.naturalWidth * scale,
+      img.naturalHeight * scale,
+    );
   }, []);
 
   const idxRef = useRef(0);
@@ -1924,7 +1930,12 @@ function Spin360({ type, folder }: { type: number; folder: string }) {
     const wrap = wrapRef.current;
     let ro: ResizeObserver | null = null;
     if (typeof ResizeObserver !== "undefined" && wrap) {
-      ro = new ResizeObserver(() => draw(idxRef.current));
+      ro = new ResizeObserver(() => {
+        // Double rAF: wait until sheet/layout height has settled before redraw.
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => draw(idxRef.current));
+        });
+      });
       ro.observe(wrap);
     }
     return () => {
@@ -1946,8 +1957,11 @@ function Spin360({ type, folder }: { type: number; folder: string }) {
 
   const spin = (dir: 1 | -1) => setIdx((v) => (v + dir + n) % n);
 
-  // Needle turns with the villa: swipe right advances frames → needle turns the same way.
+  // Same as maquette HUD: needle rotates; letter snaps to N / NE / E / …
   const headingDeg = n > 0 ? (idx / n) * 360 : 0;
+  const headingDir = (["N", "NE", "E", "SE", "S", "SW", "W", "NW"] as const)[
+    Math.round(headingDeg / 45) % 8
+  ];
 
   return (
     <div
@@ -1974,7 +1988,7 @@ function Spin360({ type, folder }: { type: number; folder: string }) {
         <button type="button" onClick={() => spin(-1)} aria-label="تدوير لليسار">‹</button>
         <span className="compass-face" aria-hidden>
           <i className="compass-ptr" style={{ transform: `rotate(${headingDeg}deg)` }} />
-          <b>N</b>
+          <b>{headingDir}</b>
         </span>
         <button type="button" onClick={() => spin(1)} aria-label="تدوير لليمين">›</button>
       </div>
