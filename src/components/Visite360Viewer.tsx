@@ -120,6 +120,8 @@ export default function Visite360Viewer({ className, startId }: Props) {
 
     const onDown = (e: PointerEvent) => {
       if (e.pointerType === "mouse" && e.button !== 0) return;
+      // Don't capture on room buttons — otherwise clicks never fire (NHC rail jumps).
+      if ((e.target as HTMLElement | null)?.closest?.("button")) return;
       active = true;
       dragged = false;
       pointerId = e.pointerId;

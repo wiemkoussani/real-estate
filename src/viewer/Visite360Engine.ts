@@ -36,7 +36,11 @@ export type HotspotScreen = {
   pitch: number;
 };
 
-export const FACE_ORDER = ["px", "nx", "py", "ny", "pz", "nz"] as const;
+/**
+ * Layama px/nx are swapped vs Three.js CubeTexture +X/−X sampling — without this
+ * swap, lon 0 shows the closed door and lon 180 never reaches the open hallway.
+ */
+export const FACE_ORDER = ["nx", "px", "py", "ny", "pz", "nz"] as const;
 
 /**
  * Virtual Visions room rail order (tour nodes only — graph also has filler spots).
@@ -64,11 +68,11 @@ export const PRIMARY_ROOM_ORDER = [
 ] as const;
 
 /**
- * First look (classic Three.js lon: 0=+X door, 180=−X hallway on Main Entrance).
- * Cubemap-verified — NHC opens into the room, never on the entrance door.
+ * First look after px/nx swap: lon 0 = +X = open hallway (nx file).
+ * NHC opens into the room — never the closed entrance door.
  */
 const ENTRY_LOOK: Record<string, { yaw: number; pitch: number }> = {
-  "10000": { yaw: 180, pitch: -6 }, // Main Entrance → hallway (nx)
+  "10000": { yaw: 0, pitch: -5 }, // Main Entrance → open hallway
 };
 
 const PRIMARY_ROOM_SET = new Set<string>(PRIMARY_ROOM_ORDER);
@@ -78,7 +82,7 @@ const DEG = Math.PI / 180;
  * NHC: usually 2 big floor rings in open doorways — click to enter, return ring
  * appears in the next room so you can walk back.
  */
-const MAX_HOTSPOTS = 2;
+const MAX_HOTSPOTS = 3;
 /** Ignore distant graph links that punch through walls. */
 const MAX_HOTSPOT_DIST = 480;
 /** Same-floor gate (Layama Y is eye height). */
@@ -525,17 +529,16 @@ export class Visite360Engine {
     const out: HotspotScreen[] = [];
 
     this.camera.getWorldDirection(this.camFwd);
-    const minFacing = this.lat < -32 ? 0.4 : 0.18;
+    const minFacing = this.lat < -35 ? 0.35 : 0.12;
 
     for (const { edge, dist } of neighbors) {
       const target = this.nodeById.get(edge.to);
       /**
-       * NHC-perfect placement: project a point on the FLOOR plane in the doorway
-       * bearing, just inside the threshold — never mid-air / wall / closed door.
-       * Classic lon: horizon dir = (cos θ, 0, sin θ).
+       * Floor-plane ring in the doorway bearing (NHC): just inside the threshold.
+       * Same classic spherical basis as the camera after the px/nx face swap.
        */
       const yaw = edge.yaw * DEG;
-      const ringDist = clamp(dist * 0.38, 115, 195);
+      const ringDist = clamp(dist * 0.4, 100, 200);
       this.tmpPos.set(Math.cos(yaw) * ringDist, -EYE_HEIGHT, Math.sin(yaw) * ringDist);
       const len = this.tmpPos.length();
       if (len < 1e-4) continue;
@@ -546,12 +549,11 @@ export class Visite360Engine {
       const x = (projected.x * 0.5 + 0.5) * w;
       const y = (-projected.y * 0.5 + 0.5) * h;
       const inFront = projected.z < 1 && projected.z > -1;
-      // Rings live on the floor band (lower view), above the room rail.
       const onFloor =
-        x > w * 0.04 &&
-        x < w * 0.96 &&
-        y > h * 0.36 &&
-        y < h - 88;
+        x > w * 0.03 &&
+        x < w * 0.97 &&
+        y > h * 0.3 &&
+        y < h - 80;
       if (!inFront || !onFloor) continue;
 
       out.push({
@@ -559,7 +561,7 @@ export class Visite360Engine {
         label: target?.label ?? edge.to,
         x,
         y,
-        scale: clamp(1.75 - ringDist / 320, 1.15, 1.95),
+        scale: clamp(1.9 - ringDist / 300, 1.25, 2.15),
         visible: true,
         yaw: edge.yaw,
         pitch: edge.pitch,
