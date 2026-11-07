@@ -3066,8 +3066,14 @@ html:not(.phone-layout) .scene360-pano canvas {
   justify-content: center;
   align-items: center;
   flex: none;
-  width: 100%;
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  align-self: stretch;
+  width: calc(100% + 36px);
+  margin: 0 -18px;
   padding: 10px 0 6px;
+  background: #ffffff;
   cursor: grab;
   touch-action: none;
   user-select: none;
@@ -5526,6 +5532,13 @@ html.phone-layout .detail.phone-sheet .detail-side {
   overflow-x: hidden;
   scrollbar-width: none;
   -ms-overflow-style: none;
+}
+/* Drag handle stays pinned at the top of the white sheet while content scrolls */
+html.phone-layout .detail.phone-sheet .sheet-handle {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  background: #ffffff;
 }
 html.phone-layout .detail.phone-sheet .detail-side::-webkit-scrollbar {
   display: none;
