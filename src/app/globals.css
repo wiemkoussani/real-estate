@@ -5604,21 +5604,21 @@ html.phone-layout .detail-top {
   left: 12px;
   right: 12px;
   gap: 8px;
-  /* Sit tabs to the right of the back arrow — avoid overlap on narrow phones. */
-  justify-content: flex-start;
-  padding-left: 48px;
+  /* Tabs centred; same space reserved on both sides so they never touch the back arrow. */
+  justify-content: center;
+  padding-inline: 50px;
 }
 /* Figma Button 86.48×86.48 ÷ 2.162 ≈ 40 */
 html.phone-layout .tool-back {
   width: 40px;
   height: 40px;
 }
-/* Smaller pill so Floorplan 3D / Visite 360 never cover the back arrow. */
+/* Floorplan 3D / Visite 360 pill: centred, a bit bigger than before. */
 html.phone-layout .detail-tabs {
   flex: 0 1 auto;
-  max-width: min(188px, calc(100% - 8px));
-  padding: 3px 4px;
-  gap: 4px;
+  max-width: min(260px, 100%);
+  padding: 4px 5px;
+  gap: 5px;
   background: rgba(255, 255, 255, 0.6);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
@@ -5627,9 +5627,9 @@ html.phone-layout .detail-tabs {
 html.phone-layout .detail-tabs button {
   flex: 1;
   min-width: 0;
-  height: 26px;
-  padding: 0 7px;
-  font-size: 10px;
+  height: 32px;
+  padding: 0 12px;
+  font-size: 12px;
   letter-spacing: -0.01em;
 }
 /* Phone: Final / 1st / RDC stacked vertically (one above the other). */
@@ -5736,12 +5736,12 @@ html.phone-layout .detail.visit-full .detail-top {
   left: 12px;
   right: 12px;
   z-index: 6;
-  justify-content: flex-start;
-  padding-left: 48px;
+  justify-content: center;
+  padding-inline: 50px;
 }
 html.phone-layout .detail.visit-full .detail-tabs {
   flex: 0 1 auto;
-  max-width: min(188px, calc(100% - 8px));
+  max-width: min(260px, 100%);
   background: rgba(255, 255, 255, 0.88);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
