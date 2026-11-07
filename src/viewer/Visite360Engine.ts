@@ -100,9 +100,18 @@ const PRIMARY_ROOM_SET = new Set<string>(PRIMARY_ROOM_ORDER);
  * Layama open-volume looks — used when “opposite the door” faces a wall panel.
  * Tuned against the AXIS cubemaps (not NHC world yaw numbers).
  */
+/**
+ * Cubemap lon that actually shows the room (verified against Layama faces).
+ * Without this, “into room = opposite door” often lands staring at a hall/TV
+ * and feels like the wrong place even though the correct node loaded.
+ */
 const OPEN_LOOK: Record<string, number> = {
-  // Cubemap lon (not graph yaw). Living Room 1 opens toward the stair volume.
-  "10003": -90,
+  "10003": 180, // Living Room 1 — sofa / open living, not the stair stub
+  "10006": 0, // Kitchen — counters / appliances
+  "10009": 0, // Bedroom 1 — vanity / suite interior
+  "10011": 90, // Bedroom 2 — prefer bed/room volume when possible
+  "10013": 0, // Suite Bedroom — seating volume of the suite
+  "10018": 0, // Living Room 2 — open living when available
 };
 
 const DEG = Math.PI / 180;
@@ -118,23 +127,34 @@ const MAX_FORWARD_HOTSPOTS = 2;
 /** Soft cap for far matrix links; nearest portals always kept. */
 const MAX_HOTSPOT_DIST = 420;
 const MIN_NEAR_PORTALS = 3;
-const EYE_LAT = -5;
+const EYE_LAT = -6;
 /** Layama node Y ≈ eye height — floor for rings is this far below the camera. */
 const EYE_HEIGHT = 152;
 const DEFAULT_FOV = 72;
-/** One ring per doorway bearing — keep real side-by-side doors (NHC often ~30–40° apart). */
-const HOTSPOT_GAP = 26;
+/**
+ * Same-corridor near+far rings (NHC approach then enter) may share a bearing.
+ * Side-by-side distinct doors are usually ≥28–30° apart.
+ */
+const HOTSPOT_GAP = 28;
 /** Forward rings only roughly ahead (return ring exempt). */
 const FORWARD_CONE = 105;
 /** Doorway = fraction of the way to the neighbor node (NHC threshold feel). */
-const DOOR_FRAC = 0.7;
-const DOOR_DIST_MIN = 180;
-const DOOR_DIST_MAX = 340;
+const DOOR_FRAC = 0.62;
+const DOOR_DIST_MIN = 150;
+const DOOR_DIST_MAX = 300;
 /**
  * Slightly above true floor so doorway rings stay inside vertical FOV on
  * tall phone views, while still reading as floor marks in open volumes.
  */
-const FLOOR_Y_FACTOR = 0.68;
+const FLOOR_Y_FACTOR = 0.7;
+/** Keep near+far when farther is clearly an entrance beyond an approach node. */
+const APPROACH_FAR_RATIO = 1.35;
+const APPROACH_FAR_GAP = 70;
+/**
+ * Max yaw ease after cubemap swap. Large enough to reach OPEN_LOOK so the
+ * landing actually shows the room (small caps left people in the “wrong place”).
+ */
+const SETTLE_YAW_CAP = 95;
 
 function clamp(v: number, a: number, b: number) {
   return Math.max(a, Math.min(b, v));
@@ -165,6 +185,12 @@ function easeInOut(t: number) {
   return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
 }
 
+/** Smoother than easeInOut — NHC walk feels gradual, not snappy. */
+function smootherstep(t: number) {
+  const x = clamp(t, 0, 1);
+  return x * x * x * (x * (x * 6 - 15) + 10);
+}
+
 function nodePos(n: Visite360Node) {
   if (Array.isArray(n.pos)) return new THREE.Vector3(n.pos[0], n.pos[1], n.pos[2]);
   return new THREE.Vector3(n.pos.x, n.pos.y, n.pos.z);
@@ -175,8 +201,8 @@ function nodePos(n: Visite360Node) {
  * Face toward the nearest doorway at eye level instead (Virtual Visions feel).
  */
 function approachLookLat(edgePitch: number) {
-  // Dive toward the floor ring then settle — Virtual Visions walk-in feel.
-  return clamp(edgePitch * 0.55 - 4, -28, -4);
+  // Soft nod toward the floor ring — avoid the hard dive that feels like a snap.
+  return clamp(edgePitch * 0.22 - 2, -14, -4);
 }
 
 export type Visite360EngineOptions = {
@@ -199,8 +225,10 @@ type AnimState = {
   fromFov: number;
   toFov: number;
   toId: string;
-  /** Keep this yaw after cubemap swap (VV keeps facing the walk direction). */
+  /** Walk bearing through the doorway (NHC keeps this after the cubemap swap). */
   settleLon: number;
+  /** True when the user clicked a floor ring (vs rail / programmatic). */
+  fromRing: boolean;
 };
 
 export class Visite360Engine {
@@ -394,30 +422,32 @@ export class Visite360Engine {
     let lookLat: number;
     let approachFov: number;
     let approachDur: number;
+    let fromRing = false;
 
     if (opts?.yaw != null && opts?.pitch != null) {
-      // Floor-ring click: dive toward that doorway (NHC walk-in).
+      // Floor-ring click: gentle turn + mild zoom toward that doorway (NHC walk).
       lookLon = wrapLon(opts.yaw);
       lookLat = approachLookLat(opts.pitch);
-      approachFov = clamp(this.fov * 0.64, 42, 58);
-      approachDur = 680;
+      approachFov = clamp(this.fov * 0.9, 58, 74);
+      approachDur = 920;
+      fromRing = true;
     } else if (opts?.fromRail) {
-      // Room rail: land in the room's open view (never a wall/door close-up).
+      // Room rail: soft fade-style turn into the room's open view.
       lookLon = entry.lon;
       lookLat = entry.lat;
-      approachFov = clamp(this.fov * 0.9, 50, 72);
-      approachDur = 420;
+      approachFov = clamp(this.fov * 0.94, 56, 74);
+      approachDur = 560;
     } else if (edge) {
-      // Walk via doorway: aim with the authored edge yaw (same frame as rings).
       lookLon = wrapLon(edge.yaw);
       lookLat = approachLookLat(edge.pitch);
-      approachFov = clamp(this.fov * 0.64, 42, 58);
-      approachDur = 680;
+      approachFov = clamp(this.fov * 0.9, 58, 74);
+      approachDur = 880;
+      fromRing = true;
     } else {
       lookLon = entry.lon;
       lookLat = entry.lat;
-      approachFov = clamp(this.fov * 0.9, 50, 72);
-      approachDur = 600;
+      approachFov = clamp(this.fov * 0.94, 56, 74);
+      approachDur = 640;
     }
 
     this.onBusy?.(true);
@@ -437,6 +467,7 @@ export class Visite360Engine {
       toFov: approachFov,
       toId: node.id,
       settleLon: lookLon,
+      fromRing,
     };
   }
 
@@ -666,15 +697,25 @@ export class Visite360Engine {
   }
 
   private rankedNeighbors(nodeId: string) {
-    // Nearest doorway first. When two portals share a bearing, keep the nearer
-    // (e.g. Dining Entrance over Bathroom) — matches NHC entrance rings.
+    // Nearest first. Same-bearing near+far stays (approach then enter — NHC videos).
+    // Only drop a second portal when it's a twin at similar distance (side-door clash).
     const unique: ReturnType<Visite360Engine["nhcPortals"]> = [];
     for (const item of this.nhcPortals(nodeId)) {
-      const clash = unique.some(
+      const clash = unique.find(
         (u) => Math.abs(shortestDelta(u.edge.yaw, item.edge.yaw)) < HOTSPOT_GAP,
       );
-      if (!clash) unique.push(item);
+      if (!clash) {
+        unique.push(item);
+        continue;
+      }
+      const far = item.dist > clash.dist ? item : clash;
+      const near = item.dist > clash.dist ? clash : item;
+      if (far.dist > near.dist * APPROACH_FAR_RATIO && far.dist - near.dist >= APPROACH_FAR_GAP) {
+        if (!unique.includes(far)) unique.push(far);
+        if (!unique.includes(near)) unique.push(near);
+      }
     }
+    unique.sort((a, b) => a.score - b.score);
     return unique;
   }
 
@@ -738,6 +779,12 @@ export class Visite360Engine {
     const out: HotspotScreen[] = [];
     this.camera.getWorldDirection(this.camFwd);
 
+    // Prefer nearer (approach) then farther (entrance) when both are ahead.
+    picks.sort((a, b) => {
+      if (a.isReturn !== b.isReturn) return a.isReturn ? 1 : -1;
+      return a.dist - b.dist;
+    });
+
     for (const { edge, dist, isReturn } of picks) {
       const target = this.nodeById.get(edge.to);
       const placed = this.projectFloorRing(edge.yaw, dist, w, h);
@@ -750,7 +797,8 @@ export class Visite360Engine {
         label: target?.label ?? edge.to,
         x: placed.x,
         y: placed.y,
-        scale: clamp(1.9 - placed.dist / 280, 1.15, 1.85),
+        // Nearer approach rings read larger; far doorway rings softer (NHC).
+        scale: clamp(2.05 - placed.dist / 260, 1.05, 1.95),
         visible: true,
         yaw: edge.yaw,
         pitch: this.ringPitch(placed.dist),
@@ -786,6 +834,8 @@ export class Visite360Engine {
 
   private async finishApproach() {
     if (!this.anim || this.anim.phase !== "approach") return;
+    const walkLon = this.anim.settleLon;
+    const fromRing = this.anim.fromRing;
     const node = this.nodeById.get(this.anim.toId);
     if (!node) {
       this.anim = null;
@@ -803,23 +853,32 @@ export class Visite360Engine {
     }
     if (this.disposed) return;
 
-    const destFov = this.mapFov(node.fov0);
-
-    // NHC settle after walk-in: snap to official look_at (into the room), not the door.
+    const destFov = Math.max(this.mapFov(node.fov0), 70);
     const into = this.entryLook(node.id, this.previousId);
-    const endLon = into.lon;
+
+    // Prefer the room's true open look (OPEN_LOOK / entryLook). Ease from the
+    // walk bearing so it stays smooth — but still arrive facing the real room.
+    let endLon = into.lon;
+    let endLat = into.lat;
+    if (fromRing) {
+      const delta = shortestDelta(walkLon, into.lon);
+      endLon = wrapLon(walkLon + clamp(delta, -SETTLE_YAW_CAP, SETTLE_YAW_CAP));
+      endLat = EYE_LAT;
+    }
+
     this.anim = {
       phase: "settle",
       t0: performance.now(),
-      dur: 520,
+      dur: fromRing ? 780 : 560,
       fromLon: this.lon,
       fromLat: this.lat,
       toLon: this.lon + shortestDelta(this.lon, endLon),
-      toLat: into.lat,
+      toLat: endLat,
       fromFov: this.fov,
       toFov: destFov,
       toId: node.id,
       settleLon: endLon,
+      fromRing,
     };
   }
 
@@ -829,7 +888,7 @@ export class Visite360Engine {
 
     if (this.anim) {
       const t = clamp((performance.now() - this.anim.t0) / this.anim.dur, 0, 1);
-      const k = easeInOut(t);
+      const k = this.anim.fromRing ? smootherstep(t) : easeInOut(t);
       this.lon = this.anim.fromLon + (this.anim.toLon - this.anim.fromLon) * k;
       this.lat = this.anim.fromLat + (this.anim.toLat - this.anim.fromLat) * k;
       this.fov = this.anim.fromFov + (this.anim.toFov - this.anim.fromFov) * k;
