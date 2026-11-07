@@ -34,11 +34,10 @@
    "rooms": [
     "10017",
     "10032",
-    "10033",
     "10037",
-    "10020",
-    "10023",
+    "10021",
     "10024",
+    "10023",
     "10028",
     "10044"
    ]
@@ -61,9 +60,9 @@
     2314.71
    ],
    "l": [
-    3414.39,
+    3315.39,
     151.783,
-    2314.7
+    2314.71
    ],
    "c": [
     1,
@@ -112,8 +111,8 @@
     1,
     0
    ],
-   "lb": "Entrance",
-   "floor": "ground"
+   "floor": "ground",
+   "lb": "Entrance"
   },
   {
    "n": "10001",
@@ -124,9 +123,9 @@
     2470.05
    ],
    "l": [
-    3202.16,
+    3203.16,
     151.783,
-    2470.05
+    2570.05
    ],
    "c": [
     1,
@@ -175,8 +174,8 @@
     0,
     0
    ],
-   "lb": "Living Room",
-   "floor": "ground"
+   "floor": "ground",
+   "lb": "Living Room"
   },
   {
    "n": "10002",
@@ -435,7 +434,7 @@
     2901.34
    ],
    "l": [
-    2921.41,
+    2822.41,
     151.783,
     2901.34
    ],
@@ -486,8 +485,8 @@
     0,
     0
    ],
-   "lb": "Kitchen",
-   "floor": "ground"
+   "floor": "ground",
+   "lb": "Kitchen"
   },
   {
    "n": "10007",
@@ -622,9 +621,9 @@
     2208.52
    ],
    "l": [
-    3299.98,
+    3300.98,
     151.783,
-    2208.51
+    2108.52
    ],
    "c": [
     1,
@@ -673,8 +672,8 @@
     0,
     0
    ],
-   "lb": "Dining Room",
-   "floor": "ground"
+   "floor": "ground",
+   "lb": "Dining Room"
   },
   {
    "n": "10010",
@@ -871,9 +870,9 @@
     1688.48
    ],
    "l": [
-    2940.93,
+    2841.93,
     151.783,
-    1688.47
+    1688.48
    ],
    "c": [
     0,
@@ -922,8 +921,8 @@
     0,
     0
    ],
-   "lb": "Majlis",
-   "floor": "ground"
+   "floor": "ground",
+   "lb": "Majlis"
   },
   {
    "n": "10014",
@@ -934,9 +933,9 @@
     2025.0
    ],
    "l": [
-    3075.01,
+    2976.01,
     151.783,
-    2024.99
+    2025.0
    ],
    "c": [
     0,
@@ -985,8 +984,8 @@
     1,
     0
    ],
-   "lb": "Staircase",
-   "floor": "ground"
+   "floor": "ground",
+   "lb": "Staircase"
   },
   {
    "n": "10015",
@@ -1121,9 +1120,9 @@
     2336.28
    ],
    "l": [
-    2927.79,
+    2928.79,
     493.169,
-    2336.27
+    2236.28
    ],
    "c": [
     0,
@@ -1172,8 +1171,8 @@
     0,
     0
    ],
-   "lb": "Upper Hall",
-   "floor": "first"
+   "floor": "first",
+   "lb": "Upper Hall"
   },
   {
    "n": "10018",
@@ -1359,7 +1358,6 @@
     0,
     0
    ],
-   "lb": "Bedroom 1",
    "floor": "first"
   },
   {
@@ -1371,9 +1369,9 @@
     2238.63
    ],
    "l": [
-    3402.57,
+    3403.57,
     493.169,
-    2238.62
+    2138.63
    ],
    "c": [
     0,
@@ -1422,7 +1420,8 @@
     0,
     0
    ],
-   "floor": "first"
+   "floor": "first",
+   "lb": "Bedroom 2"
   },
   {
    "n": "10022",
@@ -1495,9 +1494,9 @@
     2442.52
    ],
    "l": [
-    3226.29,
+    3227.29,
     493.169,
-    2442.51
+    2342.52
    ],
    "c": [
     0,
@@ -1546,8 +1545,8 @@
     0,
     0
    ],
-   "lb": "Bathroom 1",
-   "floor": "first"
+   "floor": "first",
+   "lb": "Shared Bathroom"
   },
   {
    "n": "10024",
@@ -1558,9 +1557,9 @@
     2582.48
    ],
    "l": [
-    3103.85,
+    3204.85,
     493.169,
-    2582.47
+    2582.48
    ],
    "c": [
     0,
@@ -1609,8 +1608,8 @@
     0,
     0
    ],
-   "lb": "Bedroom 2",
-   "floor": "first"
+   "floor": "first",
+   "lb": "Bedroom 3"
   },
   {
    "n": "10025",
@@ -1807,9 +1806,9 @@
     2854.52
    ],
    "l": [
-    2975.27,
+    2876.27,
     493.169,
-    2854.51
+    2854.52
    ],
    "c": [
     0,
@@ -1858,8 +1857,8 @@
     0,
     0
    ],
-   "lb": "Bedroom 3",
-   "floor": "first"
+   "floor": "first",
+   "lb": "Bedroom 4"
   },
   {
    "n": "10029",
@@ -2056,7 +2055,7 @@
     1706.97
    ],
    "l": [
-    2971.8,
+    2872.8,
     493.169,
     1706.97
    ],
@@ -2107,8 +2106,8 @@
     0,
     0
    ],
-   "lb": "Master Bedroom",
-   "floor": "first"
+   "floor": "first",
+   "lb": "Bedroom 1"
   },
   {
    "n": "10033",
@@ -2119,9 +2118,9 @@
     1798.57
    ],
    "l": [
-    3169.72,
+    3170.72,
     493.169,
-    1798.56
+    1898.57
    ],
    "c": [
     0,
@@ -2170,7 +2169,6 @@
     0,
     0
    ],
-   "lb": "Master Dressing",
    "floor": "first"
   },
   {
@@ -2368,9 +2366,9 @@
     1798.57
    ],
    "l": [
-    3322.55,
+    3423.55,
     493.169,
-    1798.56
+    1798.57
    ],
    "c": [
     0,
@@ -2419,8 +2417,8 @@
     0,
     0
    ],
-   "lb": "Master Bathroom",
-   "floor": "first"
+   "floor": "first",
+   "lb": "Bedroom 1 Bathroom"
   },
   {
    "n": "10038",
@@ -2493,9 +2491,9 @@
     2473.38
    ],
    "l": [
-    3062.89,
+    2963.89,
     862.637,
-    2473.37
+    2473.38
    ],
    "c": [
     0,
@@ -2544,8 +2542,8 @@
     0,
     0
    ],
-   "lb": "Roof Hall",
-   "floor": "roof"
+   "floor": "roof",
+   "lb": "Roof Hall"
   },
   {
    "n": "10040",
@@ -2618,9 +2616,9 @@
     1882.53
    ],
    "l": [
-    3316.94,
+    3417.94,
     151.783,
-    1882.52
+    1882.53
    ],
    "c": [
     0,
@@ -2669,8 +2667,8 @@
     0,
     0
    ],
-   "lb": "Guest WC",
-   "floor": "ground"
+   "floor": "ground",
+   "lb": "Guest WC"
   },
   {
    "n": "10042",
@@ -2805,9 +2803,9 @@
     2721.28
    ],
    "l": [
-    2834.32,
+    2835.32,
     493.169,
-    2721.27
+    2621.28
    ],
    "c": [
     0,
@@ -2856,235 +2854,9 @@
     0,
     1
    ],
-   "lb": "Bathroom 3",
-   "floor": "first"
+   "floor": "first",
+   "lb": "Bedroom 4 Bathroom"
   }
  ],
- "hotspots": [],
- "autoTour": {
-  "loop": false,
-  "steps": [
-   {
-    "type": "goto",
-    "camera": "10000"
-   },
-   {
-    "type": "rotate",
-    "deltaYawDeg": 120,
-    "durationMs": 6000
-   },
-   {
-    "type": "wait",
-    "durationMs": 400
-   },
-   {
-    "type": "goto",
-    "camera": "10001"
-   },
-   {
-    "type": "rotate",
-    "deltaYawDeg": 120,
-    "durationMs": 6000
-   },
-   {
-    "type": "wait",
-    "durationMs": 400
-   },
-   {
-    "type": "goto",
-    "camera": "10009"
-   },
-   {
-    "type": "rotate",
-    "deltaYawDeg": 120,
-    "durationMs": 6000
-   },
-   {
-    "type": "wait",
-    "durationMs": 400
-   },
-   {
-    "type": "goto",
-    "camera": "10006"
-   },
-   {
-    "type": "rotate",
-    "deltaYawDeg": 120,
-    "durationMs": 6000
-   },
-   {
-    "type": "wait",
-    "durationMs": 400
-   },
-   {
-    "type": "goto",
-    "camera": "10013"
-   },
-   {
-    "type": "rotate",
-    "deltaYawDeg": 120,
-    "durationMs": 6000
-   },
-   {
-    "type": "wait",
-    "durationMs": 400
-   },
-   {
-    "type": "goto",
-    "camera": "10041"
-   },
-   {
-    "type": "rotate",
-    "deltaYawDeg": 120,
-    "durationMs": 6000
-   },
-   {
-    "type": "wait",
-    "durationMs": 400
-   },
-   {
-    "type": "goto",
-    "camera": "10014"
-   },
-   {
-    "type": "rotate",
-    "deltaYawDeg": 120,
-    "durationMs": 6000
-   },
-   {
-    "type": "wait",
-    "durationMs": 400
-   },
-   {
-    "type": "goto",
-    "camera": "10017"
-   },
-   {
-    "type": "rotate",
-    "deltaYawDeg": 120,
-    "durationMs": 6000
-   },
-   {
-    "type": "wait",
-    "durationMs": 400
-   },
-   {
-    "type": "goto",
-    "camera": "10032"
-   },
-   {
-    "type": "rotate",
-    "deltaYawDeg": 120,
-    "durationMs": 6000
-   },
-   {
-    "type": "wait",
-    "durationMs": 400
-   },
-   {
-    "type": "goto",
-    "camera": "10033"
-   },
-   {
-    "type": "rotate",
-    "deltaYawDeg": 120,
-    "durationMs": 6000
-   },
-   {
-    "type": "wait",
-    "durationMs": 400
-   },
-   {
-    "type": "goto",
-    "camera": "10037"
-   },
-   {
-    "type": "rotate",
-    "deltaYawDeg": 120,
-    "durationMs": 6000
-   },
-   {
-    "type": "wait",
-    "durationMs": 400
-   },
-   {
-    "type": "goto",
-    "camera": "10020"
-   },
-   {
-    "type": "rotate",
-    "deltaYawDeg": 120,
-    "durationMs": 6000
-   },
-   {
-    "type": "wait",
-    "durationMs": 400
-   },
-   {
-    "type": "goto",
-    "camera": "10023"
-   },
-   {
-    "type": "rotate",
-    "deltaYawDeg": 120,
-    "durationMs": 6000
-   },
-   {
-    "type": "wait",
-    "durationMs": 400
-   },
-   {
-    "type": "goto",
-    "camera": "10024"
-   },
-   {
-    "type": "rotate",
-    "deltaYawDeg": 120,
-    "durationMs": 6000
-   },
-   {
-    "type": "wait",
-    "durationMs": 400
-   },
-   {
-    "type": "goto",
-    "camera": "10028"
-   },
-   {
-    "type": "rotate",
-    "deltaYawDeg": 120,
-    "durationMs": 6000
-   },
-   {
-    "type": "wait",
-    "durationMs": 400
-   },
-   {
-    "type": "goto",
-    "camera": "10044"
-   },
-   {
-    "type": "rotate",
-    "deltaYawDeg": 120,
-    "durationMs": 6000
-   },
-   {
-    "type": "wait",
-    "durationMs": 400
-   },
-   {
-    "type": "goto",
-    "camera": "10039"
-   },
-   {
-    "type": "rotate",
-    "deltaYawDeg": 120,
-    "durationMs": 6000
-   },
-   {
-    "type": "wait",
-    "durationMs": 400
-   }
-  ]
- }
+ "hotspots": []
 }
