@@ -153,7 +153,8 @@ export default function Visite360Viewer({ className, startId }: Props) {
 
       {loaded && floors.length > 1 ? (
         <div className="visite360-floors" role="tablist" aria-label="Floors">
-          {floors.map((f) => (
+          {/* top floor first, like elevator buttons: Roof / First / Ground */}
+          {[...floors].reverse().map((f) => (
             <button
               key={f.id}
               type="button"
