@@ -5,7 +5,7 @@
  "resolutions": [
   "2048"
  ],
- "imageExt": ".jpg",
+ "imageExt": ".webp",
  "mesh": "mesh.glb",
  "startCamera": "10000",
  "controls": {
