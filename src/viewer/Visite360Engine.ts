@@ -1,1110 +1,1590 @@
 import * as THREE from "three";
-
-export type Visite360Node = {
-  id: string;
-  label: string;
-  /** Graph may store pos as `[x,y,z]` or `{x,y,z}`. */
-  pos: { x: number; y: number; z: number } | [number, number, number];
-  yaw0: number;
-  pitch0: number;
-  fov0: number;
-};
-
-export type Visite360Edge = {
-  from: string;
-  to: string;
-  yaw: number;
-  pitch: number;
-};
-
-export type Visite360Graph = {
-  version: number;
-  source: string;
-  nodes: Visite360Node[];
-  edges: Visite360Edge[];
-};
-
-export type HotspotScreen = {
-  to: string;
-  label: string;
-  x: number;
-  y: number;
-  /** Perspective scale so near doors read larger, far ones softer. */
-  scale: number;
-  visible: boolean;
-  yaw: number;
-  pitch: number;
-};
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
+import { MeshBVH, acceleratedRaycast } from "three-mesh-bvh";
 
 /**
- * Standard CubeTextureLoader order. Do NOT swap px/nx — Three.js scene.background
- * samples cube maps with flipEnvMap = -1, so camera look +X shows the −X face (nx).
- */
-export const FACE_ORDER = ["px", "nx", "py", "ny", "pz", "nz"] as const;
-
-/**
- * Official NHC / Virtual Visions rail order (same camera ids as the live tour).
- * Door rings use these graph positions — never upstairs remaps, or rings leave
- * the doorway and land in another room.
- */
-export const PRIMARY_ROOM_ORDER = [
-  "10000", // Main Entrance
-  "10001", // Dining Entrance
-  // 10002 "Main Entrance Bathroom" — Layama faces are living room, no powder interior.
-  "10003", // Living Room 1 (powder door is visible here @ lon 0 — look, don’t fake-enter)
-  "10004", // Hall 1
-  "10005", // Hall 3
-  "10006", // Kitchen
-  "10007", // Hall 4
-  "10008", // Hall 5
-  "10009", // Bedroom 1
-  "10010", // Hall 6
-  "10011", // Bedroom 2
-  "10012", // Bathroom
-  "10013", // Suite Bedroom
-  "10014", // Suite Dressing
-  "10015", // Suite Bathroom
-  "10016", // Dining Room
-  "10017", // Hall 2
-  "10018", // Living Room 2
-] as const;
-
-/**
- * Layama export mislabeled several room cubemaps (10009 shows dining, etc.).
- * Keep graph ids for doorway bearings; load these faces so the picture matches
- * the rail label. Tuned from rail-audit sheets.
- */
-const FACE_SWAP: Record<string, string> = {
-  "10009": "10020", // Bedroom 1 → real bed
-  "10011": "10031", // Bedroom 2 → real bed
-  "10012": "10037", // Bathroom → vanity / shower
-  "10013": "10032", // Suite Bedroom → real bed
-  "10014": "10033", // Suite Dressing → closet
-  "10015": "10037", // Suite Bathroom → same ensuite vanity (no separate export)
-};
-
-/** Display labels for the rail (graph labels can disagree with pictures). */
-const RAIL_LABELS: Record<string, string> = {
-  "10000": "Main Entrance",
-  "10001": "Dining Entrance",
-  "10003": "Living Room 1",
-  "10004": "Hall 1",
-  "10005": "Hall 3",
-  "10006": "Kitchen",
-  "10007": "Hall 4",
-  "10008": "Hall 5",
-  "10009": "Bedroom 1",
-  "10010": "Hall 6",
-  "10011": "Bedroom 2",
-  "10012": "Bathroom",
-  "10013": "Suite Bedroom",
-  "10014": "Suite Dressing",
-  "10015": "Suite Bathroom",
-  "10016": "Dining Room",
-  "10017": "Hall 2",
-  "10018": "Living Room 2",
-};
-
-/**
- * Ground-floor plan (eye height Y≈152) — only walk links that match a *door*
- * you can see in the cubemap. Rail can still jump anywhere; rings = enter/exit.
+ * Visite 360 — three.js port of the "LayamaEngine" used by the NHC /
+ * Virtual Visions tours (nhc.server.virtualvisions.studio/tour).
  *
- *   Main Entrance 10000 ── Hall 5 10008 ── Living 1 10003 ── Hall 1…Kitchen
- *         │ dark door@180    │ powder@0 (view only) │ hall@-90
- *         │ dining@90        │ back@180             │
- *         └──────────────────┘
- *   Bedroom wing via Hall 6: Bed1 / Bed2 / Suite… each room has ONE leave door.
+ * How it works (same as theirs):
+ *  - Every panorama is a cubemap rendered from a known 3D point (Layama export).
+ *  - A low-poly copy of the house (mesh.glb) is drawn with a shader that projects
+ *    the current cubemap from its camera point onto the walls. Standing at that
+ *    point it looks exactly like the panorama; the geometry is what makes
+ *    walking possible.
+ *  - Walking = the camera physically flies from A to B through that mesh while
+ *    a second shader blends cubemap A (projected from A) into cubemap B
+ *    (projected from B). That is the "Matterport-like" glide.
+ *  - Clicking anywhere raycasts the mesh; the destination is the reachable
+ *    camera whose floor point is nearest to what you clicked.
+ *  - Floor rings / hotspots are only shown when a raycast says they are not
+ *    hidden behind a wall.
+ *
+ * Coordinates: Layama data is in Babylon's left-handed world (centimetres).
+ * three.js is right-handed, so world X is mirrored: three = (-x, y, z) * unitScale,
+ * and cubemaps are sampled with the X of the direction flipped back.
  */
-const NHC_CONNECTIONS: Record<string, readonly string[]> = {
-  "10000": ["10008", "10001"],
-  "10001": ["10000", "10004"],
-  "10003": ["10008", "10004"],
-  "10004": ["10003", "10005", "10007", "10006"],
-  "10005": ["10004", "10006"],
-  "10006": ["10005", "10004"],
-  "10007": ["10004", "10010"],
-  "10008": ["10000", "10003"],
-  // Bedroom 1 — only leave through the door (Hall 5). No mid-room rings.
-  "10009": ["10008"],
-  "10010": ["10007", "10009", "10011", "10013"],
-  "10011": ["10010", "10012"],
-  "10012": ["10011", "10010"],
-  "10013": ["10010", "10014"],
-  "10014": ["10013", "10015"],
-  "10015": ["10014"],
-  "10016": ["10001", "10003"],
-  "10017": ["10018", "10016"],
-  "10018": ["10017", "10003"],
+
+// ---------------------------------------------------------------- data types
+
+export type LayamaVec = [number, number, number];
+
+export type TourCamera = {
+  /** Texture id = file prefix, e.g. "10000" → 10000_px.jpg */
+  n: string;
+  /** Layama alias ("Corona Camera001"). */
+  a: string;
+  /** Position (cm, Layama/Babylon world). */
+  p: LayamaVec;
+  /** Initial look-at point (cm). */
+  l: LayamaVec;
+  /** Visibility row: c[j] !== 0 → camera j may be reached from this one. */
+  c?: number[];
+  /** Room label (shown on rings + hover pill). */
+  lb?: string;
+  floor?: string;
 };
 
-const PRIMARY_ROOM_SET = new Set<string>(PRIMARY_ROOM_ORDER);
-
-/**
- * Cubemap lon that shows the actual room interior (from face audit / FACE_SWAP).
- */
-const OPEN_LOOK: Record<string, number> = {
-  "10000": 0, // Main Entrance — down the hall (stairs / bookshelf)
-  "10001": 90, // Dining Entrance — through dining doorway
-  "10003": 180, // Living Room 1 — toward foyer / open living (powder stays @0)
-  "10006": 0, // Kitchen — counters
-  "10008": 0, // Hall 5 — toward powder / stairs corridor
-  "10009": 180, // Bedroom 1 (10020 faces) — bed / window
-  "10011": 0, // Bedroom 2 (10031 faces) — bed / vanity
-  "10012": 180, // Bathroom (10037 faces) — vanity
-  "10013": 0, // Suite Bedroom (10032 faces) — bed
-  "10014": 0, // Suite Dressing (10033 faces) — into suite bedroom
-  "10015": 180, // Suite Bathroom (10037 faces) — vanity
-  "10018": 180, // Living Room 2 — open living
+export type TourHotspot = {
+  name: string;
+  /** World position in cm (Layama coordinates — use the dev pick logger). */
+  pos: LayamaVec;
+  /** 5 = go to camera (url = camera id), 2 = open url same tab, 3 = new tab, 1 = info text. */
+  mode: 1 | 2 | 3 | 5;
+  url?: string;
+  title?: string;
+  text?: string;
+  icon?: string;
+  /** Hide when farther than this (cm). 0 = no limit. */
+  maxDistance?: number;
 };
 
-/**
- * Doorway bearings in the *visible* cubemap (after FACE_SWAP).
- * Only place a ring where a real door/opening is — never on a blank wall.
- */
-const DOOR_YAW: Record<string, Record<string, number>> = {
-  // Main Entrance: Hall 5 ahead @0, dining pocket @90
-  "10000": { "10008": 0, "10001": 90 },
-  // Living 1: back to Hall5 @180, kitchen hall @-90 (powder @0 = view only)
-  "10003": { "10008": 180, "10004": -90 },
-  // Hall 5: dark ME door @180, corridor toward living/powder @0 — NOT side walls
-  "10008": { "10000": 180, "10003": 0 },
-  // Bedroom 1 (10020): leave door centered @0 → Hall 5
-  "10009": { "10008": 0 },
-  // Hall 6: Bed2 ahead @180, Bed1 side, suite side
-  "10010": { "10011": 180, "10009": 25, "10013": -140, "10007": 0 },
-  // Bedroom 2 (10031): leave @-90 → Hall 6; bath opening @180
-  "10011": { "10010": -90, "10012": 180 },
-  // Bathroom (10037): leave corridor @0
-  "10012": { "10011": 0, "10010": 0 },
-  // Suite Bedroom (10032): leave hall @-90; dressing @180
-  "10013": { "10010": -90, "10014": 180 },
-  // Suite Dressing (10033): suite @0; bath @180
-  "10014": { "10013": 0, "10015": 180 },
-  // Suite Bathroom (10037): back to dressing @0
-  "10015": { "10014": 0 },
+export type TourFloor = { id: string; label: string; rooms: string[] };
+
+export type AutoTourStep =
+  | { type: "goto"; camera: string }
+  | { type: "rotate"; deltaYawDeg: number; durationMs: number }
+  | { type: "wait"; durationMs: number };
+
+export type TourData = {
+  version: number;
+  unitScale: number;
+  resolutions: string[];
+  imageExt: string;
+  mesh: string;
+  startCamera?: string;
+  controls?: { defMove?: boolean; defRot?: number; altMove?: boolean; altRot?: number };
+  floors: TourFloor[];
+  cameras: TourCamera[];
+  hotspots?: TourHotspot[];
+  autoTour?: { loop?: boolean; steps: AutoTourStep[] };
 };
 
-/**
- * Every destination room has one leave door. Always offered as the exit ring
- * when you face it (rail jump or walk-in — same doorway you used to enter).
- */
-const EXIT_DOOR: Record<string, { to: string; yaw: number }> = {
-  "10009": { to: "10008", yaw: 0 },
-  "10011": { to: "10010", yaw: -90 },
-  "10012": { to: "10011", yaw: 0 },
-  "10013": { to: "10010", yaw: -90 },
-  "10014": { to: "10013", yaw: 0 },
-  "10015": { to: "10014", yaw: 0 },
-  "10006": { to: "10005", yaw: 180 },
-  "10016": { to: "10001", yaw: 0 },
-};
-
-const DEG = Math.PI / 180;
-/**
- * NHC live behavior (verified by walking the official tour):
- * - 1–2 unlabeled floor rings in doorways you face (+ return ring behind).
- * - Rings sit on the floor in the doorway threshold, not at the far node.
- * - Rings vanish when you look at a wall / vanity (view-dependent).
- * - Passage nodes open looking AT doorways; room nodes open INTO the volume.
- * - Entry look must be computed in Layama graph space (NHC world ≠ Layama world).
- */
-const MAX_FORWARD_HOTSPOTS = 2;
-/** Soft cap for far matrix links; nearest portals always kept. */
-const MAX_HOTSPOT_DIST = 420;
-const MIN_NEAR_PORTALS = 3;
-const EYE_LAT = -6;
-/** Layama node Y ≈ eye height — floor for rings is this far below the camera. */
-const EYE_HEIGHT = 152;
-const DEFAULT_FOV = 72;
-/**
- * Same-corridor near+far rings (NHC approach then enter) may share a bearing.
- * Side-by-side distinct doors are usually ≥28–30° apart.
- */
-const HOTSPOT_GAP = 28;
-/** Forward rings only roughly ahead (return ring exempt). */
-const FORWARD_CONE = 105;
-/** Doorway = fraction of the way to the neighbor node (NHC threshold feel). */
-const DOOR_FRAC = 0.78;
-const DOOR_DIST_MIN = 160;
-const DOOR_DIST_MAX = 360;
-/**
- * Slightly above true floor so doorway rings stay inside vertical FOV on
- * tall phone views, while still reading as floor marks in open volumes.
- */
-const FLOOR_Y_FACTOR = 0.7;
-/** Keep near+far when farther is clearly an entrance beyond an approach node. */
-const APPROACH_FAR_RATIO = 1.35;
-const APPROACH_FAR_GAP = 70;
-/**
- * Max yaw ease after cubemap swap. Large enough to reach OPEN_LOOK so the
- * landing actually shows the room (small caps left people in the “wrong place”).
- */
-const SETTLE_YAW_CAP = 95;
-
-function clamp(v: number, a: number, b: number) {
-  return Math.max(a, Math.min(b, v));
-}
-
-function wrapLon(lon: number) {
-  let v = lon;
-  while (v > 180) v -= 360;
-  while (v < -180) v += 360;
-  return v;
-}
-
-/**
- * Layama graph yaw is atan2(dx, dz) with 0 = +Z.
- * Cubemap panorama lon is atan2(dz, dx) with 0 = +X, then +180 because
- * Layama node axes are mirrored vs the exported cube faces (verified on
- * Main Entrance: Living Room content is opposite the geometric neighbor).
- */
-function graphYawToLon(graphYaw: number) {
-  return wrapLon(270 - graphYaw);
-}
-
-function shortestDelta(from: number, to: number) {
-  return wrapLon(to - from);
-}
-
-function easeInOut(t: number) {
-  return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-}
-
-/** Smoother than easeInOut — NHC walk feels gradual, not snappy. */
-function smootherstep(t: number) {
-  const x = clamp(t, 0, 1);
-  return x * x * x * (x * (x * 6 - 15) + 10);
-}
-
-function nodePos(n: Visite360Node) {
-  if (Array.isArray(n.pos)) return new THREE.Vector3(n.pos[0], n.pos[1], n.pos[2]);
-  return new THREE.Vector3(n.pos.x, n.pos.y, n.pos.z);
-}
-
-/**
- * Graph yaw0/pitch0 were derived from Layama's UP vector — not usable as look.
- * Face toward the nearest doorway at eye level instead (Virtual Visions feel).
- */
-function approachLookLat(edgePitch: number) {
-  // Soft nod toward the floor ring — avoid the hard dive that feels like a snap.
-  return clamp(edgePitch * 0.22 - 2, -14, -4);
-}
-
-export type Visite360EngineOptions = {
+export type EngineOptions = {
   canvas: HTMLCanvasElement;
-  faceUrl: (nodeId: string, face: (typeof FACE_ORDER)[number]) => string;
-  onNodeChange?: (node: Visite360Node) => void;
-  onHotspots?: (hotspots: HotspotScreen[]) => void;
-  onBusy?: (busy: boolean) => void;
+  /** Element that receives DOM overlays (labels, hotspots). Usually the canvas parent. */
+  overlay: HTMLElement;
+  /** Folder holding tour.json's mesh (mesh.glb). */
+  baseUrl: string;
+  /** Folder holding `<res>/<id>_px.jpg` … (Supabase Storage). Defaults to baseUrl. */
+  imageBaseUrl?: string;
+  tour: TourData;
+  dracoPath?: string;
+  /** Called when a move towards `id` starts (use it to highlight the rail). */
+  onCameraChange?: (id: string, index: number) => void;
+  /** Called when the camera has arrived. */
+  onArrive?: (id: string, index: number) => void;
+  onFirstFrame?: () => void;
   onError?: (message: string) => void;
+  onMeasurementsChange?: (count: number) => void;
+  /** Dev aid: logs every clicked surface point in Layama cm (for placing hotspots). */
+  debugPick?: boolean;
 };
 
-type AnimState = {
-  phase: "approach" | "settle";
-  t0: number;
-  dur: number;
-  fromLon: number;
-  fromLat: number;
-  toLon: number;
-  toLat: number;
-  fromFov: number;
-  toFov: number;
-  toId: string;
-  /** Walk bearing through the doorway (NHC keeps this after the cubemap swap). */
-  settleLon: number;
-  /** True when the user clicked a floor ring (vs rail / programmatic). */
-  fromRing: boolean;
+type CamDef = {
+  id: string;
+  alias: string;
+  label?: string;
+  floor?: string;
+  pos: THREE.Vector3;
+  lookat: THREE.Vector3;
+  authoredLook: boolean;
+  vis?: boolean[];
 };
+
+type Hit = { point: THREE.Vector3; normal: THREE.Vector3 | null; distance: number };
+
+type HotspotRuntime = {
+  def: TourHotspot;
+  pos: THREE.Vector3;
+  el: HTMLButtonElement;
+  visible: boolean;
+};
+
+type Measure = {
+  a: THREE.Vector3;
+  b: THREE.Vector3;
+  line: THREE.Line;
+  dotA: HTMLDivElement;
+  dotB: HTMLDivElement;
+  label: HTMLDivElement;
+};
+
+enum Move {
+  NONE,
+  PREPARING,
+  MOVING,
+}
+
+// ------------------------------------------------------------------ shaders
+
+/** Still: one cubemap projected from one point. */
+const STILL_VS = /* glsl */ `
+  uniform vec3 refPos;
+  varying vec3 vDir;
+  void main() {
+    vec4 w = modelMatrix * vec4(position, 1.0);
+    vDir = w.xyz - refPos;
+    gl_Position = projectionMatrix * viewMatrix * w;
+  }`;
+const STILL_FS = /* glsl */ `
+  uniform samplerCube tex;
+  varying vec3 vDir;
+  void main() {
+    vec3 d = normalize(vDir);
+    gl_FragColor = textureCube(tex, vec3(-d.x, d.y, d.z));
+  }`;
+
+/** Move: cubemap A projected from A, cubemap B from B, cross-faded by mixAB. */
+const MOVE_VS = /* glsl */ `
+  uniform vec3 refPosA;
+  uniform vec3 refPosB;
+  varying vec3 vDirA;
+  varying vec3 vDirB;
+  void main() {
+    vec4 w = modelMatrix * vec4(position, 1.0);
+    vDirA = w.xyz - refPosA;
+    vDirB = w.xyz - refPosB;
+    gl_Position = projectionMatrix * viewMatrix * w;
+  }`;
+const MOVE_FS = /* glsl */ `
+  uniform samplerCube texA;
+  uniform samplerCube texB;
+  uniform float mixAB;
+  varying vec3 vDirA;
+  varying vec3 vDirB;
+  void main() {
+    vec3 a = normalize(vDirA);
+    vec3 b = normalize(vDirB);
+    gl_FragColor = mix(textureCube(texA, vec3(-a.x, a.y, a.z)),
+                       textureCube(texB, vec3(-b.x, b.y, b.z)), mixAB);
+  }`;
+
+// ---------------------------------------------------------------- constants
+// All of these are the values used by the NHC engine.
+
+const FOV_MIN = 0.3; // rad (vertical) — max zoom-in
+const FOV_MAX = 2; // rad — max zoom-out
+const FOV_SLOPE = -0.41145490454246214; // default fov = slope * aspect + intercept
+const FOV_INTERCEPT = 1.831443383805135;
+const WHEEL_FOV_STEP = 0.025; // rad per wheel event
+const PITCH_LIMIT = (0.8 * Math.PI) / 2; // ±72°
+const INERTIA_DECAY = 0.85; // velocity multiplier per 20 ms
+const TAP_MAX_MOVE = 10; // px — like Babylon's DragMovementThreshold
+const TAP_MAX_MS = 500;
+const DOUBLE_TAP_WINDOW = 1; // s after a move started
+const TEX_CACHE_MAX = 12;
+const CUBE_FACES = ["px", "nx", "py", "ny", "pz", "nz"] as const; // three.js order
+
+const RING_DIAMETER = 0.42; // m
+const RING_THICKNESS = 0.012;
+const DOT_RADIUS = 0.04;
+const CURSOR_RADIUS = 0.05;
+
+// -------------------------------------------------------------------- easing
+
+const easeInOutQuart = (t: number) => (t < 0.5 ? 8 * t ** 4 : 1 - (-2 * t + 2) ** 4 / 2);
+const easeInOutCubic = (t: number) => (t < 0.5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2);
+const easeInOutQuad = (t: number) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
+const easeInOutSine = (t: number) => -(Math.cos(Math.PI * t) - 1) / 2;
+
+const wrapAngle = (a: number) => {
+  const t = Math.PI * 2;
+  return ((a % t) + t) % t;
+};
+/** Shortest signed difference a − b. */
+const deltaAngle = (a: number, b: number) => {
+  let d = wrapAngle(a) - wrapAngle(b);
+  if (d > Math.PI) d -= Math.PI * 2;
+  if (d < -Math.PI) d += Math.PI * 2;
+  return d;
+};
+
+const isMobileUA = () =>
+  typeof navigator !== "undefined" &&
+  /Android|webOS|iPhone|iPad|iPod|BlackBerry|Windows Phone/i.test(navigator.userAgent);
+
+// --------------------------------------------------------------------- engine
 
 export class Visite360Engine {
+  private o: EngineOptions;
+  private s: number; // unitScale (cm → m)
+  private unitStep: number; // 1.5 m
+  private moveSpeedStep: number; // 0.04 m per 60 Hz frame
+
   private renderer: THREE.WebGLRenderer;
   private scene = new THREE.Scene();
+  private overlayScene = new THREE.Scene(); // drawn on top (Babylon renderingGroupId 1)
   private camera: THREE.PerspectiveCamera;
-  private loader = new THREE.CubeTextureLoader();
+  private raycaster = new THREE.Raycaster();
+
+  private cams: CamDef[] = [];
+  private pickables: THREE.Mesh[] = [];
+  private houseMeshes: THREE.Mesh[] = [];
+
+  private stillMat: THREE.ShaderMaterial;
+  private moveMat: THREE.ShaderMaterial;
+
+  // camera rig state (cameraParent in NHC)
+  private rigPos = new THREE.Vector3();
+  private rigQuat = new THREE.Quaternion();
+  private prevPos = new THREE.Vector3();
+  private prevQuat = new THREE.Quaternion();
+  private desiredQuat = new THREE.Quaternion();
+
+  private prevCamera = 0; // camera we're at (or leaving)
+  private desiredCam = 0; // camera we're heading to
+  private status = Move.NONE;
+  private moveDone = 0;
+  private interDist = 1;
+  private moveStartTime = -1;
+
+  private currentTex: THREE.CubeTexture | null = null;
+  private nextTex: THREE.CubeTexture | null = null;
   private texCache = new Map<string, THREE.CubeTexture>();
-  private loadQueue = new Map<string, Promise<THREE.CubeTexture>>();
+  private texLoading = new Map<string, Promise<THREE.CubeTexture>>();
+  private prefetchHandle: number | null = null;
 
-  private graph: Visite360Graph | null = null;
-  private nodeById = new Map<string, Visite360Node>();
-  private outs = new Map<string, Visite360Edge[]>();
-  private currentId: string | null = null;
-  /** Room we walked from — always keep a return floor ring (NHC come-back). */
-  private previousId: string | null = null;
+  // markers
+  private floorAnchors = new Map<number, THREE.Vector3>();
+  private floorMarkers: THREE.Object3D[] = [];
+  private floorLabels: HTMLDivElement[] = [];
+  private floorEligible: boolean[] = [];
+  private hoverMarker!: THREE.Object3D;
+  private hoverLabel!: HTMLDivElement;
+  private hoverDest: number | null = null;
+  private surfaceCursor!: THREE.Mesh;
+  private markersSuppressed = false;
 
-  private lon = 0;
-  private lat = EYE_LAT;
-  private fov = DEFAULT_FOV;
-  private targetFov = DEFAULT_FOV;
+  private hotspots: HotspotRuntime[] = [];
+  private infoBox: HTMLDivElement | null = null;
 
-  private pointerDown = false;
-  private dragged = false;
+  // measuring
+  private measureMode = false;
+  private measurePending: { pos: THREE.Vector3; dot: HTMLDivElement } | null = null;
+  private measurements: Measure[] = [];
+
+  // input
+  private pointers = new Map<number, { x: number; y: number; sx: number; sy: number; t: number; button: number }>();
+  private dragging = false;
   private lastX = 0;
   private lastY = 0;
-  private pointerId: number | null = null;
+  private velX = 0;
+  private velY = 0;
+  private velT = 0;
+  private inertia = false;
+  private pinchDist = 0;
+  private pinchStartA: THREE.Vector2 | null = null;
+  private pinchStartB: THREE.Vector2 | null = null;
+  private hoverX = -1;
+  private hoverY = -1;
+  private hoverDirty = false;
 
-  private anim: AnimState | null = null;
-
+  private ready = { mesh: false, tex: false, first: false };
+  private aspect = 1;
   private raf = 0;
+  private lastFrame = 0;
   private disposed = false;
-  private faceUrl: Visite360EngineOptions["faceUrl"];
-  private onNodeChange?: Visite360EngineOptions["onNodeChange"];
-  private onHotspots?: Visite360EngineOptions["onHotspots"];
-  private onBusy?: Visite360EngineOptions["onBusy"];
-  private onError?: Visite360EngineOptions["onError"];
-  private canvas: HTMLCanvasElement;
-  private ro: ResizeObserver;
-  private hotspotDirty = true;
-  private camFwd = new THREE.Vector3();
-  private tmpDir = new THREE.Vector3();
-  private tmpPos = new THREE.Vector3();
+  private cleanups: (() => void)[] = [];
+  private arrivalListeners: ((id: string) => void)[] = [];
+  private rotationToken = 0;
 
-  constructor(opts: Visite360EngineOptions) {
-    this.canvas = opts.canvas;
-    this.faceUrl = opts.faceUrl;
-    this.onNodeChange = opts.onNodeChange;
-    this.onHotspots = opts.onHotspots;
-    this.onBusy = opts.onBusy;
-    this.onError = opts.onError;
+  constructor(opts: EngineOptions) {
+    this.o = opts;
+    this.s = opts.tour.unitScale ?? 0.01;
+    this.unitStep = 150 * this.s;
+    this.moveSpeedStep = 4 * this.s;
+
+    this.cams = opts.tour.cameras.map((c) => ({
+      id: c.n,
+      alias: c.a,
+      label: c.lb,
+      floor: c.floor,
+      pos: this.toWorld(c.p),
+      lookat: this.toWorld(c.l),
+      // Layama writes a placeholder look-at (1 cm along −X) for every camera.
+      authoredLook: !(
+        Math.abs(c.p[0] - c.l[0] - 1) < 0.05 &&
+        Math.abs(c.p[1] - c.l[1]) < 0.05 &&
+        Math.abs(c.p[2] - c.l[2]) < 0.05
+      ),
+      vis: c.c ? c.c.map((v) => v !== 0) : undefined,
+    }));
+
+    const start = Math.max(0, this.cams.findIndex((c) => c.id === opts.tour.startCamera));
+    this.prevCamera = this.desiredCam = start;
 
     this.renderer = new THREE.WebGLRenderer({
       canvas: opts.canvas,
       antialias: true,
-      alpha: false,
-      powerPreference: "high-performance",
+      preserveDrawingBuffer: true, // screenshots
     });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
-    this.scene.background = new THREE.Color(0x0b1220);
+    this.renderer.autoClear = false;
+    this.renderer.setClearColor(new THREE.Color(0.067, 0.067, 0.067), 1);
 
-    this.camera = new THREE.PerspectiveCamera(DEFAULT_FOV, 1, 0.05, 2000);
-    this.camera.position.set(0, 0, 0);
-
-    this.bindPointer();
-    this.ro = new ResizeObserver(() => this.resize());
-    this.ro.observe(opts.canvas.parentElement ?? opts.canvas);
-    this.resize();
-    this.tick();
-  }
-
-  async loadGraph(graph: Visite360Graph, startId?: string) {
-    this.graph = graph;
-    this.nodeById.clear();
-    this.outs.clear();
-    for (const n of graph.nodes) {
-      const id = String(n.id);
-      const label = RAIL_LABELS[id] ?? n.label;
-      this.nodeById.set(id, { ...n, id, label });
-    }
-    for (const e of graph.edges) {
-      const from = String(e.from);
-      const list = this.outs.get(from) ?? [];
-      list.push({
-        ...e,
-        from,
-        to: String(e.to),
-        yaw: graphYawToLon(e.yaw),
-      });
-      this.outs.set(from, list);
-    }
-    const first =
-      (startId && this.nodeById.has(String(startId)) && String(startId)) ||
-      (graph.nodes[0] ? String(graph.nodes[0].id) : null);
-    if (first) await this.goTo(first, { animate: false });
-  }
-
-  getNodes() {
-    if (!this.graph) return [];
-    const primary = PRIMARY_ROOM_ORDER.map((id) => {
-      const n = this.nodeById.get(id);
-      if (!n) return null;
-      return { ...n, label: RAIL_LABELS[id] ?? n.label };
-    }).filter((n): n is Visite360Node => !!n);
-    if (primary.length > 0) return primary;
-    return this.graph.nodes.map((n) => ({ ...n, id: String(n.id) }));
-  }
-
-  getCurrentId() {
-    return this.currentId;
-  }
-
-  /** Debug: why rings appear / disappear for the current view. */
-  debugHotspots() {
-    if (!this.currentId) return { currentId: null };
-    const ranked = this.rankedNeighbors(this.currentId);
-    const w = this.canvas.clientWidth;
-    const h = this.canvas.clientHeight;
-    this.camera.getWorldDirection(this.camFwd);
-    const probes = ranked.map((r) => {
-      const placed = this.projectFloorRing(r.edge.yaw, r.dist, w, h);
-      return {
-        to: r.edge.to,
-        label: this.labelOf(r.edge.to),
-        yaw: Math.round(r.edge.yaw),
-        dist: Math.round(r.dist),
-        door: Math.round(placed.dist),
-        ahead: Math.round(Math.abs(shortestDelta(this.lon, r.edge.yaw))),
-        facing: Math.round((placed.facing || 0) * 100) / 100,
-        x: Math.round(placed.x),
-        y: Math.round(placed.y),
-        ok: placed.ok,
-      };
+    this.camera = new THREE.PerspectiveCamera(60, 1, 5 * this.s, 1000);
+    this.stillMat = new THREE.ShaderMaterial({
+      uniforms: { tex: { value: null }, refPos: { value: new THREE.Vector3() } },
+      vertexShader: STILL_VS,
+      fragmentShader: STILL_FS,
+      side: THREE.DoubleSide,
     });
-    return {
-      currentId: this.currentId,
-      lon: this.lon,
-      lat: this.lat,
-      fov: this.fov,
-      previousId: this.previousId,
-      entry: this.entryLook(this.currentId),
-      size: { w, h },
-      probes,
-    };
+    this.moveMat = new THREE.ShaderMaterial({
+      uniforms: {
+        texA: { value: null },
+        texB: { value: null },
+        refPosA: { value: new THREE.Vector3() },
+        refPosB: { value: new THREE.Vector3() },
+        mixAB: { value: 0 },
+      },
+      vertexShader: MOVE_VS,
+      fragmentShader: MOVE_FS,
+      side: THREE.DoubleSide,
+    });
+
+    // initial pose: at the start camera, looking at its look-at point
+    const c0 = this.cams[start];
+    this.rigPos.copy(c0.pos);
+    this.rigQuat.copy(this.lookQuat(c0.pos, c0.lookat, false));
+    this.prevPos.copy(this.rigPos);
+    this.prevQuat.copy(this.rigQuat);
+    this.desiredQuat.copy(this.rigQuat);
+    this.syncCamera();
+
+    this.buildMarkers();
+    this.buildHotspots();
+    this.resize(true);
+    this.bindInput();
   }
 
-  isBusy() {
-    return !!this.anim;
-  }
+  // ============================================================ public API
 
-  async goTo(
-    nodeId: string,
-    opts?: {
-      animate?: boolean;
-      via?: Visite360Edge;
-      yaw?: number;
-      pitch?: number;
-      /** Bottom room rail jump (NHC): go to that part even without a floor ring. */
-      fromRail?: boolean;
-    },
-  ) {
-    const node = this.nodeById.get(String(nodeId));
-    if (!node || this.disposed) return;
-    if (this.anim) return;
+  async start() {
+    const { tour, baseUrl } = this.o;
+    try {
+      // 1) first panorama
+      const firstPath = this.texPath(this.desiredCam);
+      this.loadCube(firstPath)
+        .then((t) => {
+          this.currentTex = t;
+          this.stillMat.uniforms.tex.value = t;
+          this.stillMat.uniforms.refPos.value.copy(this.cams[this.desiredCam].pos);
+          this.ready.tex = true;
+          this.prefetchNeighbors(this.desiredCam);
+          this.maybeFirstFrame();
+        })
+        .catch((e) => this.fail(`Panorama failed to load (${String(e)})`));
 
-    const destFov = this.mapFov(node.fov0);
-    const entry = this.entryLook(node.id);
+      // 2) house mesh (Draco-compressed glb exported by Layama)
+      const draco = new DRACOLoader().setDecoderPath(this.o.dracoPath ?? "/draco/");
+      const loader = new GLTFLoader().setDRACOLoader(draco);
+      const gltf = await loader.loadAsync(`${baseUrl}/${tour.mesh}`);
+      draco.dispose();
+      if (this.disposed) return;
 
-    if (!opts?.animate || !this.currentId || this.currentId === node.id) {
-      try {
-        await this.setScene(node);
-      } catch (e) {
-        this.onError?.(e instanceof Error ? e.message : "Failed to load scene");
-        return;
-      }
-      // Always open looking into the room (NHC), never the closed entrance door.
-      this.lon = entry.lon;
-      this.lat = entry.lat;
-      // Slightly wider so the first frame reads as a room, not a door close-up.
-      this.fov = Math.max(destFov, 76);
-      this.targetFov = this.fov;
-      this.applyCamera();
-      this.hotspotDirty = true;
-      return;
+      const root = new THREE.Group();
+      root.scale.setScalar(this.s);
+      root.add(gltf.scene);
+      this.scene.add(root);
+      root.updateMatrixWorld(true);
+
+      const bounds = new THREE.Box3();
+      gltf.scene.traverse((obj) => {
+        const m = obj as THREE.Mesh;
+        if (!m.isMesh) return;
+        m.material = this.stillMat;
+        m.frustumCulled = false;
+        m.geometry.boundsTree = new MeshBVH(m.geometry);
+        m.raycast = acceleratedRaycast;
+        m.matrixAutoUpdate = false;
+        this.houseMeshes.push(m);
+        this.pickables.push(m);
+        bounds.expandByObject(m);
+      });
+
+      // Background box around everything: fills sky / holes with the same projection.
+      const size = bounds.getSize(new THREE.Vector3()).addScalar(1);
+      const box = new THREE.Mesh(new THREE.BoxGeometry(size.x, size.y, size.z), this.stillMat);
+      box.position.copy(bounds.getCenter(new THREE.Vector3()));
+      box.updateMatrixWorld(true);
+      box.matrixAutoUpdate = false;
+      this.scene.add(box);
+      this.houseMeshes.push(box);
+      this.pickables.push(box);
+      this.camera.far = 5 + size.length();
+      this.camera.updateProjectionMatrix();
+
+      this.computeMissingVisibilities();
+      this.updateFloorMarkers();
+      this.updateHotspotVisibility();
+      this.ready.mesh = true;
+      this.maybeFirstFrame();
+    } catch (e) {
+      this.fail(`3D mesh failed to load (${e instanceof Error ? e.message : String(e)})`);
     }
+    this.lastFrame = performance.now();
+    const loop = (t: number) => {
+      if (this.disposed) return;
+      this.raf = requestAnimationFrame(loop);
+      this.frame(t);
+    };
+    this.raf = requestAnimationFrame(loop);
+  }
 
-    const edge =
-      opts?.via ??
-      this.outs.get(this.currentId)?.find((e) => e.to === node.id) ??
-      null;
+  getCameras() {
+    return this.cams.map((c, i) => ({ id: c.id, index: i, label: c.label, floor: c.floor }));
+  }
+  getCurrentId() {
+    return this.cams[this.prevCamera]?.id;
+  }
+  isMoving() {
+    return this.status !== Move.NONE;
+  }
 
-    let lookLon: number;
-    let lookLat: number;
-    let approachFov: number;
-    let approachDur: number;
-    let fromRing = false;
-
-    if (opts?.yaw != null && opts?.pitch != null) {
-      // Floor-ring click: gentle turn + mild zoom toward that doorway (NHC walk).
-      lookLon = wrapLon(opts.yaw);
-      lookLat = approachLookLat(opts.pitch);
-      approachFov = clamp(this.fov * 0.9, 58, 74);
-      approachDur = 920;
-      fromRing = true;
-    } else if (opts?.fromRail) {
-      // Room rail: soft fade-style turn into the room's open view.
-      lookLon = entry.lon;
-      lookLat = entry.lat;
-      approachFov = clamp(this.fov * 0.94, 56, 74);
-      approachDur = 560;
-    } else if (edge) {
-      lookLon = wrapLon(edge.yaw);
-      lookLat = approachLookLat(edge.pitch);
-      approachFov = clamp(this.fov * 0.9, 58, 74);
-      approachDur = 880;
-      fromRing = true;
+  /** Same as NHC fnTeleportToCamera: fly if in line of sight, else jump + cross-fade. */
+  teleportTo(id: string) {
+    const e = this.cams.findIndex((c) => c.id === id || c.alias === id);
+    if (e < 0 || e === this.desiredCam || this.disposed) return;
+    const dest = this.cams[e].pos;
+    const from = this.camera.position.clone();
+    const dir = dest.clone().sub(from);
+    const dist = dir.length();
+    const blocked = !!this.pick(from, dir.normalize(), dist);
+    let refA: THREE.Vector3;
+    if (blocked) {
+      // wall in between: cut to destination and cross-fade in place (~0.6 s)
+      this.interDist = this.unitStep;
+      this.rigPos.copy(dest);
+      refA = dest.clone();
     } else {
-      lookLon = entry.lon;
-      lookLat = entry.lat;
-      approachFov = clamp(this.fov * 0.94, 56, 74);
-      approachDur = 640;
+      this.interDist = Math.max(this.unitStep, dist);
+      refA = from;
     }
+    this.desiredCam = e;
+    this.desiredQuat = this.clampPitch(this.lookQuat(dest, this.viewTarget(e), false));
+    this.prevPos.copy(this.rigPos);
+    this.prevQuat.copy(this.rigQuat);
+    this.hideHover();
+    const path = this.texPath(e);
+    this.loadCube(path)
+      .then((tex) => {
+        if (this.disposed || this.texPath(e) !== path || this.desiredCam !== e) return;
+        this.nextTex = tex;
+        if (this.currentTex) this.useMoveMaterial(refA, dest, this.currentTex, tex);
+        this.moveDone = 0;
+        this.status = Move.MOVING;
+        this.o.onCameraChange?.(this.cams[e].id, e);
+      })
+      .catch((err) => console.error("Visite360: teleport texture failed", err));
+  }
 
-    this.onBusy?.(true);
-    // NHC: hide rings during the walk, then redraw in the new room.
-    this.onHotspots?.([]);
-    void this.loadFaces(node.id).catch(() => {});
+  /** Resolves once the camera has arrived at `id` (used by the auto tour). */
+  teleportToAsync(id: string, timeoutMs = 30000) {
+    return new Promise<void>((resolve) => {
+      const idx = this.cams.findIndex((c) => c.id === id);
+      if (idx < 0 || this.disposed) return resolve();
+      if (this.prevCamera === idx && this.status === Move.NONE) {
+        this.teleportTo(id);
+        return resolve();
+      }
+      const done = () => {
+        clearTimeout(timer);
+        this.arrivalListeners = this.arrivalListeners.filter((l) => l !== listener);
+        resolve();
+      };
+      const listener = (arrived: string) => arrived === id && done();
+      const timer = setTimeout(done, timeoutMs);
+      this.arrivalListeners.push(listener);
+      this.teleportTo(id);
+    });
+  }
 
-    this.anim = {
-      phase: "approach",
-      t0: performance.now(),
-      dur: approachDur,
-      fromLon: this.lon,
-      fromLat: this.lat,
-      toLon: this.lon + shortestDelta(this.lon, lookLon),
-      toLat: lookLat,
-      fromFov: this.fov,
-      toFov: approachFov,
-      toId: node.id,
-      settleLon: lookLon,
-      fromRing,
-    };
+  /** Smooth yaw turn (auto tour). Positive = turn right. */
+  animateRotation(deltaYawDeg: number, durationMs: number) {
+    const token = ++this.rotationToken;
+    const from = this.rigQuat.clone();
+    const to = new THREE.Quaternion()
+      .setFromAxisAngle(new THREE.Vector3(0, 1, 0), (-deltaYawDeg * Math.PI) / 180)
+      .multiply(from);
+    const t0 = performance.now();
+    const dur = Math.max(1, durationMs);
+    return new Promise<void>((resolve) => {
+      const step = () => {
+        if (this.disposed || token !== this.rotationToken) return resolve();
+        const f = Math.min(1, (performance.now() - t0) / dur);
+        const p = f * f * (3 - 2 * f);
+        this.setRotation(from.clone().slerp(to, p));
+        if (f < 1) requestAnimationFrame(step);
+        else resolve();
+      };
+      requestAnimationFrame(step);
+    });
+  }
+  cancelAutoAnimation() {
+    this.rotationToken++;
+  }
+
+  setMeasureMode(on: boolean) {
+    if (this.measureMode === on) return;
+    this.measureMode = on;
+    if (!on && this.measurePending) {
+      this.measurePending.dot.remove();
+      this.measurePending = null;
+    }
+    this.updateFloorMarkers();
+    this.o.canvas.style.cursor = on ? "crosshair" : "";
+  }
+  clearMeasurements() {
+    for (const m of this.measurements) {
+      this.overlayScene.remove(m.line);
+      m.line.geometry.dispose();
+      m.dotA.remove();
+      m.dotB.remove();
+      m.label.remove();
+    }
+    this.measurements = [];
+    this.measurePending?.dot.remove();
+    this.measurePending = null;
+    this.o.onMeasurementsChange?.(0);
+  }
+  setFloorMarkersVisible(v: boolean) {
+    this.markersSuppressed = !v;
+    this.refreshFloorMarkers();
+  }
+
+  snapshot(name = "Visite 360") {
+    this.render();
+    this.o.canvas.toBlob(
+      (blob) => {
+        if (!blob) return;
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `${name} ${new Date().toISOString().slice(0, 19).replace(/:/g, ".")}.jpg`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      },
+      "image/jpeg",
+      0.9,
+    );
   }
 
   dispose() {
+    if (this.disposed) return;
     this.disposed = true;
     cancelAnimationFrame(this.raf);
-    this.ro.disconnect();
-    this.unbindPointer();
-    for (const tex of this.texCache.values()) tex.dispose();
+    if (this.prefetchHandle !== null) clearTimeout(this.prefetchHandle);
+    this.cleanups.forEach((f) => f());
+    this.clearMeasurements();
+    for (const t of this.texCache.values()) t.dispose();
     this.texCache.clear();
+    this.floorLabels.forEach((l) => l.remove());
+    this.hoverLabel?.remove();
+    this.hotspots.forEach((h) => h.el.remove());
+    this.infoBox?.remove();
+    this.scene.traverse((o) => {
+      const m = o as THREE.Mesh;
+      if (m.isMesh) {
+        m.geometry.boundsTree = undefined;
+        m.geometry.dispose();
+      }
+    });
+    this.overlayScene.traverse((o) => (o as THREE.Mesh).isMesh && (o as THREE.Mesh).geometry.dispose());
+    this.stillMat.dispose();
+    this.moveMat.dispose();
     this.renderer.dispose();
   }
 
-  private mapFov(fov0: number) {
-    if (fov0 > 120) return clamp(58 + (fov0 - 120) * 0.35, 58, 78);
-    return clamp(fov0, 48, 88);
+  // ====================================================== coordinates
+
+  /** Layama cm (Babylon LH) → three.js world metres. */
+  private toWorld(p: LayamaVec) {
+    return new THREE.Vector3(-p[0] * this.s, p[1] * this.s, p[2] * this.s);
+  }
+  /** three.js world metres → Layama cm (for logging hotspot positions). */
+  private toLayama(v: THREE.Vector3): LayamaVec {
+    const r = (x: number) => Math.round(x * 100) / 100;
+    return [r(-v.x / this.s), r(v.y / this.s), r(v.z / this.s)];
   }
 
-  private labelOf(nodeId: string) {
-    return RAIL_LABELS[nodeId] ?? this.nodeById.get(nodeId)?.label ?? "";
+  private lookQuat(from: THREE.Vector3, to: THREE.Vector3, clamp = true) {
+    const m = new THREE.Matrix4().lookAt(from, to, new THREE.Vector3(0, 1, 0));
+    const q = new THREE.Quaternion().setFromRotationMatrix(m);
+    return clamp ? this.clampPitch(q) : q;
+  }
+  private yawPitch(q: THREE.Quaternion) {
+    const f = new THREE.Vector3(0, 0, -1).applyQuaternion(q);
+    return { yaw: Math.atan2(-f.x, -f.z), pitch: Math.asin(THREE.MathUtils.clamp(f.y, -1, 1)) };
+  }
+  private fromYawPitch(yaw: number, pitch: number) {
+    return new THREE.Quaternion().setFromEuler(new THREE.Euler(pitch, yaw, 0, "YXZ"));
+  }
+  private clampPitch(q: THREE.Quaternion) {
+    const { yaw, pitch } = this.yawPitch(q);
+    if (Math.abs(pitch) <= PITCH_LIMIT) return q;
+    return this.fromYawPitch(yaw, Math.sign(pitch) * PITCH_LIMIT);
   }
 
-  /** Hall / foyer: open looking at doorways (rings ahead). */
-  private isPassage(nodeId: string) {
-    const label = this.labelOf(nodeId);
-    // "Main Entrance Bathroom" is a room, not a passage.
-    if (/bathroom|bedroom|kitchen|living|suite|dressing/i.test(label)) return false;
-    return /hall/i.test(label) || /^((dining|main)\s+)?entrance$/i.test(label.trim());
+  // ============================================================ raycasting
+
+  private pick(origin: THREE.Vector3, dir: THREE.Vector3, far = Infinity): Hit | null {
+    if (!this.pickables.length) return null;
+    this.raycaster.set(origin, dir);
+    this.raycaster.near = 0;
+    this.raycaster.far = far;
+    (this.raycaster as THREE.Raycaster & { firstHitOnly?: boolean }).firstHitOnly = true;
+    const hits = this.raycaster.intersectObjects(this.pickables, false);
+    const h = hits[0];
+    if (!h) return null;
+    let normal: THREE.Vector3 | null = null;
+    if (h.face) normal = h.face.normal.clone().transformDirection(h.object.matrixWorld);
+    return { point: h.point.clone(), normal, distance: h.distance };
   }
 
-  /** Furnished room: open looking into the volume (sofa / bed / vanity). */
-  private isDestinationRoom(nodeId: string) {
-    if (this.isPassage(nodeId)) return false;
-    return /bedroom|bathroom|kitchen|living|dining|suite|dressing/i.test(this.labelOf(nodeId));
+  private pickScreen(clientX: number, clientY: number): Hit | null {
+    const r = this.o.canvas.getBoundingClientRect();
+    const ndc = new THREE.Vector2(((clientX - r.left) / r.width) * 2 - 1, -((clientY - r.top) / r.height) * 2 + 1);
+    this.raycaster.setFromCamera(ndc, this.camera);
+    return this.pick(this.raycaster.ray.origin.clone(), this.raycaster.ray.direction.clone());
   }
 
-  /**
-   * Land look in Layama space (NHC coords are a different world — do not copy yaw numbers).
-   * Passages → face nearest destination doorway. Rooms → face into the volume (opposite exit).
-   */
-  private entryLook(nodeId: string, fromId?: string | null) {
-    // Cubemap-specific open volume (beats opposite-door when that hits a wall).
-    if (OPEN_LOOK[nodeId] != null) {
-      return { lon: wrapLon(OPEN_LOOK[nodeId]), lat: EYE_LAT };
-    }
-
-    // After a walk into a room: settle opposite the door you came through.
-    if (fromId && fromId !== nodeId && this.isDestinationRoom(nodeId)) {
-      const back = this.aimToward(nodeId, fromId);
-      if (back) return { lon: wrapLon(back.yaw + 180), lat: EYE_LAT };
-    }
-
-    const portals = this.nhcPortals(nodeId);
-    if (this.isPassage(nodeId)) {
-      // Face the doorway that opens the tour — living/hall over side baths.
-      const living = portals.find((p) => /living|dining\s*room/i.test(this.labelOf(p.edge.to)));
-      const hall = portals.find((p) => /^hall/i.test(this.labelOf(p.edge.to)));
-      const dest = portals.find((p) => this.isDestinationRoom(p.edge.to));
-      const aim = living ?? hall ?? dest ?? portals[0];
-      if (aim) return { lon: wrapLon(aim.edge.yaw), lat: EYE_LAT };
-    }
-
-    if (this.isDestinationRoom(nodeId)) {
-      const nearest = portals[0];
-      if (nearest) return { lon: wrapLon(nearest.edge.yaw + 180), lat: EYE_LAT };
-    }
-
-    // Generic fallback: opposite nearest portal.
-    if (portals[0]) return { lon: wrapLon(portals[0].edge.yaw + 180), lat: EYE_LAT };
-    return { lon: 0, lat: EYE_LAT };
-  }
-
-  private aimToward(fromId: string, toId: string) {
-    const from = this.nodeById.get(fromId);
-    const to = this.nodeById.get(toId);
-    if (!from || !to) return null;
-    const d = nodePos(to).sub(nodePos(from));
-    if (d.lengthSq() < 1e-6) return null;
-    // Camera / panorama frame (mirrored Layama axes — see graphYawToLon).
-    const yaw = Math.atan2(d.z, d.x) / DEG + 180;
-    const pitch = Math.asin(clamp(d.y / d.length(), -1, 1)) / DEG;
-    return { yaw: wrapLon(yaw), pitch: clamp(pitch, -55, 55) };
-  }
-
-  /** Physical doorway distance — never past the neighbor node. */
-  private doorDist(nodeDist: number) {
-    const maxAllowed = Math.min(DOOR_DIST_MAX, Math.max(40, nodeDist * 0.95));
-    const minAllowed = Math.min(DOOR_DIST_MIN, maxAllowed);
-    return clamp(nodeDist * DOOR_FRAC, minAllowed, maxAllowed);
-  }
-
-  /** Pitch that aims the camera at the floor ring (walk-in dive). */
-  private ringPitch(doorDistance: number) {
-    return clamp(
-      Math.atan2(-EYE_HEIGHT * FLOOR_Y_FACTOR, doorDistance) / DEG,
-      -45,
-      -8,
-    );
+  /** World direction under a screen point for a given camera orientation. */
+  private screenDir(clientX: number, clientY: number, q: THREE.Quaternion) {
+    const r = this.o.canvas.getBoundingClientRect();
+    const v = new THREE.Vector3(((clientX - r.left) / r.width) * 2 - 1, -((clientY - r.top) / r.height) * 2 + 1, 0.5);
+    v.applyMatrix4(this.camera.projectionMatrixInverse).normalize();
+    return v.applyQuaternion(q);
   }
 
   /**
-   * Project a floor ring in the doorway bearing at a real threshold distance.
-   * No screen-Y hunting — that was putting rings on walls.
+   * Where to face after a jump. Uses the camera's look-at when it was authored;
+   * otherwise faces the most open direction (36 horizontal rays, smoothed over ±20°)
+   * so a rail jump never lands nose-against-a-wall.
    */
-  private projectFloorRing(yawDeg: number, nodeDist: number, w: number, h: number) {
-    const yaw = yawDeg * DEG;
-    const floorY = -EYE_HEIGHT * FLOOR_Y_FACTOR;
-    // Keep rings in the doorway threshold — never past the neighbor (that put
-    // Bedroom exit rings floating in the stair void beyond the door).
-    const halfFov = (this.camera.fov * 0.5) * DEG;
-    const minVisible = Math.abs(floorY) / Math.tan(Math.max(0.18, halfFov * 0.82));
-    const maxAtDoor = Math.max(90, nodeDist * 0.92);
-    // Prefer threshold distance; only stretch toward minVisible when still in front
-    // of the neighbor so rings don’t float past the door into the next volume.
-    let dist = clamp(this.doorDist(nodeDist), 70, Math.min(DOOR_DIST_MAX, maxAtDoor));
-    if (dist < minVisible && minVisible <= maxAtDoor * 1.15) {
-      dist = Math.min(minVisible, maxAtDoor * 1.15, DOOR_DIST_MAX);
+  private viewTargets = new Map<number, THREE.Vector3>();
+  private viewTarget(i: number) {
+    const cam = this.cams[i];
+    if (cam.authoredLook || !this.pickables.length) return cam.lookat;
+    const cached = this.viewTargets.get(i);
+    if (cached) return cached;
+    const N = 36;
+    const dirs: THREE.Vector3[] = [];
+    const dist: number[] = [];
+    for (let k = 0; k < N; k++) {
+      const a = (k / N) * Math.PI * 2;
+      const d = new THREE.Vector3(Math.sin(a), 0, Math.cos(a));
+      dirs.push(d);
+      dist.push(this.pick(cam.pos, d, 30)?.distance ?? 30);
     }
-    // Near doors: raise the mark slightly so it stays in phone FOV without overshooting.
-    const yScale = dist < 140 ? 0.42 : FLOOR_Y_FACTOR;
-    const useFloorY = -EYE_HEIGHT * yScale;
-    this.tmpPos.set(Math.cos(yaw) * dist, useFloorY, Math.sin(yaw) * dist);
-    const len = this.tmpPos.length();
-    if (len < 1e-4) {
-      return { dist, x: 0, y: 0, z: 1, facing: -1, ok: false };
+    let best = 0;
+    let bestScore = -1;
+    for (let k = 0; k < N; k++) {
+      let s = 0;
+      for (let j = -2; j <= 2; j++) s += dist[(k + j + N) % N];
+      if (s > bestScore) {
+        bestScore = s;
+        best = k;
+      }
     }
-    const facing = this.tmpPos.dot(this.camFwd) / len;
-    const projected = this.tmpPos.clone().project(this.camera);
-    const x = (projected.x * 0.5 + 0.5) * w;
-    const y = (-projected.y * 0.5 + 0.5) * h;
-    const inFront = projected.z < 1 && projected.z > -1;
-    // Floor band above the room rail. Near doors sit lower on tall phone FOV —
-    // allow down to ~92% so Hall 5 → Main Entrance still reads as a floor ring.
-    const onFloor =
-      x > w * 0.02 &&
-      x < w * 0.98 &&
-      y > h * 0.36 &&
-      y < h * 0.95;
-    return {
-      dist,
-      x,
-      y,
-      z: projected.z,
-      facing,
-      ok: inFront && onFloor && facing > 0.05,
-    };
+    const t = cam.pos.clone().add(dirs[best]);
+    this.viewTargets.set(i, t);
+    return t;
   }
 
-  private async setScene(node: Visite360Node) {
-    const tex = await this.loadFaces(node.id);
-    if (this.disposed) return;
-    if (this.currentId && this.currentId !== node.id) {
-      this.previousId = this.currentId;
+  // ===================================================== visibility graph
+
+  /** For cameras without a `c` row: reachable if nothing is in between. */
+  private computeMissingVisibilities() {
+    const n = this.cams.length;
+    for (let i = 0; i < n; i++) {
+      if (this.cams[i].vis) continue;
+      const row: boolean[] = [];
+      for (let j = 0; j < n; j++) {
+        if (i === j) row[j] = true;
+        else {
+          const d = this.cams[j].pos.clone().sub(this.cams[i].pos);
+          row[j] = !this.pick(this.cams[i].pos, d.clone().normalize(), d.length());
+        }
+      }
+      this.cams[i].vis = row;
     }
-    this.scene.background = tex;
-    this.currentId = node.id;
-    this.onNodeChange?.(node);
-    this.prefetchNeighbors(node.id);
-    this.hotspotDirty = true;
   }
 
-  private loadFaces(nodeId: string) {
-    const cached = this.texCache.get(nodeId);
+  // ============================================================== textures
+
+  private texPath(index: number) {
+    const res = this.o.tour.resolutions?.length ? this.o.tour.resolutions : ["2048", "1024"];
+    let r = 0;
+    if (isMobileUA() || window.innerWidth < 800 || window.innerHeight < 800) r = 1;
+    r = Math.min(r, res.length - 1);
+    return `${this.o.imageBaseUrl ?? this.o.baseUrl}/${res[r]}/${this.cams[index].id}`;
+  }
+
+  private loadCube(path: string): Promise<THREE.CubeTexture> {
+    const cached = this.texCache.get(path);
     if (cached) return Promise.resolve(cached);
-    const pending = this.loadQueue.get(nodeId);
+    const pending = this.texLoading.get(path);
     if (pending) return pending;
-
-    // Graph id stays for doors; faces may come from the correctly pictured camera.
-    const faceId = FACE_SWAP[nodeId] ?? nodeId;
-    const urls = FACE_ORDER.map((f) => this.faceUrl(faceId, f));
+    const ext = this.o.tour.imageExt || ".jpg";
     const p = new Promise<THREE.CubeTexture>((resolve, reject) => {
-      this.loader.load(
-        urls,
+      new THREE.CubeTextureLoader().load(
+        CUBE_FACES.map((f) => `${path}_${f}${ext}`),
         (tex) => {
-          tex.colorSpace = THREE.SRGBColorSpace;
-          this.texCache.set(nodeId, tex);
-          this.loadQueue.delete(nodeId);
+          this.texLoading.delete(path);
+          if (this.disposed) {
+            tex.dispose();
+            return reject(new Error("disposed"));
+          }
+          // Raw colours, no mipmaps — same as Babylon CubeTexture(noMipmap).
+          tex.colorSpace = THREE.NoColorSpace;
+          tex.generateMipmaps = false;
+          tex.minFilter = THREE.LinearFilter;
+          tex.magFilter = THREE.LinearFilter;
+          tex.needsUpdate = true;
+          this.texCache.set(path, tex);
           resolve(tex);
         },
         undefined,
-        () => {
-          this.loadQueue.delete(nodeId);
-          reject(new Error(`Cubemap ${nodeId} failed to load`));
+        (err) => {
+          this.texLoading.delete(path);
+          reject(err);
         },
       );
     });
-    this.loadQueue.set(nodeId, p);
+    this.texLoading.set(path, p);
     return p;
   }
 
-  /**
-   * Aim at a neighbor. Prefer image-audited DOOR_YAW (visible doorway), then
-   * authored graph yaw when it agrees with geometry, else geometric bearing.
-   */
-  private edgeTo(fromId: string, toId: string): Visite360Edge | null {
-    const from = this.nodeById.get(fromId);
-    const to = this.nodeById.get(toId);
-    if (!from || !to) {
-      return this.outs.get(fromId)?.find((e) => e.to === toId) ?? null;
-    }
-    const dist = nodePos(from).distanceTo(nodePos(to));
-    const door = this.doorDist(dist);
-    const pitch = this.ringPitch(door);
-    const visual = DOOR_YAW[fromId]?.[toId];
-    if (visual != null) {
-      return { from: fromId, to: toId, yaw: wrapLon(visual), pitch };
-    }
-    const aim = this.aimToward(fromId, toId);
-    const existing = this.outs.get(fromId)?.find((e) => e.to === toId);
-    if (aim && existing) {
-      const close = Math.abs(shortestDelta(existing.yaw, aim.yaw)) < 28;
-      return {
-        from: fromId,
-        to: toId,
-        yaw: close ? existing.yaw : aim.yaw,
-        pitch,
-      };
-    }
-    if (aim) return { from: fromId, to: toId, yaw: aim.yaw, pitch };
-    if (existing) return { ...existing, pitch };
-    return null;
-  }
-
-  /** Official NHC portals from this node, nearest first (Layama distances). */
-  private nhcPortals(nodeId: string) {
-    const cur = this.nodeById.get(nodeId);
-    if (!cur) return [] as { edge: Visite360Edge; dist: number; dy: number; score: number }[];
-    const origin = nodePos(cur);
-    const allowed = NHC_CONNECTIONS[nodeId] ?? [];
-    const ranked: { edge: Visite360Edge; dist: number; dy: number; score: number }[] = [];
-
-    for (const toId of allowed) {
-      if (toId === nodeId) continue;
-      if (PRIMARY_ROOM_SET.size && !PRIMARY_ROOM_SET.has(toId)) continue;
-      const target = this.nodeById.get(toId);
-      const edge = this.edgeTo(nodeId, toId);
-      if (!target || !edge) continue;
-      const p = nodePos(target);
-      const dist = origin.distanceTo(p);
-      const dy = Math.abs(p.y - origin.y);
-      ranked.push({ edge, dist, dy, score: dist + dy * 0.2 });
-    }
-    ranked.sort((a, b) => a.score - b.score || a.dist - b.dist);
-    return ranked.filter(
-      (item, i) => i < MIN_NEAR_PORTALS || item.dist <= MAX_HOTSPOT_DIST,
-    );
-  }
-
-  private rankedNeighbors(nodeId: string) {
-    // Nearest first. Same-bearing near+far stays (approach then enter — NHC videos).
-    // Only drop a second portal when it's a twin at similar distance (side-door clash).
-    const unique: ReturnType<Visite360Engine["nhcPortals"]> = [];
-    for (const item of this.nhcPortals(nodeId)) {
-      const clash = unique.find(
-        (u) => Math.abs(shortestDelta(u.edge.yaw, item.edge.yaw)) < HOTSPOT_GAP,
-      );
-      if (!clash) {
-        unique.push(item);
-        continue;
+  /** After arriving, quietly preload every camera reachable from here. */
+  private prefetchNeighbors(index: number) {
+    if (this.prefetchHandle !== null) clearTimeout(this.prefetchHandle);
+    const vis = this.cams[index]?.vis;
+    if (!vis) return;
+    const todo = vis.map((v, j) => (v && j !== index ? j : -1)).filter((j) => j >= 0);
+    const run = () => {
+      this.prefetchHandle = null;
+      for (const j of todo) {
+        const p = this.texPath(j);
+        if (!this.texCache.has(p) && !this.texLoading.has(p)) this.loadCube(p).catch(() => {});
       }
-      const far = item.dist > clash.dist ? item : clash;
-      const near = item.dist > clash.dist ? clash : item;
-      if (far.dist > near.dist * APPROACH_FAR_RATIO && far.dist - near.dist >= APPROACH_FAR_GAP) {
-        if (!unique.includes(far)) unique.push(far);
-        if (!unique.includes(near)) unique.push(near);
-      }
-    }
-    unique.sort((a, b) => a.score - b.score);
-    return unique;
+    };
+    const ric = (window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number })
+      .requestIdleCallback;
+    if (ric) ric(run, { timeout: 1500 });
+    else this.prefetchHandle = window.setTimeout(run, 250);
   }
 
-  private prefetchNeighbors(nodeId: string) {
-    for (const { edge } of this.rankedNeighbors(nodeId).slice(0, 3)) {
-      void this.loadFaces(edge.to).catch(() => {});
+  private evictCache() {
+    if (this.texCache.size <= TEX_CACHE_MAX) return;
+    const keep = new Set([this.texPath(this.prevCamera), this.texPath(this.desiredCam)]);
+    this.cams[this.prevCamera].vis?.forEach((v, j) => v && keep.add(this.texPath(j)));
+    for (const [k, t] of this.texCache) {
+      if (this.texCache.size <= TEX_CACHE_MAX) break;
+      if (keep.has(k) || t === this.currentTex || t === this.nextTex) continue;
+      t.dispose();
+      this.texCache.delete(k);
     }
-    if (this.previousId) void this.loadFaces(this.previousId).catch(() => {});
   }
 
-  private applyCamera() {
-    this.camera.fov = this.fov;
-    this.camera.updateProjectionMatrix();
-    // lon 0 = +X look → nx hallway (Three.js flipEnvMap); lon 180 → px door.
-    this.dirFromYawPitch(this.lon, this.lat, this.tmpDir);
-    this.camera.lookAt(this.tmpDir.x, this.tmpDir.y, this.tmpDir.z);
+  private useMoveMaterial(a: THREE.Vector3, b: THREE.Vector3, ta: THREE.CubeTexture, tb: THREE.CubeTexture) {
+    const u = this.moveMat.uniforms;
+    u.refPosA.value.copy(a);
+    u.refPosB.value.copy(b);
+    u.texA.value = ta;
+    u.texB.value = tb;
+    u.mixAB.value = 0;
+    for (const m of this.houseMeshes) m.material = this.moveMat;
+  }
+  private useStillMaterial(pos: THREE.Vector3, tex: THREE.CubeTexture) {
+    this.stillMat.uniforms.tex.value = tex;
+    this.stillMat.uniforms.refPos.value.copy(pos);
+    for (const m of this.houseMeshes) m.material = this.stillMat;
   }
 
-  private emitHotspots() {
-    if (!this.currentId || !this.onHotspots) return;
-    if (this.anim) {
-      this.onHotspots([]);
-      return;
-    }
-    const w = this.canvas.clientWidth;
-    const h = this.canvas.clientHeight;
-    if (w < 2 || h < 2) {
-      this.onHotspots([]);
-      return;
-    }
+  // ===================================================== choosing a target
 
-    const ranked = this.rankedNeighbors(this.currentId);
-    const cur = this.nodeById.get(this.currentId);
-    const origin = cur ? nodePos(cur) : null;
-    const picks: { edge: Visite360Edge; dist: number; isReturn: boolean }[] = [];
-    const seen = new Set<string>();
+  private pointToLine(p: THREE.Vector3, a: THREE.Vector3, b: THREE.Vector3) {
+    const dir = b.clone().sub(a).normalize();
+    const proj = a.clone().add(dir.multiplyScalar(p.clone().sub(a).dot(dir)));
+    return proj.distanceTo(p);
+  }
 
-    // Leave-door for destination rooms (bed/bath/suite) — same doorway you enter.
-    // Works after rail jumps too (not only previousId return).
-    const exit = EXIT_DOOR[this.currentId];
-    if (exit && !seen.has(exit.to)) {
-      const edge = this.edgeTo(this.currentId, exit.to);
-      if (edge) {
-        const target = this.nodeById.get(exit.to);
-        const dist = origin && target ? origin.distanceTo(nodePos(target)) : 200;
-        picks.push({
-          edge: { ...edge, yaw: wrapLon(exit.yaw) },
-          dist,
-          isReturn: true,
-        });
-        seen.add(exit.to);
+  /** Destination within ±90° of where you're looking. */
+  private angleOk(target: THREE.Vector3) {
+    const cur = this.yawPitch(this.rigQuat).yaw;
+    const to = this.yawPitch(this.lookQuat(this.camera.position, target, false)).yaw;
+    return Math.abs(deltaAngle(cur, to)) <= Math.PI / 2;
+  }
+
+  private chooseDestination(hit: Hit, fullMove: boolean, checkAngle: boolean) {
+    const here = this.camera.position;
+    const toPoint = hit.point.distanceTo(here);
+    const vis = this.cams[this.prevCamera].vis;
+    const cands: { dis: number; score: number; index: number }[] = [];
+    this.cams.forEach((c, i) => {
+      if (vis && vis[i] === false) return;
+      const dis = hit.point.distanceTo(c.pos);
+      if (dis >= toPoint || (checkAngle && !this.angleOk(c.pos))) return;
+      const inter = here.distanceTo(c.pos);
+      let score: number;
+      if (fullMove) {
+        score = dis;
+        if (inter > toPoint) score = 2 * (score + 4 * (inter - toPoint));
+      } else {
+        score = Math.hypot(this.pointToLine(c.pos, here, hit.point), inter * 0.25);
       }
-    }
-
-    // NHC return ring — turn around toward the portal you came from.
-    if (this.previousId && this.previousId !== this.currentId && !seen.has(this.previousId)) {
-      const back = this.edgeTo(this.currentId, this.previousId);
-      if (back) {
-        const target = this.nodeById.get(back.to);
-        const dist = origin && target ? origin.distanceTo(nodePos(target)) : 200;
-        picks.push({ edge: back, dist, isReturn: true });
-        seen.add(back.to);
-      }
-    }
-
-    // Forward doorways — prefer the bearing you are looking at (ahead angle).
-    const forward = ranked
-      .filter((item) => !seen.has(item.edge.to))
-      .map((item) => ({
-        ...item,
-        ahead: Math.abs(shortestDelta(this.lon, item.edge.yaw)),
-      }))
-      .filter((item) => item.ahead <= FORWARD_CONE)
-      .sort((a, b) => a.ahead - b.ahead || a.dist - b.dist);
-
-    let forwardCount = 0;
-    for (const item of forward) {
-      if (forwardCount >= MAX_FORWARD_HOTSPOTS) break;
-      picks.push({ edge: item.edge, dist: item.dist, isReturn: false });
-      seen.add(item.edge.to);
-      forwardCount += 1;
-    }
-
-    const out: HotspotScreen[] = [];
-    this.camera.getWorldDirection(this.camFwd);
-
-    // Prefer nearer (approach) then farther (entrance) when both are ahead.
-    picks.sort((a, b) => {
-      if (a.isReturn !== b.isReturn) return a.isReturn ? 1 : -1;
-      return a.dist - b.dist;
+      cands.push({ dis, score, index: i });
     });
-
-    for (const { edge, dist, isReturn } of picks) {
-      const target = this.nodeById.get(edge.to);
-      const placed = this.projectFloorRing(edge.yaw, dist, w, h);
-      // Return ring stays hidden until the user turns toward it.
-      if (!placed.ok) continue;
-      if (!isReturn && placed.facing < 0.08) continue;
-
-      out.push({
-        to: edge.to,
-        label: target?.label ?? edge.to,
-        x: placed.x,
-        y: placed.y,
-        // Nearer approach rings read larger; far doorway rings softer (NHC).
-        scale: clamp(2.05 - placed.dist / 260, 1.05, 1.95),
-        visible: true,
-        yaw: edge.yaw,
-        pitch: this.ringPitch(placed.dist),
-      });
+    cands.sort((a, b) => a.score - b.score);
+    for (const c of cands) {
+      const p = this.cams[c.index].pos;
+      const dir = hit.point.clone().sub(p).normalize();
+      const h = this.pick(p, dir, c.dis + 10 * this.s);
+      if (h && h.distance + 10 * this.s > c.dis) return c.index; // clicked spot is visible from there
     }
-    this.onHotspots(out);
+    return this.desiredCam;
+  }
+
+  /** The ring nearest to the clicked point wins — this is what clicks actually do. */
+  private nearestReachable(point: THREE.Vector3) {
+    let best = -1;
+    let bestD = Infinity;
+    this.floorEligible.forEach((ok, i) => {
+      if (!ok) return;
+      const a = this.floorAnchor(i);
+      const d = a.distanceTo(point);
+      if (d < bestD) {
+        bestD = d;
+        best = i;
+      }
+    });
+    return best >= 0 ? best : null;
   }
 
   /**
-   * Classic Three.js cube panorama lon/lat:
-   * lon 0 = +X, lon 90 = +Z, lon 180 = −X, lon −90 = −Z.
-   * Graph edge yaw is converted to this frame in loadGraph.
+   * fullMove: score by distance to the clicked point (right click) instead of "on the way".
+   * rotMode: 0 keep heading, 1 turn a little towards the click (max 15°), 2 face the click.
+   * keyboard: a key press that finds nothing does nothing (no turn-in-place).
    */
-  private dirFromYawPitch(yawDeg: number, pitchDeg: number, out: THREE.Vector3) {
-    const phi = (90 - pitchDeg) * DEG;
-    const theta = yawDeg * DEG;
-    return out.set(
-      Math.sin(phi) * Math.cos(theta),
-      Math.cos(phi),
-      Math.sin(phi) * Math.sin(theta),
-    );
+  private startMove(fullMove: boolean, rotMode: number, checkAngle: boolean, keyboard: boolean, hit: Hit | null) {
+    if (this.status !== Move.NONE || !hit) return;
+    this.moveStartTime = performance.now() / 1000;
+    this.status = Move.PREPARING;
+
+    this.desiredCam = this.chooseDestination(hit, fullMove, checkAngle);
+    const near = this.nearestReachable(hit.point);
+    if (near !== null) this.desiredCam = near;
+
+    const here = this.camera.position.clone();
+    const dest = this.cams[this.desiredCam].pos;
+    this.interDist = THREE.MathUtils.clamp(here.distanceTo(dest), this.unitStep, this.unitStep * 24);
+
+    if (this.desiredCam === this.prevCamera) {
+      if (keyboard) {
+        this.status = Move.NONE;
+        return;
+      }
+      this.desiredQuat = this.clampPitch(this.lookQuat(dest, hit.point, false)); // just turn
+    } else if (rotMode === 0) {
+      this.desiredQuat = this.rigQuat.clone();
+    } else {
+      this.desiredQuat = this.lookQuat(dest, hit.point, false);
+      if (rotMode === 1) {
+        const cur = this.yawPitch(this.rigQuat);
+        const want = this.yawPitch(this.desiredQuat).yaw;
+        const toClick = this.yawPitch(this.lookQuat(here, hit.point, false)).yaw;
+        const turn = THREE.MathUtils.clamp(deltaAngle(cur.yaw, want), -Math.PI / 6, Math.PI / 6);
+        const side = deltaAngle(cur.yaw, toClick);
+        const yaw = (side <= 0 && turn < 0) || (side >= 0 && turn > 0) ? cur.yaw - turn * 0.5 : cur.yaw;
+        this.desiredQuat = this.fromYawPitch(yaw, cur.pitch);
+      }
+      this.desiredQuat = this.clampPitch(this.desiredQuat);
+    }
+
+    this.prevPos.copy(this.rigPos);
+    this.prevQuat.copy(this.rigQuat);
+
+    if (this.desiredCam === this.prevCamera) {
+      this.nextTex = this.currentTex;
+      this.moveDone = 0;
+      this.status = Move.MOVING;
+      return;
+    }
+    const target = this.desiredCam;
+    const path = this.texPath(target);
+    this.loadCube(path)
+      .then((tex) => {
+        if (this.disposed || this.desiredCam !== target) return;
+        this.nextTex = tex;
+        if (this.currentTex) this.useMoveMaterial(this.cams[this.prevCamera].pos, dest, this.currentTex, tex);
+        this.moveDone = 0;
+        this.status = Move.MOVING;
+        this.o.onCameraChange?.(this.cams[target].id, target);
+      })
+      .catch((e) => {
+        console.error("Visite360: cube texture load failed", e);
+        this.status = Move.NONE;
+      });
   }
 
-  private resize() {
-    const parent = this.canvas.parentElement ?? this.canvas;
-    const w = Math.max(1, parent.clientWidth);
-    const h = Math.max(1, parent.clientHeight);
-    this.renderer.setSize(w, h, false);
-    this.camera.aspect = w / h;
+  // ================================================================ frame
+
+  private frame(now: number) {
+    const dt = Math.min(0.1, (now - this.lastFrame) / 1000);
+    this.lastFrame = now;
+    const frames60 = dt * 60; // NHC advances per frame at 60 Hz; we normalise to time.
+
+    this.applyDrag();
+
+    if (this.status === Move.MOVING) {
+      if (this.moveDone >= 1) this.arrive();
+      else {
+        const t = this.moveDone;
+        // longer walks get a stronger ease so they accelerate / brake more
+        const d =
+          this.interDist <= this.unitStep * 2
+            ? easeInOutSine(t)
+            : this.interDist <= this.unitStep * 8
+              ? easeInOutQuad(t)
+              : this.interDist <= this.unitStep * 16
+                ? easeInOutCubic(t)
+                : easeInOutQuart(t);
+        const rot = (d + d * d) / 2; // rotation lags the translation a little
+        this.rigPos.lerpVectors(this.prevPos, this.cams[this.desiredCam].pos, d);
+        this.rigQuat.slerpQuaternions(this.prevQuat, this.desiredQuat, rot);
+        this.moveMat.uniforms.mixAB.value = easeInOutQuad(d);
+        let step = this.moveSpeedStep;
+        if (this.interDist > 3 * this.unitStep) step *= Math.sqrt(this.interDist / (3 * this.unitStep));
+        this.moveDone = Math.min(1, this.moveDone + (step / this.interDist) * frames60);
+      }
+    }
+
+    this.syncCamera();
+
+    if (this.hoverDirty) {
+      this.hoverDirty = false;
+      this.updateHover();
+    }
+    this.render();
+    this.positionOverlays();
+  }
+
+  private arrive() {
+    this.status = Move.NONE;
+    const i = this.desiredCam;
+    this.rigPos.copy(this.cams[i].pos);
+    this.rigQuat.copy(this.desiredQuat);
+    if (this.nextTex) {
+      this.currentTex = this.nextTex;
+      this.useStillMaterial(this.cams[i].pos, this.currentTex);
+    }
+    this.prevCamera = i;
+    const id = this.cams[i].id;
+    this.arrivalListeners.slice().forEach((l) => l(id));
+    this.o.onArrive?.(id, i);
+    this.evictCache();
+    this.prefetchNeighbors(i);
+    this.syncCamera();
+    this.updateHotspotVisibility();
+    this.updateFloorMarkers();
+  }
+
+  private syncCamera() {
+    this.camera.position.copy(this.rigPos);
+    this.camera.quaternion.copy(this.rigQuat);
+    this.camera.updateMatrixWorld();
+  }
+
+  private render() {
+    this.renderer.clear();
+    this.renderer.render(this.scene, this.camera);
+    this.renderer.clearDepth();
+    this.renderer.render(this.overlayScene, this.camera);
+  }
+
+  private maybeFirstFrame() {
+    if (this.ready.first || !this.ready.mesh || !this.ready.tex) return;
+    this.ready.first = true;
+    this.o.onFirstFrame?.();
+  }
+
+  private fail(msg: string) {
+    console.error("Visite360:", msg);
+    this.o.onError?.(msg);
+  }
+
+  // ============================================================== resize
+
+  private defaultFov(aspect: number) {
+    return FOV_SLOPE * aspect + FOV_INTERCEPT;
+  }
+  private get fovRad() {
+    return THREE.MathUtils.degToRad(this.camera.fov);
+  }
+  private setFov(rad: number) {
+    this.camera.fov = THREE.MathUtils.radToDeg(THREE.MathUtils.clamp(rad, FOV_MIN, FOV_MAX));
     this.camera.updateProjectionMatrix();
-    this.hotspotDirty = true;
   }
 
-  private async finishApproach() {
-    if (!this.anim || this.anim.phase !== "approach") return;
-    const walkLon = this.anim.settleLon;
-    const fromRing = this.anim.fromRing;
-    const node = this.nodeById.get(this.anim.toId);
-    if (!node) {
-      this.anim = null;
-      this.onBusy?.(false);
+  private resize(initial = false) {
+    const c = this.o.canvas;
+    const w = c.clientWidth || 1;
+    const h = c.clientHeight || 1;
+    this.renderer.setSize(w, h, false);
+    const a = w / h;
+    // Keep the user's zoom ratio but adapt fov to the new shape (NHC formula).
+    const fov = initial ? this.defaultFov(a) : (this.fovRad * this.defaultFov(a)) / this.defaultFov(this.aspect);
+    this.aspect = a;
+    this.camera.aspect = a;
+    this.setFov(fov);
+  }
+
+  // =============================================================== input
+
+  private bindInput() {
+    const c = this.o.canvas;
+    const on = <K extends keyof HTMLElementEventMap>(
+      el: HTMLElement | Window,
+      type: K,
+      fn: (e: HTMLElementEventMap[K]) => void,
+      opts?: AddEventListenerOptions,
+    ) => {
+      el.addEventListener(type, fn as EventListener, opts);
+      this.cleanups.push(() => el.removeEventListener(type, fn as EventListener, opts));
+    };
+
+    const ro = new ResizeObserver(() => this.resize());
+    ro.observe(c);
+    this.cleanups.push(() => ro.disconnect());
+
+    on(c, "contextmenu", (e) => e.preventDefault());
+    on(c, "pointerdown", (e) => this.onDown(e));
+    on(c, "pointermove", (e) => this.onMove(e));
+    on(c, "pointerup", (e) => this.onUp(e));
+    on(c, "pointercancel", (e) => this.onUp(e, true));
+    on(c, "pointerleave", () => {
+      if (!this.pointers.size) this.hideHover();
+    });
+    on(c, "wheel", (e) => this.onWheel(e), { passive: false });
+    on(window, "keydown", (e) => this.onKey(e as KeyboardEvent));
+  }
+
+  private onDown(e: PointerEvent) {
+    this.o.canvas.setPointerCapture?.(e.pointerId);
+    this.pointers.set(e.pointerId, {
+      x: e.clientX,
+      y: e.clientY,
+      sx: e.clientX,
+      sy: e.clientY,
+      t: performance.now(),
+      button: e.button,
+    });
+    this.inertia = false;
+    if (this.pointers.size === 1) {
+      this.dragging = true;
+      this.lastX = e.clientX;
+      this.lastY = e.clientY;
+      this.velX = this.velY = 0;
+    } else if (this.pointers.size === 2) {
+      this.dragging = false; // two fingers: pinch-zoom or swipe-to-walk
+      const [a, b] = [...this.pointers.values()];
+      this.pinchDist = Math.hypot(a.x - b.x, a.y - b.y);
+      this.pinchStartA = new THREE.Vector2(a.x, a.y);
+      this.pinchStartB = new THREE.Vector2(b.x, b.y);
+    }
+  }
+
+  private onMove(e: PointerEvent) {
+    const p = this.pointers.get(e.pointerId);
+    if (!p) {
+      // plain hover (mouse, no button): show where a click would take you
+      this.hoverX = e.clientX;
+      this.hoverY = e.clientY;
+      this.hoverDirty = true;
       return;
     }
+    p.x = e.clientX;
+    p.y = e.clientY;
+    if (this.pointers.size === 2 && this.status === Move.NONE) this.onTwoFinger();
+  }
 
-    try {
-      await this.setScene(node);
-    } catch (e) {
-      this.anim = null;
-      this.onBusy?.(false);
-      this.onError?.(e instanceof Error ? e.message : "Failed to load scene");
+  private onTwoFinger() {
+    const [a, b] = [...this.pointers.values()];
+    const A = new THREE.Vector2(a.x, a.y);
+    const B = new THREE.Vector2(b.x, b.y);
+    const sa = this.pinchStartA;
+    const sb = this.pinchStartB;
+    const both = (da: number, db: number) => (da > 25 && db > 25) || (da < -25 && db < -25);
+    if (sa && sb && (both(A.x - sa.x, B.x - sb.x) || both(A.y - sa.y, B.y - sb.y))) {
+      // both fingers swipe the same way → walk (pull the world towards you)
+      const dy = A.y - sa.y + B.y - sb.y;
+      const dx = A.x - sa.x + B.x - sb.x;
+      const ang = Math.atan2(dx, dy);
+      const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(this.rigQuat);
+      fwd.applyAxisAngle(new THREE.Vector3(0, 1, 0), ang);
+      this.pinchStartA = this.pinchStartB = null;
+      this.startMove(false, 2, true, false, this.pick(this.camera.position, fwd));
       return;
     }
-    if (this.disposed) return;
+    if (sa && sb && (Math.abs(B.x - sb.x) > 50 || Math.abs(A.x - sa.x) > 50)) this.pinchStartB = null;
+    const d = A.distanceTo(B);
+    this.setFov(this.fovRad + (this.pinchDist - d) / this.o.canvas.clientWidth);
+    this.pinchDist = d;
+  }
 
-    const destFov = Math.max(this.mapFov(node.fov0), 70);
-    const into = this.entryLook(node.id, this.previousId);
+  private onUp(e: PointerEvent, cancelled = false) {
+    const p = this.pointers.get(e.pointerId);
+    this.pointers.delete(e.pointerId);
+    if (!p) return;
+    if (this.pointers.size === 0) {
+      this.dragging = false;
+      if (Math.abs(this.velX) > 0.5 || Math.abs(this.velY) > 0.5) {
+        this.inertia = true;
+        this.velT = performance.now();
+      }
+    } else if (this.pointers.size === 1) {
+      // lifting one finger of a pinch: carry on dragging with the other
+      const rest = [...this.pointers.values()][0];
+      this.dragging = true;
+      this.lastX = rest.x;
+      this.lastY = rest.y;
+      this.velX = this.velY = 0;
+      return;
+    }
+    if (cancelled) return;
+    const moved = Math.hypot(e.clientX - p.sx, e.clientY - p.sy);
+    if (moved > TAP_MAX_MOVE || performance.now() - p.t > TAP_MAX_MS) return;
+    this.inertia = false;
+    this.onTap(e.clientX, e.clientY, p.button);
+  }
 
-    // Prefer the room's true open look (OPEN_LOOK / entryLook). Ease from the
-    // walk bearing so it stays smooth — but still arrive facing the real room.
-    let endLon = into.lon;
-    let endLat = into.lat;
-    if (fromRing) {
-      const delta = shortestDelta(walkLon, into.lon);
-      endLon = wrapLon(walkLon + clamp(delta, -SETTLE_YAW_CAP, SETTLE_YAW_CAP));
-      endLat = EYE_LAT;
+  private lastTapTime = 0;
+  private onTap(x: number, y: number, button: number) {
+    const ctl = this.o.tour.controls ?? {};
+    const now = performance.now() / 1000;
+    const isDouble = now - this.lastTapTime < 0.3;
+    this.lastTapTime = now;
+
+    if (this.measureMode) return this.measureClick(x, y);
+    this.hideHover();
+    const hit = this.pickScreen(x, y);
+    if (this.o.debugPick && hit) {
+      console.info("[Visite360] clicked point (Layama cm):", JSON.stringify(this.toLayama(hit.point)));
     }
 
-    this.anim = {
-      phase: "settle",
-      t0: performance.now(),
-      dur: fromRing ? 780 : 560,
-      fromLon: this.lon,
-      fromLat: this.lat,
-      toLon: this.lon + shortestDelta(this.lon, endLon),
-      toLat: endLat,
-      fromFov: this.fov,
-      toFov: destFov,
-      toId: node.id,
-      settleLon: endLon,
-      fromRing,
+    if (isDouble && now - this.moveStartTime < DOUBLE_TAP_WINDOW) {
+      // double tap = "go all the way and face it" (re-targets the running move)
+      this.status = Move.NONE;
+      this.startMove(ctl.altMove ?? true, ctl.altRot ?? 2, true, false, hit);
+      this.moveStartTime = -1;
+      return;
+    }
+    if (this.status !== Move.NONE) return;
+    if (button === 0) this.startMove(ctl.defMove ?? false, ctl.defRot ?? 1, true, false, hit);
+    else this.startMove(ctl.altMove ?? true, ctl.altRot ?? 2, true, false, hit);
+  }
+
+  private onWheel(e: WheelEvent) {
+    e.preventDefault();
+    if (!e.deltaY) return;
+    this.setFov(this.fovRad + (e.deltaY > 0 ? WHEEL_FOV_STEP : -WHEEL_FOV_STEP));
+    this.updateHotspotVisibility();
+  }
+
+  private onKey(e: KeyboardEvent) {
+    const t = e.target as HTMLElement | null;
+    if (t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
+    if (!this.o.canvas.isConnected || this.status !== Move.NONE) return;
+    const k = e.key.toLowerCase();
+    const map: Record<string, number> = {
+      arrowup: 0,
+      w: 0,
+      arrowdown: Math.PI,
+      s: Math.PI,
+      arrowleft: Math.PI / 2,
+      a: Math.PI / 2,
+      arrowright: -Math.PI / 2,
+      d: -Math.PI / 2,
+    };
+    if (!(k in map)) return;
+    e.preventDefault();
+    const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(this.rigQuat);
+    fwd.applyAxisAngle(new THREE.Vector3(0, 1, 0), map[k]);
+    // keyboard keeps your heading (rotMode 0) and never just turns
+    this.startMove(false, 0, false, true, this.pick(this.camera.position, fwd.normalize()));
+  }
+
+  /** "Grab the world" drag + inertia, evaluated once per frame like NHC. */
+  private applyDrag() {
+    let tx: number | null = null;
+    let ty: number | null = null;
+    if (this.dragging && this.pointers.size === 1) {
+      const p = [...this.pointers.values()][0];
+      if (p.x === this.lastX && p.y === this.lastY) {
+        this.velX = this.velY = 0;
+        return;
+      }
+      tx = p.x;
+      ty = p.y;
+      this.velX = p.x - this.lastX;
+      this.velY = p.y - this.lastY;
+    } else if (this.inertia) {
+      if (Math.abs(this.velX) <= 0.5 && Math.abs(this.velY) <= 0.5) {
+        this.inertia = false;
+        return;
+      }
+      tx = this.lastX + this.velX;
+      ty = this.lastY + this.velY;
+      const now = performance.now();
+      const k = Math.pow(INERTIA_DECAY, (now - this.velT) / 20);
+      this.velX *= k;
+      this.velY *= k;
+      this.velT = now;
+    }
+    if (tx === null || ty === null) return;
+
+    const q = this.rigQuat;
+    const d0 = this.screenDir(this.lastX, this.lastY, q);
+    const d1 = this.screenDir(tx, ty, q);
+    const az = (d: THREE.Vector3) => Math.atan2(-d.x, -d.z);
+    const el = (d: THREE.Vector3) => Math.asin(THREE.MathUtils.clamp(d.y, -1, 1));
+    const { yaw, pitch } = this.yawPitch(q);
+    const nYaw = yaw + deltaAngle(az(d0), az(d1));
+    const nPitch = THREE.MathUtils.clamp(pitch + el(d0) - el(d1), -PITCH_LIMIT, PITCH_LIMIT);
+    this.setRotation(this.fromYawPitch(nYaw, nPitch));
+    if (this.dragging) {
+      this.lastX = tx;
+      this.lastY = ty;
+    }
+  }
+
+  /** Dragging during a walk takes over the rotation (NHC sets prev/desired too). */
+  private setRotation(q: THREE.Quaternion) {
+    this.rigQuat.copy(q);
+    this.prevQuat.copy(q);
+    this.desiredQuat.copy(q);
+  }
+
+  // ======================================================== floor markers
+
+  private ringMesh(name: string) {
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.85,
+      side: THREE.DoubleSide,
+      depthTest: false,
+      depthWrite: false,
+    });
+    const dotMat = ringMat.clone();
+    dotMat.opacity = 0.7;
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(RING_DIAMETER / 2, RING_THICKNESS / 2, 8, 64).rotateX(Math.PI / 2),
+      ringMat,
+    );
+    const dot = new THREE.Mesh(new THREE.CircleGeometry(DOT_RADIUS, 32).rotateX(-Math.PI / 2), dotMat);
+    ring.add(dot);
+    ring.name = name;
+    ring.visible = false;
+    ring.renderOrder = 10;
+    dot.renderOrder = 10;
+    this.overlayScene.add(ring);
+    return ring;
+  }
+
+  private pill() {
+    const el = document.createElement("div");
+    el.className = "v360-pill";
+    el.style.display = "none";
+    this.o.overlay.appendChild(el);
+    return el;
+  }
+
+  private buildMarkers() {
+    this.cams.forEach((_, i) => {
+      this.floorMarkers.push(this.ringMesh(`floorMarker_${i}`));
+      this.floorLabels.push(this.pill());
+      this.floorEligible.push(false);
+    });
+    this.hoverMarker = this.ringMesh("hoverMarker");
+    this.hoverLabel = this.pill();
+    this.surfaceCursor = new THREE.Mesh(
+      new THREE.CircleGeometry(CURSOR_RADIUS, 12),
+      new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: 0.55,
+        side: THREE.DoubleSide,
+        depthTest: false,
+        depthWrite: false,
+      }),
+    );
+    this.surfaceCursor.visible = false;
+    this.surfaceCursor.renderOrder = 11;
+    this.overlayScene.add(this.surfaceCursor);
+  }
+
+  /** Point on the floor under a camera (+2 cm), cached. */
+  private floorAnchor(i: number) {
+    let a = this.floorAnchors.get(i);
+    if (a) return a;
+    const p = this.cams[i].pos;
+    const h = this.pick(p, new THREE.Vector3(0, -1, 0), 50);
+    a = h ? h.point.clone().add(new THREE.Vector3(0, 0.02, 0)) : new THREE.Vector3(p.x, p.y - 1.5, p.z);
+    this.floorAnchors.set(i, a);
+    return a;
+  }
+
+  /** A ring is shown for every reachable camera whose floor spot you can actually see. */
+  private updateFloorMarkers() {
+    if (!this.pickables.length) return;
+    const vis = this.cams[this.prevCamera]?.vis;
+    const eye = this.camera.position;
+    for (let i = 0; i < this.cams.length; i++) {
+      let ok = !this.measureMode && i !== this.prevCamera && !(vis && vis[i] === false);
+      if (ok) {
+        const a = this.floorAnchor(i);
+        const d = a.clone().sub(eye);
+        ok = !this.pick(eye, d.clone().normalize(), d.length() - 0.5 * this.s);
+        if (ok) this.floorMarkers[i].position.copy(a);
+      }
+      this.floorEligible[i] = ok;
+    }
+    this.refreshFloorMarkers();
+  }
+
+  private refreshFloorMarkers() {
+    this.floorMarkers.forEach((m, i) => {
+      m.visible = !this.markersSuppressed && this.floorEligible[i] && i !== this.hoverDest;
+      if (!m.visible) this.floorLabels[i].style.display = "none";
+    });
+  }
+
+  private setHoverDest(i: number | null) {
+    if (this.hoverDest === i) return;
+    this.hoverDest = i;
+    this.refreshFloorMarkers();
+  }
+
+  private updateHover() {
+    if (this.measureMode || this.status !== Move.NONE || this.pointers.size || this.hoverX < 0) {
+      if (this.status !== Move.NONE || this.pointers.size) this.hideHover();
+      return;
+    }
+    const hit = this.pickScreen(this.hoverX, this.hoverY);
+    if (!hit) return this.hideHover();
+
+    // little disc glued to the surface under the mouse
+    const n = (hit.normal ?? new THREE.Vector3(0, 1, 0)).normalize();
+    if (n.dot(this.camera.position.clone().sub(hit.point)) < 0) n.negate();
+    this.surfaceCursor.position.copy(hit.point).addScaledVector(n, 0.005);
+    this.surfaceCursor.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), n);
+    this.surfaceCursor.visible = true;
+    this.o.canvas.style.cursor = "none";
+
+    // where a click would take you
+    const saveP = this.prevPos.clone();
+    const saveQ = this.prevQuat.clone();
+    const ctl = this.o.tour.controls ?? {};
+    const chosen = this.chooseDestination(hit, ctl.defMove ?? false, true);
+    this.prevPos.copy(saveP);
+    this.prevQuat.copy(saveQ);
+    const dest = this.nearestReachable(hit.point) ?? chosen;
+
+    if (dest === null || dest === this.prevCamera) {
+      this.setHoverDest(null);
+      this.hoverMarker.visible = false;
+      this.hoverLabel.style.display = "none";
+      return;
+    }
+    this.setHoverDest(dest);
+    this.hoverMarker.position.copy(this.floorAnchor(dest));
+    this.hoverMarker.visible = true;
+    const label = this.cams[dest].label;
+    if (label) {
+      this.hoverLabel.textContent = label;
+      this.hoverLabel.style.display = "block";
+    } else this.hoverLabel.style.display = "none";
+  }
+
+  private hideHover() {
+    this.hoverMarker.visible = false;
+    this.surfaceCursor.visible = false;
+    this.hoverLabel.style.display = "none";
+    this.setHoverDest(null);
+    this.o.canvas.style.cursor = this.measureMode ? "crosshair" : "";
+  }
+
+  // ============================================================== hotspots
+
+  private buildHotspots() {
+    const scale = isMobileUA() ? 0.75 : 1;
+    for (const def of this.o.tour.hotspots ?? []) {
+      const el = document.createElement("button");
+      el.type = "button";
+      el.className = `v360-hotspot v360-hotspot--m${def.mode}`;
+      el.style.setProperty("--hs-scale", String(scale));
+      el.setAttribute("aria-label", def.title ?? def.name);
+      if (def.icon) el.style.backgroundImage = `url("${def.icon}")`;
+      el.innerHTML = `<span class="v360-hotspot-ring"></span><span class="v360-hotspot-core"></span>${
+        def.title ? `<span class="v360-hotspot-title"></span>` : ""
+      }`;
+      const titleEl = el.querySelector(".v360-hotspot-title");
+      if (titleEl) titleEl.textContent = def.title ?? "";
+      el.style.display = "none";
+      el.addEventListener("pointerdown", (e) => e.stopPropagation());
+      el.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this.hotspotClicked(def);
+      });
+      this.o.overlay.appendChild(el);
+      this.hotspots.push({ def, pos: this.toWorld(def.pos), el, visible: false });
+    }
+  }
+
+  private hotspotClicked(def: TourHotspot) {
+    if (def.mode === 5 && def.url) this.teleportTo(def.url);
+    else if (def.mode === 2 && def.url) window.open(def.url, "_self");
+    else if (def.mode === 3 && def.url) window.open(def.url, "_blank", "noopener");
+    else if (def.mode === 1) this.showInfo(def);
+  }
+
+  private showInfo(def: TourHotspot) {
+    this.infoBox?.remove();
+    const box = document.createElement("div");
+    box.className = "v360-info";
+    const close = document.createElement("button");
+    close.type = "button";
+    close.className = "v360-info-close";
+    close.textContent = "×";
+    close.onclick = () => box.remove();
+    const h = document.createElement("strong");
+    h.textContent = def.title ?? def.name;
+    const p = document.createElement("p");
+    p.textContent = def.text ?? "";
+    box.append(close, h, p);
+    box.addEventListener("pointerdown", (e) => e.stopPropagation());
+    this.o.overlay.appendChild(box);
+    this.infoBox = box;
+  }
+
+  /** Hide hotspots behind walls / beyond maxDistance. */
+  private updateHotspotVisibility() {
+    if (!this.hotspots.length || !this.pickables.length) return;
+    const eye = this.camera.position;
+    for (const h of this.hotspots) {
+      const d = h.pos.clone().sub(eye);
+      const dist = d.length();
+      const max = (h.def.maxDistance ?? 0) * this.s;
+      h.visible =
+        !(max > 0 && dist > max) && !this.pick(eye, d.normalize(), dist - 1 * this.s);
+      if (!h.visible) h.el.style.display = "none";
+    }
+  }
+
+  // =============================================================== measure
+
+  private measureClick(x: number, y: number) {
+    const hit = this.pickScreen(x, y);
+    if (!hit) return;
+    if (this.measurePending) {
+      this.addMeasurement(this.measurePending.pos, hit.point);
+      this.measurePending.dot.remove();
+      this.measurePending = null;
+    } else {
+      const dot = document.createElement("div");
+      dot.className = "v360-measure-dot is-pending";
+      this.o.overlay.appendChild(dot);
+      this.measurePending = { pos: hit.point.clone(), dot };
+    }
+  }
+
+  private addMeasurement(a: THREE.Vector3, b: THREE.Vector3) {
+    const line = new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints([a, b]),
+      new THREE.LineBasicMaterial({ color: 0x4fc3f7, depthTest: false, depthWrite: false }),
+    );
+    line.renderOrder = 12;
+    this.overlayScene.add(line);
+    const mk = (cls: string) => {
+      const d = document.createElement("div");
+      d.className = cls;
+      this.o.overlay.appendChild(d);
+      return d;
+    };
+    const m = a.distanceTo(b) / (this.s * 100); // world metres → real metres
+    const label = mk("v360-measure-label");
+    label.textContent = m >= 1 ? `${m.toFixed(2)} m` : `${(m * 100).toFixed(0)} cm`;
+    this.measurements.push({ a, b, line, dotA: mk("v360-measure-dot"), dotB: mk("v360-measure-dot"), label });
+    this.o.onMeasurementsChange?.(this.measurements.length);
+  }
+
+  // ============================================================ DOM overlay
+
+  private project(v: THREE.Vector3): { x: number; y: number } | null {
+    const view = v.clone().applyMatrix4(this.camera.matrixWorldInverse);
+    if (view.z >= 0) return null; // behind the camera
+    const p = v.clone().project(this.camera);
+    const c = this.o.canvas;
+    return {
+      x: c.offsetLeft + ((p.x + 1) / 2) * c.clientWidth,
+      y: c.offsetTop + ((1 - p.y) / 2) * c.clientHeight,
     };
   }
 
-  private tick = () => {
-    if (this.disposed) return;
-    this.raf = requestAnimationFrame(this.tick);
-
-    if (this.anim) {
-      const t = clamp((performance.now() - this.anim.t0) / this.anim.dur, 0, 1);
-      const k = this.anim.fromRing ? smootherstep(t) : easeInOut(t);
-      this.lon = this.anim.fromLon + (this.anim.toLon - this.anim.fromLon) * k;
-      this.lat = this.anim.fromLat + (this.anim.toLat - this.anim.fromLat) * k;
-      this.fov = this.anim.fromFov + (this.anim.toFov - this.anim.fromFov) * k;
-
-      if (t >= 1) {
-        if (this.anim.phase === "approach") {
-          void this.finishApproach();
-        } else {
-          this.lon = wrapLon(this.anim.settleLon);
-          this.lat = this.anim.toLat;
-          this.fov = this.anim.toFov;
-          this.targetFov = this.fov;
-          this.anim = null;
-          this.onBusy?.(false);
-          this.hotspotDirty = true;
-        }
-      }
-    } else if (Math.abs(this.fov - this.targetFov) > 0.05) {
-      this.fov += (this.targetFov - this.fov) * 0.16;
-      this.hotspotDirty = true;
+  private place(el: HTMLElement, at: { x: number; y: number } | null) {
+    if (!at) {
+      if (el.style.display !== "none") el.style.display = "none";
+      return;
     }
-
-    this.applyCamera();
-    this.renderer.render(this.scene, this.camera);
-
-    if (this.hotspotDirty || this.pointerDown) {
-      this.emitHotspots();
-      this.hotspotDirty = false;
-    }
-  };
-
-  private onPointerDown = (e: PointerEvent) => {
-    if (this.anim) return;
-    this.pointerDown = true;
-    this.dragged = false;
-    this.lastX = e.clientX;
-    this.lastY = e.clientY;
-    this.pointerId = e.pointerId;
-    this.canvas.setPointerCapture(e.pointerId);
-  };
-
-  private onPointerMove = (e: PointerEvent) => {
-    if (!this.pointerDown || this.anim) return;
-    const dx = e.clientX - this.lastX;
-    const dy = e.clientY - this.lastY;
-    if (Math.abs(dx) + Math.abs(dy) > 2) this.dragged = true;
-    this.lastX = e.clientX;
-    this.lastY = e.clientY;
-    this.lon = wrapLon(this.lon - dx * 0.18);
-    this.lat = clamp(this.lat + dy * 0.16, -70, 70);
-    this.hotspotDirty = true;
-  };
-
-  private onPointerUp = () => {
-    if (this.pointerId !== null) {
-      try {
-        this.canvas.releasePointerCapture(this.pointerId);
-      } catch {
-        /* ignore */
-      }
-    }
-    this.pointerDown = false;
-    this.pointerId = null;
-    this.hotspotDirty = true;
-  };
-
-  private onWheel = (e: WheelEvent) => {
-    e.preventDefault();
-    if (this.anim) return;
-    this.targetFov = clamp(this.targetFov + e.deltaY * 0.04, 38, 90);
-  };
-
-  private bindPointer() {
-    this.canvas.addEventListener("pointerdown", this.onPointerDown);
-    this.canvas.addEventListener("pointermove", this.onPointerMove);
-    this.canvas.addEventListener("pointerup", this.onPointerUp);
-    this.canvas.addEventListener("pointercancel", this.onPointerUp);
-    this.canvas.addEventListener("wheel", this.onWheel, { passive: false });
+    if (el.style.display !== "block") el.style.display = "block";
+    el.style.transform = `translate3d(${at.x}px, ${at.y}px, 0) translate(-50%, -50%)`;
   }
 
-  private unbindPointer() {
-    this.canvas.removeEventListener("pointerdown", this.onPointerDown);
-    this.canvas.removeEventListener("pointermove", this.onPointerMove);
-    this.canvas.removeEventListener("pointerup", this.onPointerUp);
-    this.canvas.removeEventListener("pointercancel", this.onPointerUp);
-    this.canvas.removeEventListener("wheel", this.onWheel);
+  private positionOverlays() {
+    for (const h of this.hotspots) {
+      if (!h.visible) continue;
+      this.place(h.el, this.project(h.pos));
+    }
+    for (const m of this.measurements) {
+      this.place(m.dotA, this.project(m.a));
+      this.place(m.dotB, this.project(m.b));
+      this.place(m.label, this.project(m.a.clone().add(m.b).multiplyScalar(0.5)));
+    }
+    if (this.measurePending) this.place(this.measurePending.dot, this.project(this.measurePending.pos));
+    if (this.hoverDest !== null && this.hoverLabel.style.display !== "none") {
+      this.place(this.hoverLabel, this.project(this.floorAnchor(this.hoverDest)));
+    }
+    this.floorMarkers.forEach((m, i) => {
+      const el = this.floorLabels[i];
+      const label = this.cams[i].label;
+      if (!m.visible || !label) {
+        if (el.style.display !== "none") el.style.display = "none";
+        return;
+      }
+      if (el.textContent !== label) el.textContent = label;
+      this.place(el, this.project(m.position));
+    });
   }
 }

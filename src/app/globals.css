@@ -3232,217 +3232,385 @@ html:not(.phone-layout) .scene360-pano canvas {
 .detail.visit-full.phone-sheet .detail-side[hidden] {
   display: none !important;
 }
+/* ---------- Visite 360 (NHC-style walk-through, see src/viewer/Visite360Engine.ts) ---------- */
 .detail-visit,
 .visite360 {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  background: #000;
+  background: #111;
   overflow: hidden;
   touch-action: none;
   user-select: none;
+  -webkit-user-select: none;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* own stacking context: tour overlays stay under the villa page chrome (.detail-top) */
+  isolation: isolate;
+  z-index: 0;
+}
+/* Embedded in the villa page: leave room for the back button + tabs at the top. */
+.detail-visit .visite360-caption {
+  top: 78px;
+}
+.detail-visit .visite360-autopill {
+  top: 122px;
 }
 .visite360-canvas {
   display: block;
   width: 100%;
   height: 100%;
   touch-action: none;
-  cursor: grab;
-}
-.visite360-canvas:active {
-  cursor: grabbing;
-}
-.visite360.is-busy .visite360-canvas {
-  cursor: wait;
-  /* Soft crossfade during walk — NHC never hard-cuts the panorama. */
-  animation: visite360-walk-fade 1.7s ease-in-out;
-}
-@keyframes visite360-walk-fade {
-  0% {
-    opacity: 1;
-  }
-  42% {
-    opacity: 0.72;
-  }
-  58% {
-    opacity: 0.72;
-  }
-  100% {
-    opacity: 1;
-  }
+  outline: none;
 }
 .visite360-loading,
 .visite360-error {
   position: absolute;
   inset: 0;
-  z-index: 3;
-  display: grid;
-  place-items: center;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
   padding: 24px;
   text-align: center;
-  font-family: "Noto Sans Arabic", "Segoe UI", sans-serif;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   color: #fff;
-  background: rgba(0, 0, 0, 0.55);
+  background: #000;
+}
+/* NHC fades the black loader out over 0.5 s once the first frame is ready. */
+.visite360-loading {
+  transition: opacity 0.5s ease-in-out, visibility 0.5s;
+}
+.visite360-loading.is-done {
+  opacity: 0;
+  visibility: hidden;
   pointer-events: none;
+}
+.visite360-spinner {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.18);
+  border-top-color: #fff;
+  animation: visite360-spin 0.9s linear infinite;
+}
+@keyframes visite360-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 .visite360-error {
   color: #ffb4b4;
-  background: rgba(20, 8, 8, 0.72);
+  background: rgba(20, 8, 8, 0.85);
 }
-.visite360-hotspots {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  pointer-events: none;
-}
-.visite360-hotspots[aria-hidden="true"] {
-  opacity: 0;
-}
-/* NHC floor rings — thin flat ellipses on the tiles. */
-.visite360-ring {
+
+/* Room-name pill sitting on a floor ring (MARKER_LABEL_CSS in the NHC engine). */
+.v360-pill {
   position: absolute;
   left: 0;
   top: 0;
-  width: 100px;
-  height: 100px;
-  margin: 0;
+  z-index: 50;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(20, 24, 32, 0.92);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+  will-change: transform;
+}
+
+/* Hotspots (tour.json "hotspots"): 80×80 hit area, pulsing ring, optional title. */
+.v360-hotspot {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 40;
+  width: 80px;
+  height: 80px;
   padding: 0;
   border: 0;
-  background: transparent;
-  transform: translate(-50%, -50%);
-  transform-origin: center center;
-  pointer-events: auto;
+  background: transparent center / 44px no-repeat;
   cursor: pointer;
+  scale: var(--hs-scale, 1);
+  will-change: transform;
   -webkit-tap-highlight-color: transparent;
-  z-index: 3;
-  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.28));
 }
-.visite360-ring-glow,
-.visite360-ring-dot {
+.v360-hotspot-ring,
+.v360-hotspot-core {
   position: absolute;
   left: 50%;
   top: 50%;
   border-radius: 50%;
-  transform: translate(-50%, -50%) scaleY(0.28);
+  translate: -50% -50%;
   pointer-events: none;
 }
-.visite360-ring-glow {
-  width: 88px;
-  height: 88px;
-  border: 2.5px solid rgba(255, 255, 255, 0.95);
-  background: radial-gradient(
-    circle at 50% 40%,
-    rgba(255, 255, 255, 0.28),
-    rgba(255, 255, 255, 0.06) 55%,
-    transparent 72%
-  );
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.22),
-    0 0 18px rgba(255, 255, 255, 0.55);
-  animation: visite360-pulse 1.7s ease-in-out infinite;
+.v360-hotspot-ring {
+  width: 44px;
+  height: 44px;
+  border: 2px solid rgba(255, 255, 255, 0.95);
+  box-shadow: 0 0 14px rgba(0, 0, 0, 0.35);
+  animation: v360-pulse 1.8s ease-in-out infinite;
 }
-.visite360-ring-dot {
-  width: 10px;
-  height: 10px;
+.v360-hotspot-core {
+  width: 14px;
+  height: 14px;
   background: #fff;
-  box-shadow: 0 0 8px rgba(255, 255, 255, 0.95);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.9);
+  transition: transform 0.15s ease;
 }
-.visite360-ring:hover .visite360-ring-glow,
-.visite360-ring:focus-visible .visite360-ring-glow {
-  background: radial-gradient(
-    circle at 50% 40%,
-    rgba(255, 255, 255, 0.4),
-    rgba(255, 255, 255, 0.12) 55%,
-    transparent 72%
-  );
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.45),
-    0 0 26px rgba(255, 255, 255, 0.75);
+.v360-hotspot:hover .v360-hotspot-core {
+  transform: scale(1.35);
 }
-@keyframes visite360-pulse {
+.v360-hotspot-title {
+  position: absolute;
+  left: 50%;
+  top: calc(50% + 30px);
+  translate: -50% 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(20, 24, 32, 0.85);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+}
+@keyframes v360-pulse {
   0%,
   100% {
-    transform: translate(-50%, -50%) scaleY(0.28) scale(1);
-    opacity: 0.96;
+    transform: scale(1);
+    opacity: 0.95;
   }
   50% {
-    transform: translate(-50%, -50%) scaleY(0.28) scale(1.08);
-    opacity: 1;
+    transform: scale(1.18);
+    opacity: 0.6;
   }
 }
+.v360-info {
+  position: absolute;
+  right: 16px;
+  bottom: 96px;
+  z-index: 70;
+  width: min(320px, calc(100% - 32px));
+  padding: 16px 18px;
+  border-radius: 14px;
+  background: rgba(20, 24, 32, 0.94);
+  color: #fff;
+  font-size: 13px;
+  line-height: 1.5;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+.v360-info strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 15px;
+}
+.v360-info-close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  border: 0;
+  background: none;
+  color: #fff;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+/* Measuring tool. */
+.v360-measure-dot {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 45;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  background: #4fc3f7;
+  box-shadow: 0 0 6px rgba(79, 195, 247, 0.7);
+  pointer-events: none;
+}
+.v360-measure-dot.is-pending {
+  width: 14px;
+  height: 14px;
+  box-shadow: 0 0 8px rgba(79, 195, 247, 0.8);
+}
+.v360-measure-label {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 46;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(79, 195, 247, 0.5);
+  background: rgba(20, 24, 32, 0.92);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* Floor + room caption (top centre). */
+.visite360-caption {
+  position: absolute;
+  top: max(16px, env(safe-area-inset-top));
+  left: 50%;
+  z-index: 55;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: calc(100% - 140px);
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: rgba(20, 24, 32, 0.72);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 13px;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.visite360-caption strong {
+  color: #fff;
+  font-weight: 600;
+}
+.visite360-caption span + strong::before {
+  content: "·";
+  margin-right: 8px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* Floors: vertical buttons on the left, vertically centred (NHC floors="side"). */
+.visite360-floors {
+  position: absolute;
+  top: 50%;
+  left: 16px;
+  z-index: 55;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transform: translateY(-50%);
+}
+.visite360-floors button,
+.visite360-rooms button {
+  height: 40px;
+  min-width: 80px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 10px;
+  background: rgba(20, 24, 32, 0.72);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: rgba(255, 255, 255, 0.92);
+  font: inherit;
+  font-size: 12px;
+  line-height: 20px;
+  white-space: nowrap;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.visite360-floors button:hover,
+.visite360-rooms button:hover {
+  background: rgba(40, 46, 58, 0.85);
+  color: #fff;
+}
+.visite360-floors button.on,
+.visite360-rooms button.on {
+  background: #fff;
+  color: #141820;
+  font-weight: 600;
+}
+
+/* Rooms rail: bottom centre, horizontally scrollable (drag or swipe). */
 .visite360-rooms {
   position: absolute;
   left: 50%;
-  right: auto;
-  bottom: max(14px, env(safe-area-inset-bottom));
-  z-index: 4;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  z-index: 55;
   display: flex;
-  flex-direction: row;
-  flex-wrap: nowrap;
-  align-items: center;
   gap: 8px;
-  width: calc(100% - 20px);
-  max-width: calc(100% - 20px);
-  box-sizing: border-box;
-  padding: 10px 12px;
+  max-width: calc(100% - 32px);
+  padding: 2px;
   overflow-x: auto;
   overflow-y: hidden;
-  -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
   scrollbar-width: none;
-  pointer-events: auto;
-  /* Parent .visite360 is touch-action:none — re-enable pan so the rail scrolls like NHC. */
   touch-action: pan-x;
-  cursor: grab;
   transform: translateX(-50%);
-  border-radius: 16px;
-  background: rgba(28, 30, 34, 0.72);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
-}
-.visite360-rooms.is-dragging {
-  cursor: grabbing;
-  user-select: none;
 }
 .visite360-rooms::-webkit-scrollbar {
   display: none;
-  height: 0;
 }
 .visite360-rooms button {
-  flex: 0 0 auto;
-  height: 36px;
-  padding: 0 16px;
-  border: 0;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.92);
-  font-family: var(--font-inter), "Segoe UI", system-ui, sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0;
-  font-stretch: normal;
-  white-space: nowrap;
-  line-height: 1.2;
-  cursor: pointer;
   touch-action: pan-x;
+}
+
+/* Tool column: right edge, vertically centred. */
+.visite360-tools {
+  position: absolute;
+  top: 50%;
+  right: 16px;
+  z-index: 55;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transform: translateY(-50%);
+}
+.visite360-tool,
+.visite360-autopill button {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: rgba(20, 24, 32, 0.72);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: #fff;
+  cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease;
 }
-.visite360-rooms button:hover {
-  background: rgba(255, 255, 255, 0.18);
+.visite360-tool:hover,
+.visite360-autopill button:hover {
+  background: rgba(40, 46, 58, 0.9);
+}
+.visite360-tool.on {
+  background: #fff;
+  color: #141820;
+}
+.visite360-autopill {
+  position: absolute;
+  top: max(64px, calc(env(safe-area-inset-top) + 48px));
+  left: 50%;
+  z-index: 56;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 14px 4px 4px;
+  border-radius: 999px;
+  background: rgba(20, 24, 32, 0.8);
   color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  transform: translateX(-50%);
 }
-.visite360-rooms button.on {
-  background: #b8f0dc;
-  color: #0f6b58;
-}
-.visite360.is-busy .visite360-ring,
-.visite360.is-busy .visite360-rooms button {
-  pointer-events: none;
-  opacity: 0.55;
+.visite360-autopill button {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
 }
 
 .detail-top {
@@ -5640,42 +5808,25 @@ html.phone-layout .visite360 {
   width: 100%;
   height: 100%;
 }
-/* Phone: slightly larger hit target, still flat on the floor. */
-html.phone-layout .visite360-ring {
-  width: 124px;
-  height: 124px;
+html.phone-layout .visite360-floors {
+  left: 10px;
 }
-html.phone-layout .visite360-ring-glow {
-  width: 108px;
-  height: 108px;
-  border-width: 3px;
+html.phone-layout .visite360-floors button {
+  min-width: 58px;
+  height: 34px;
+  padding: 0 10px;
 }
-html.phone-layout .visite360-ring-dot {
-  width: 14px;
-  height: 14px;
+html.phone-layout .visite360-tools {
+  right: 10px;
 }
 html.phone-layout .visite360-rooms {
-  left: 50%;
-  right: auto;
   bottom: max(10px, env(safe-area-inset-bottom));
-  width: calc(100% - 16px);
-  max-width: calc(100% - 16px);
-  gap: 6px;
-  padding: 8px 10px;
-  transform: translateX(-50%);
-  border-radius: 14px;
+  max-width: calc(100% - 20px);
 }
 html.phone-layout .visite360-rooms button {
   height: 34px;
+  min-width: 0;
   padding: 0 14px;
-  font-size: 13px;
-  letter-spacing: 0;
-  font-stretch: normal;
-}
-html.phone-layout .visite360-loading,
-html.phone-layout .visite360-error {
-  font-size: 14px;
-  padding: 20px;
 }
 
 html.phone-layout .side-head h2 {

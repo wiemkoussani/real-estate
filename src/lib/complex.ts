@@ -125,22 +125,26 @@ export function planUrl(unit: Unit) {
   return `${COMPLEX.assetBase}/${file}`;
 }
 
-/** Visite 360 Layama cubemap faces: nx ny nz px py pz @ 2048. */
-export const VISITE360_FACES = ["px", "nx", "py", "ny", "pz", "nz"] as const;
-export type Visite360Face = (typeof VISITE360_FACES)[number];
-
 /**
- * Cubemaps shipped in public/visite360/1024 (real files, not a local symlink —
- * Vercel/GitHub cannot follow /home/... symlinks, which made the tour black).
+ * Visite 360 (Layama export) shipped as real files in public/…/visite360:
+ *   tour.json        cameras, floors, rooms, hotspots, auto tour
+ *   mesh.glb         Draco house mesh the panoramas are projected onto
+ *   2048/<id>_<face>.jpg  desktop cubemaps, 1024/ for phones & small windows
+ * (Real files, not a local symlink — Vercel/GitHub cannot follow /home/... symlinks.)
  */
 export function visite360Base() {
   return `${COMPLEX.assetBase}/visite360`;
 }
 
-export function visite360GraphUrl() {
-  return `${visite360Base()}/graph.json`;
+export function visite360TourUrl() {
+  return `${visite360Base()}/tour.json`;
 }
 
-export function visite360FaceUrl(nodeId: string, face: Visite360Face) {
-  return `${visite360Base()}/1024/${nodeId}_${face}.jpg`;
+/**
+ * Panorama cubemaps live in Supabase Storage:
+ *   media/villas-ajyad/visite360/2048/<id>_<px|nx|py|ny|pz|nz>.jpg
+ */
+export function visite360ImageBase() {
+  const url = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").replace(/\/+$/, "");
+  return `${url}/storage/v1/object/public/media/${COMPLEX.slug}/visite360`;
 }
