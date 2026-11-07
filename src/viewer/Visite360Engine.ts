@@ -101,7 +101,8 @@ const PRIMARY_ROOM_SET = new Set<string>(PRIMARY_ROOM_ORDER);
  * Tuned against the AXIS cubemaps (not NHC world yaw numbers).
  */
 const OPEN_LOOK: Record<string, number> = {
-  "10003": 0, // Living Room 1 — open stair volume, not carved wall
+  // Cubemap lon (not graph yaw). Living Room 1 opens toward the stair volume.
+  "10003": -90,
 };
 
 const DEG = Math.PI / 180;
@@ -125,16 +126,15 @@ const DEFAULT_FOV = 72;
 const HOTSPOT_GAP = 26;
 /** Forward rings only roughly ahead (return ring exempt). */
 const FORWARD_CONE = 105;
+/** Doorway = fraction of the way to the neighbor node (NHC threshold feel). */
+const DOOR_FRAC = 0.7;
+const DOOR_DIST_MIN = 180;
+const DOOR_DIST_MAX = 340;
 /**
- * Doorway threshold along the look bearing.
- * Minimum ~150 keeps the ring projectable above the rail even for close portals
- * (may sit slightly past a very near node — that's the doorway into the next room).
+ * Slightly above true floor so doorway rings stay inside vertical FOV on
+ * tall phone views, while still reading as floor marks in open volumes.
  */
-const DOOR_FRAC = 0.55;
-const DOOR_DIST_MIN = 150;
-const DOOR_DIST_MAX = 230;
-/** Floor plane under the camera (lower factor = flatter / higher on screen). */
-const FLOOR_Y_FACTOR = 0.72;
+const FLOOR_Y_FACTOR = 0.68;
 
 function clamp(v: number, a: number, b: number) {
   return Math.max(a, Math.min(b, v));
@@ -145,6 +145,16 @@ function wrapLon(lon: number) {
   while (v > 180) v -= 360;
   while (v < -180) v += 360;
   return v;
+}
+
+/**
+ * Layama graph yaw is atan2(dx, dz) with 0 = +Z.
+ * Cubemap panorama lon is atan2(dz, dx) with 0 = +X, then +180 because
+ * Layama node axes are mirrored vs the exported cube faces (verified on
+ * Main Entrance: Living Room content is opposite the geometric neighbor).
+ */
+function graphYawToLon(graphYaw: number) {
+  return wrapLon(270 - graphYaw);
 }
 
 function shortestDelta(from: number, to: number) {
@@ -273,7 +283,12 @@ export class Visite360Engine {
     for (const e of graph.edges) {
       const from = String(e.from);
       const list = this.outs.get(from) ?? [];
-      list.push({ ...e, from, to: String(e.to) });
+      list.push({
+        ...e,
+        from,
+        to: String(e.to),
+        yaw: graphYawToLon(e.yaw),
+      });
       this.outs.set(from, list);
     }
     const first =
@@ -304,14 +319,13 @@ export class Visite360Engine {
     const h = this.canvas.clientHeight;
     this.camera.getWorldDirection(this.camFwd);
     const probes = ranked.map((r) => {
-      const prefer = this.doorDist(r.dist);
-      const placed = this.projectFloorRing(r.edge.yaw, prefer, w, h);
+      const placed = this.projectFloorRing(r.edge.yaw, r.dist, w, h);
       return {
         to: r.edge.to,
         label: this.labelOf(r.edge.to),
         yaw: Math.round(r.edge.yaw),
         dist: Math.round(r.dist),
-        door: Math.round(placed.ok ? placed.dist : prefer),
+        door: Math.round(placed.dist),
         ahead: Math.round(Math.abs(shortestDelta(this.lon, r.edge.yaw))),
         facing: Math.round((placed.facing || 0) * 100) / 100,
         x: Math.round(placed.x),
@@ -477,14 +491,11 @@ export class Visite360Engine {
 
     const portals = this.nhcPortals(nodeId);
     if (this.isPassage(nodeId)) {
-      // Face the open doorway cluster (avg of nearest destinations) so rings sit in openings.
-      const dests = portals.filter((p) => this.isDestinationRoom(p.edge.to)).slice(0, 2);
-      if (dests.length >= 2) {
-        const ax = dests.reduce((s, p) => s + Math.cos(p.edge.yaw * DEG), 0);
-        const ay = dests.reduce((s, p) => s + Math.sin(p.edge.yaw * DEG), 0);
-        return { lon: wrapLon(Math.atan2(ay, ax) / DEG), lat: EYE_LAT };
-      }
-      const aim = dests[0] ?? portals[0];
+      // Face the doorway that opens the tour — living/hall over side baths.
+      const living = portals.find((p) => /living|dining\s*room/i.test(this.labelOf(p.edge.to)));
+      const hall = portals.find((p) => /^hall/i.test(this.labelOf(p.edge.to)));
+      const dest = portals.find((p) => this.isDestinationRoom(p.edge.to));
+      const aim = living ?? hall ?? dest ?? portals[0];
       if (aim) return { lon: wrapLon(aim.edge.yaw), lat: EYE_LAT };
     }
 
@@ -504,62 +515,60 @@ export class Visite360Engine {
     if (!from || !to) return null;
     const d = nodePos(to).sub(nodePos(from));
     if (d.lengthSq() < 1e-6) return null;
-    // Same frame as authored edge.yaw / panorama lon.
-    const yaw = Math.atan2(d.x, d.z) / DEG;
+    // Camera / panorama frame (mirrored Layama axes — see graphYawToLon).
+    const yaw = Math.atan2(d.z, d.x) / DEG + 180;
     const pitch = Math.asin(clamp(d.y / d.length(), -1, 1)) / DEG;
     return { yaw: wrapLon(yaw), pitch: clamp(pitch, -55, 55) };
   }
 
-  /** Doorway distance along the bearing — readable floor projection first. */
+  /** Physical doorway distance — never past the neighbor node. */
   private doorDist(nodeDist: number) {
-    return clamp(Math.max(nodeDist * DOOR_FRAC, DOOR_DIST_MIN), DOOR_DIST_MIN, DOOR_DIST_MAX);
+    const maxAllowed = Math.min(DOOR_DIST_MAX, Math.max(40, nodeDist * 0.85));
+    const minAllowed = Math.min(DOOR_DIST_MIN, maxAllowed);
+    return clamp(nodeDist * DOOR_FRAC, minAllowed, maxAllowed);
   }
 
-  /** Pitch that aims the camera at the floor ring itself (walk-in dive). */
+  /** Pitch that aims the camera at the floor ring (walk-in dive). */
   private ringPitch(doorDistance: number) {
     return clamp(
       Math.atan2(-EYE_HEIGHT * FLOOR_Y_FACTOR, doorDistance) / DEG,
-      -42,
-      -10,
+      -45,
+      -8,
     );
   }
 
   /**
-   * Pick a floor distance on `yaw` so the ring lands in the visible floor band
-   * (NHC: lower third, above the rail) — not mid-wall and not under the UI.
+   * Project a floor ring in the doorway bearing at a real threshold distance.
+   * No screen-Y hunting — that was putting rings on walls.
    */
-  private projectFloorRing(yawDeg: number, preferDist: number, w: number, h: number) {
+  private projectFloorRing(yawDeg: number, nodeDist: number, w: number, h: number) {
     const yaw = yawDeg * DEG;
+    const dist = this.doorDist(nodeDist);
     const floorY = -EYE_HEIGHT * FLOOR_Y_FACTOR;
-    const targetY = h * 0.68;
-    let best = {
-      dist: preferDist,
-      x: 0,
-      y: 0,
-      z: 1,
-      facing: -1,
-      ok: false,
-    };
-
-    for (let dist = 120; dist <= 320; dist += 12) {
-      this.tmpPos.set(Math.cos(yaw) * dist, floorY, Math.sin(yaw) * dist);
-      const len = this.tmpPos.length();
-      if (len < 1e-4) continue;
-      const facing = this.tmpPos.dot(this.camFwd) / len;
-      const projected = this.tmpPos.clone().project(this.camera);
-      const x = (projected.x * 0.5 + 0.5) * w;
-      const y = (-projected.y * 0.5 + 0.5) * h;
-      const inFront = projected.z < 1.05 && projected.z > -1;
-      const onFloorBand = y > h * 0.42 && y < h * 0.86;
-      const onScreen = x > w * 0.02 && x < w * 0.98;
-      if (!inFront || !onFloorBand || !onScreen || facing < 0.04) continue;
-      const score = Math.abs(y - targetY) * 0.8 + Math.abs(dist - preferDist) * 0.55;
-      const bestScore = Math.abs(best.y - targetY) * 0.8 + Math.abs(best.dist - preferDist) * 0.55;
-      if (!best.ok || score < bestScore) {
-        best = { dist, x, y, z: projected.z, facing, ok: true };
-      }
+    this.tmpPos.set(Math.cos(yaw) * dist, floorY, Math.sin(yaw) * dist);
+    const len = this.tmpPos.length();
+    if (len < 1e-4) {
+      return { dist, x: 0, y: 0, z: 1, facing: -1, ok: false };
     }
-    return best;
+    const facing = this.tmpPos.dot(this.camFwd) / len;
+    const projected = this.tmpPos.clone().project(this.camera);
+    const x = (projected.x * 0.5 + 0.5) * w;
+    const y = (-projected.y * 0.5 + 0.5) * h;
+    const inFront = projected.z < 1 && projected.z > -1;
+    // Floor band above the room rail (rail ~bottom 8%).
+    const onFloor =
+      x > w * 0.02 &&
+      x < w * 0.98 &&
+      y > h * 0.4 &&
+      y < h * 0.86;
+    return {
+      dist,
+      x,
+      y,
+      z: projected.z,
+      facing,
+      ok: inFront && onFloor && facing > 0.05,
+    };
   }
 
   private async setScene(node: Visite360Node) {
@@ -603,24 +612,32 @@ export class Visite360Engine {
   }
 
   /**
-   * Aim at a neighbor using Layama geometry (authoritative for our cubemaps).
-   * Graph edges are only a fallback when positions are missing.
+   * Aim at a neighbor. Prefer authored graph yaw (doorway-tuned) when it
+   * agrees with geometry; otherwise use geometric bearing.
    */
   private edgeTo(fromId: string, toId: string): Visite360Edge | null {
     const from = this.nodeById.get(fromId);
     const to = this.nodeById.get(toId);
+    if (!from || !to) {
+      return this.outs.get(fromId)?.find((e) => e.to === toId) ?? null;
+    }
     const aim = this.aimToward(fromId, toId);
-    if (aim && from && to) {
-      const door = this.doorDist(nodePos(from).distanceTo(nodePos(to)));
+    const existing = this.outs.get(fromId)?.find((e) => e.to === toId);
+    const dist = nodePos(from).distanceTo(nodePos(to));
+    const door = this.doorDist(dist);
+    const pitch = this.ringPitch(door);
+    if (aim && existing) {
+      const close = Math.abs(shortestDelta(existing.yaw, aim.yaw)) < 28;
       return {
         from: fromId,
         to: toId,
-        yaw: aim.yaw,
-        // Dive toward the floor ring in that doorway.
-        pitch: this.ringPitch(door),
+        yaw: close ? existing.yaw : aim.yaw,
+        pitch,
       };
     }
-    return this.outs.get(fromId)?.find((e) => e.to === toId) ?? null;
+    if (aim) return { from: fromId, to: toId, yaw: aim.yaw, pitch };
+    if (existing) return { ...existing, pitch };
+    return null;
   }
 
   /** Official NHC portals from this node, nearest first (Layama distances). */
@@ -649,22 +666,15 @@ export class Visite360Engine {
   }
 
   private rankedNeighbors(nodeId: string) {
-    // Prefer destination doorways over hall/entrance twins when bearings are close.
-    const portals = [...this.nhcPortals(nodeId)].sort((a, b) => {
-      const aDest = this.isDestinationRoom(a.edge.to) ? 0 : 1;
-      const bDest = this.isDestinationRoom(b.edge.to) ? 0 : 1;
-      if (aDest !== bDest) return aDest - bDest;
-      return a.score - b.score;
-    });
+    // Nearest doorway first. When two portals share a bearing, keep the nearer
+    // (e.g. Dining Entrance over Bathroom) — matches NHC entrance rings.
     const unique: ReturnType<Visite360Engine["nhcPortals"]> = [];
-    for (const item of portals) {
+    for (const item of this.nhcPortals(nodeId)) {
       const clash = unique.some(
         (u) => Math.abs(shortestDelta(u.edge.yaw, item.edge.yaw)) < HOTSPOT_GAP,
       );
       if (!clash) unique.push(item);
     }
-    // Nearest-first again for forward picking order.
-    unique.sort((a, b) => a.score - b.score);
     return unique;
   }
 
@@ -730,18 +740,17 @@ export class Visite360Engine {
 
     for (const { edge, dist, isReturn } of picks) {
       const target = this.nodeById.get(edge.to);
-      const prefer = this.doorDist(dist);
-      const placed = this.projectFloorRing(edge.yaw, prefer, w, h);
+      const placed = this.projectFloorRing(edge.yaw, dist, w, h);
       // Return ring stays hidden until the user turns toward it.
       if (!placed.ok) continue;
-      if (!isReturn && placed.facing < 0.04) continue;
+      if (!isReturn && placed.facing < 0.08) continue;
 
       out.push({
         to: edge.to,
         label: target?.label ?? edge.to,
         x: placed.x,
         y: placed.y,
-        scale: clamp(2.05 - placed.dist / 260, 1.25, 2.2),
+        scale: clamp(1.9 - placed.dist / 280, 1.15, 1.85),
         visible: true,
         yaw: edge.yaw,
         pitch: this.ringPitch(placed.dist),
@@ -753,7 +762,7 @@ export class Visite360Engine {
   /**
    * Classic Three.js cube panorama lon/lat:
    * lon 0 = +X, lon 90 = +Z, lon 180 = −X, lon −90 = −Z.
-   * Graph edge.yaw is authored in this same frame for doorway aims.
+   * Graph edge yaw is converted to this frame in loadGraph.
    */
   private dirFromYawPitch(yawDeg: number, pitchDeg: number, out: THREE.Vector3) {
     const phi = (90 - pitchDeg) * DEG;
