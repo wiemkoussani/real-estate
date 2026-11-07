@@ -50,8 +50,8 @@ export const FACE_ORDER = ["px", "nx", "py", "ny", "pz", "nz"] as const;
 export const PRIMARY_ROOM_ORDER = [
   "10000", // Main Entrance
   "10001", // Dining Entrance
-  "10002", // Main Entrance Bathroom
-  "10003", // Living Room 1
+  // 10002 "Main Entrance Bathroom" — Layama faces are living room, no powder interior.
+  "10003", // Living Room 1 (powder door is visible here @ lon 0 — look, don’t fake-enter)
   "10004", // Hall 1
   "10005", // Hall 3
   "10006", // Kitchen
@@ -87,7 +87,6 @@ const FACE_SWAP: Record<string, string> = {
 const RAIL_LABELS: Record<string, string> = {
   "10000": "Main Entrance",
   "10001": "Dining Entrance",
-  "10002": "Main Entrance Bathroom",
   "10003": "Living Room 1",
   "10004": "Hall 1",
   "10005": "Hall 3",
@@ -107,35 +106,35 @@ const RAIL_LABELS: Record<string, string> = {
 };
 
 /**
- * NHC adjacency (camera index → connected indices). Self-links ignored at runtime.
- * Source: Virtual Visions public visit-tour floors[0].cameras[].connections
- */
-/**
- * Walk links — trimmed to portals that sit in a *visible* doorway in the
- * Layama cubemap (full NHC matrix put rings on furniture / wrong rooms).
+ * Ground-floor plan (eye height Y≈152) — only walk links that match a *door*
+ * you can see in the cubemap. Rail can still jump anywhere; rings = enter/exit.
+ *
+ *   Main Entrance 10000 ── Hall 5 10008 ── Living 1 10003 ── Hall 1…Kitchen
+ *         │ dark door@180    │ powder@0 (view only) │ hall@-90
+ *         │ dining@90        │ back@180             │
+ *         └──────────────────┘
+ *   Bedroom wing via Hall 6: Bed1 / Bed2 / Suite… each room has ONE leave door.
  */
 const NHC_CONNECTIONS: Record<string, readonly string[]> = {
-  "10000": ["10001", "10002", "10003", "10008", "10016"],
-  "10001": ["10000", "10002", "10004"],
-  "10002": ["10000", "10001", "10008"],
-  "10003": ["10000", "10004", "10016", "10018"],
-  "10004": ["10001", "10005", "10007", "10003", "10006"],
-  "10005": ["10004", "10006", "10007"],
+  "10000": ["10008", "10001"],
+  "10001": ["10000", "10004"],
+  "10003": ["10008", "10004"],
+  "10004": ["10003", "10005", "10007", "10006"],
+  "10005": ["10004", "10006"],
   "10006": ["10005", "10004"],
-  "10007": ["10004", "10005", "10008", "10010"],
-  // Hall 5: dark entrance door + powder door ahead (not living furniture).
-  "10008": ["10000", "10002", "10007", "10010"],
-  "10009": ["10008", "10010"],
-  // Hall 6: bedroom wing
-  "10010": ["10008", "10007", "10009", "10011", "10013"],
-  "10011": ["10010", "10013"],
-  "10012": ["10010", "10017"],
-  "10013": ["10010", "10011", "10014"],
+  "10007": ["10004", "10010"],
+  "10008": ["10000", "10003"],
+  // Bedroom 1 — only leave through the door (Hall 5). No mid-room rings.
+  "10009": ["10008"],
+  "10010": ["10007", "10009", "10011", "10013"],
+  "10011": ["10010", "10012"],
+  "10012": ["10011", "10010"],
+  "10013": ["10010", "10014"],
   "10014": ["10013", "10015"],
   "10015": ["10014"],
-  "10016": ["10000", "10003", "10001"],
-  "10017": ["10012", "10018", "10016"],
-  "10018": ["10003", "10017", "10016"],
+  "10016": ["10001", "10003"],
+  "10017": ["10018", "10016"],
+  "10018": ["10017", "10003"],
 };
 
 const PRIMARY_ROOM_SET = new Set<string>(PRIMARY_ROOM_ORDER);
@@ -144,11 +143,11 @@ const PRIMARY_ROOM_SET = new Set<string>(PRIMARY_ROOM_ORDER);
  * Cubemap lon that shows the actual room interior (from face audit / FACE_SWAP).
  */
 const OPEN_LOOK: Record<string, number> = {
-  "10000": 0, // Main Entrance — into the foyer / stairs
+  "10000": 0, // Main Entrance — down the hall (stairs / bookshelf)
   "10001": 90, // Dining Entrance — through dining doorway
-  "10003": 180, // Living Room 1 — sofa / open living
+  "10003": 180, // Living Room 1 — toward foyer / open living (powder stays @0)
   "10006": 0, // Kitchen — counters
-  "10008": 0, // Hall 5 — down the hall
+  "10008": 0, // Hall 5 — toward powder / stairs corridor
   "10009": 180, // Bedroom 1 (10020 faces) — bed / window
   "10011": 0, // Bedroom 2 (10031 faces) — bed / vanity
   "10012": 180, // Bathroom (10037 faces) — vanity
@@ -160,26 +159,44 @@ const OPEN_LOOK: Record<string, number> = {
 
 /**
  * Doorway bearings in the *visible* cubemap (after FACE_SWAP).
- * Graph aimToward is wrong once faces come from another camera — place rings
- * on the door you see in the picture instead.
+ * Only place a ring where a real door/opening is — never on a blank wall.
  */
 const DOOR_YAW: Record<string, Record<string, number>> = {
-  // Hall 5 — runtime screenshots: toilet door @0, dark entrance @180
-  "10008": { "10002": 0, "10000": 180, "10007": -30, "10010": 40 },
-  // Bedroom 1 (10020 faces): exit doorway centered at lon 0
-  "10009": { "10008": 0, "10010": 0 },
-  // Hall 6 — Bedroom 2 door ahead, suite / bed1 side doors
-  "10010": { "10011": 180, "10009": 25, "10013": -140, "10008": 0, "10007": 0 },
-  // Bedroom 2 (10031 faces): hall/stairs door at -90; suite link through 180
-  "10011": { "10010": -90, "10013": 180 },
-  // Bathroom (10037 faces): corridor exit at 0
-  "10012": { "10010": 0, "10017": 0 },
-  // Suite Bedroom (10032 faces): hall door -90; dressing ~180
-  "10013": { "10010": -90, "10011": -90, "10014": 180 },
-  // Suite Dressing (10033 faces): suite bed at 0; suite bath at 180
+  // Main Entrance: Hall 5 ahead @0, dining pocket @90
+  "10000": { "10008": 0, "10001": 90 },
+  // Living 1: back to Hall5 @180, kitchen hall @-90 (powder @0 = view only)
+  "10003": { "10008": 180, "10004": -90 },
+  // Hall 5: dark ME door @180, corridor toward living/powder @0 — NOT side walls
+  "10008": { "10000": 180, "10003": 0 },
+  // Bedroom 1 (10020): leave door centered @0 → Hall 5
+  "10009": { "10008": 0 },
+  // Hall 6: Bed2 ahead @180, Bed1 side, suite side
+  "10010": { "10011": 180, "10009": 25, "10013": -140, "10007": 0 },
+  // Bedroom 2 (10031): leave @-90 → Hall 6; bath opening @180
+  "10011": { "10010": -90, "10012": 180 },
+  // Bathroom (10037): leave corridor @0
+  "10012": { "10011": 0, "10010": 0 },
+  // Suite Bedroom (10032): leave hall @-90; dressing @180
+  "10013": { "10010": -90, "10014": 180 },
+  // Suite Dressing (10033): suite @0; bath @180
   "10014": { "10013": 0, "10015": 180 },
-  // Suite Bathroom (10037 faces): back to dressing at 0
+  // Suite Bathroom (10037): back to dressing @0
   "10015": { "10014": 0 },
+};
+
+/**
+ * Every destination room has one leave door. Always offered as the exit ring
+ * when you face it (rail jump or walk-in — same doorway you used to enter).
+ */
+const EXIT_DOOR: Record<string, { to: string; yaw: number }> = {
+  "10009": { to: "10008", yaw: 0 },
+  "10011": { to: "10010", yaw: -90 },
+  "10012": { to: "10011", yaw: 0 },
+  "10013": { to: "10010", yaw: -90 },
+  "10014": { to: "10013", yaw: 0 },
+  "10015": { to: "10014", yaw: 0 },
+  "10006": { to: "10005", yaw: 180 },
+  "10016": { to: "10001", yaw: 0 },
 };
 
 const DEG = Math.PI / 180;
@@ -646,12 +663,21 @@ export class Visite360Engine {
   private projectFloorRing(yawDeg: number, nodeDist: number, w: number, h: number) {
     const yaw = yawDeg * DEG;
     const floorY = -EYE_HEIGHT * FLOOR_Y_FACTOR;
-    // Near nodes (e.g. Hall 5 → Bedroom 1 ~106) would sit under the phone
-    // FOV if we keep the raw doorDist — push out just enough to stay on-floor.
+    // Keep rings in the doorway threshold — never past the neighbor (that put
+    // Bedroom exit rings floating in the stair void beyond the door).
     const halfFov = (this.camera.fov * 0.5) * DEG;
     const minVisible = Math.abs(floorY) / Math.tan(Math.max(0.18, halfFov * 0.82));
-    const dist = Math.max(this.doorDist(nodeDist), Math.min(minVisible, DOOR_DIST_MAX));
-    this.tmpPos.set(Math.cos(yaw) * dist, floorY, Math.sin(yaw) * dist);
+    const maxAtDoor = Math.max(90, nodeDist * 0.92);
+    // Prefer threshold distance; only stretch toward minVisible when still in front
+    // of the neighbor so rings don’t float past the door into the next volume.
+    let dist = clamp(this.doorDist(nodeDist), 70, Math.min(DOOR_DIST_MAX, maxAtDoor));
+    if (dist < minVisible && minVisible <= maxAtDoor * 1.15) {
+      dist = Math.min(minVisible, maxAtDoor * 1.15, DOOR_DIST_MAX);
+    }
+    // Near doors: raise the mark slightly so it stays in phone FOV without overshooting.
+    const yScale = dist < 140 ? 0.42 : FLOOR_Y_FACTOR;
+    const useFloorY = -EYE_HEIGHT * yScale;
+    this.tmpPos.set(Math.cos(yaw) * dist, useFloorY, Math.sin(yaw) * dist);
     const len = this.tmpPos.length();
     if (len < 1e-4) {
       return { dist, x: 0, y: 0, z: 1, facing: -1, ok: false };
@@ -661,12 +687,13 @@ export class Visite360Engine {
     const x = (projected.x * 0.5 + 0.5) * w;
     const y = (-projected.y * 0.5 + 0.5) * h;
     const inFront = projected.z < 1 && projected.z > -1;
-    // Floor band above the room rail (rail ~bottom 8%).
+    // Floor band above the room rail. Near doors sit lower on tall phone FOV —
+    // allow down to ~92% so Hall 5 → Main Entrance still reads as a floor ring.
     const onFloor =
       x > w * 0.02 &&
       x < w * 0.98 &&
-      y > h * 0.4 &&
-      y < h * 0.86;
+      y > h * 0.36 &&
+      y < h * 0.95;
     return {
       dist,
       x,
@@ -834,8 +861,25 @@ export class Visite360Engine {
     const picks: { edge: Visite360Edge; dist: number; isReturn: boolean }[] = [];
     const seen = new Set<string>();
 
-    // NHC return ring — turn around and the portal you came from is still walkable.
-    if (this.previousId && this.previousId !== this.currentId) {
+    // Leave-door for destination rooms (bed/bath/suite) — same doorway you enter.
+    // Works after rail jumps too (not only previousId return).
+    const exit = EXIT_DOOR[this.currentId];
+    if (exit && !seen.has(exit.to)) {
+      const edge = this.edgeTo(this.currentId, exit.to);
+      if (edge) {
+        const target = this.nodeById.get(exit.to);
+        const dist = origin && target ? origin.distanceTo(nodePos(target)) : 200;
+        picks.push({
+          edge: { ...edge, yaw: wrapLon(exit.yaw) },
+          dist,
+          isReturn: true,
+        });
+        seen.add(exit.to);
+      }
+    }
+
+    // NHC return ring — turn around toward the portal you came from.
+    if (this.previousId && this.previousId !== this.currentId && !seen.has(this.previousId)) {
       const back = this.edgeTo(this.currentId, this.previousId);
       if (back) {
         const target = this.nodeById.get(back.to);
@@ -845,9 +889,7 @@ export class Visite360Engine {
       }
     }
 
-    // Forward doorways — prefer the bearing you are looking at (ahead angle),
-    // not only graph distance. Distance-first was filling the 2-slot budget with
-    // side halls whose rings then failed on-screen, leaving the door ahead empty.
+    // Forward doorways — prefer the bearing you are looking at (ahead angle).
     const forward = ranked
       .filter((item) => !seen.has(item.edge.to))
       .map((item) => ({
