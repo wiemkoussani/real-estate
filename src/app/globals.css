@@ -3802,7 +3802,7 @@ html:not(.phone-layout) .scene360-pano canvas {
 }
 .plan-wrap .heart.on,
 .plan-wrap .heart[aria-pressed="true"] {
-  color: #e11d48;
+  color: var(--teal);
 }
 
 .detail-side .lead.side {

@@ -294,6 +294,13 @@ export function tourPlanUrl(tour: TourMedia, unit: Unit) {
   return tour.plans[base] || tour.plans[`type-${unit.type}.webp`] || tour.plans[`type-${unit.type}.jpg`] || "";
 }
 
+/** Light (<20 KB) version of the plan photo for the villa detail page; falls back to the full one. */
+export function tourPlanDetailUrl(tour: TourMedia, unit: Unit) {
+  const full = tourPlanUrl(tour, unit);
+  const name = (full.split("/").pop() || "").toLowerCase();
+  return tour.plans[name.replace(/\.(webp|jpe?g|png)$/, "-detail.webp")] || full;
+}
+
 export function emptyTour(slug: string): TourMedia {
   return emptyShell(slug);
 }

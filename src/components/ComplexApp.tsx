@@ -3,7 +3,7 @@
 import { useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, createContext } from "react";
 import { COMPLEX, UNIT_MODELS, modelOf, sarParts, type Unit, type UnitStatus } from "@/lib/complex";
 import { isPhoneLayout, PHONE_LAYOUT_MQ } from "@/lib/phoneLayout";
-import { buildTour, emptyTour, tourPlanUrl, tourVillaUrl, type TourMedia } from "@/lib/tour";
+import { buildTour, emptyTour, tourPlanDetailUrl, tourPlanUrl, tourVillaUrl, type TourMedia } from "@/lib/tour";
 import type { OrbitEngine as OrbitEngineType } from "@/viewer/OrbitEngine";
 import {
   Icon360,
@@ -2187,14 +2187,15 @@ function VillaTour({
           </div>
           <div className="plan-wrap">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={mediaSrc(tourPlanUrl(tour, unit))} alt="" />
+            <img src={mediaSrc(tourPlanDetailUrl(tour, unit))} alt="" />
             <button
               type="button"
               className={`heart${liked ? " on" : ""}`}
               onClick={onToggleFav}
               aria-label="Favorite"
+              aria-pressed={liked}
             >
-              <IconHeart />
+              <IconHeart filled={liked} />
             </button>
           </div>
           <DetailLead unit={unit} liked={liked} onToggleFav={onToggleFav} />
@@ -2214,7 +2215,7 @@ function DetailLead({
   onToggleFav: () => void;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
-  const [gender, setGender] = useState("السيدة");
+  const [gender, setGender] = useState("");
   const [fieldErr, setFieldErr] = useState<Partial<Record<ContactIssue, string>>>({});
   const [busy, setBusy] = useState(false);
   const [ok, setOk] = useState(false);
@@ -2261,7 +2262,7 @@ function DetailLead({
       });
       if (!res.ok) throw new Error("fail");
       form.reset();
-      setGender("السيدة");
+      setGender("");
       setFieldErr({});
       setOk(true);
     } catch {
