@@ -1400,7 +1400,21 @@ function ComplexStage({ tour, introOpen, onEnter }: { tour: TourMedia; introOpen
                 </span>
               </span>
             </button>
-            <button type="button" className="rail-fab" onClick={() => { setFormOpen(true); setListOpen(true); }}>
+            <button
+              type="button"
+              className={`rail-fab${formOpen && listOpen ? " is-active" : ""}`}
+              aria-pressed={formOpen && listOpen}
+              onClick={() => {
+                // second click closes the form: the cards come back (phone: back to the map, like the form's back arrow)
+                if (formOpen && listOpen) {
+                  setFormOpen(false);
+                  if (isPhoneLayout()) setListOpen(false);
+                  return;
+                }
+                setFormOpen(true);
+                setListOpen(true);
+              }}
+            >
               <span className="rail-name">تواصل</span>
               <span className="rail-ico glass"><IconMail size={20} /></span>
             </button>
@@ -1935,8 +1949,13 @@ function Spin360({ type, folder }: { type: number; folder: string }) {
   const floorCfg = COMPLEX.villa360.floors.find((f) => f.subfolder.toLowerCase() === folder.toLowerCase());
   const frameOffset = floorCfg?.frameOffset ?? 0;
   // per-floor camera correction (Final is rendered slightly further / higher)
-  const viewFix = useRef({ zoom: 1, shiftY: 0 });
-  viewFix.current = { zoom: floorCfg?.zoom ?? 1, shiftY: floorCfg?.shiftY ?? 0 };
+  const viewFix = useRef({ zoom: 1, shiftY: 0, rotate: 0, pivotY: 0.5 });
+  viewFix.current = {
+    zoom: floorCfg?.zoom ?? 1,
+    shiftY: floorCfg?.shiftY ?? 0,
+    rotate: floorCfg?.rotate ?? 0,
+    pivotY: floorCfg?.pivotY ?? 0.5,
+  };
 
   const draw = useCallback((i: number) => {
     const canvas = canvasRef.current;
@@ -1956,13 +1975,28 @@ function Spin360({ type, folder }: { type: number; folder: string }) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.fillStyle = "#E8EDF2";
     ctx.fillRect(0, 0, w, h);
-    const { zoom, shiftY } = viewFix.current;
+    const { zoom, shiftY, rotate, pivotY } = viewFix.current;
     const scale = Math.max(w / img.naturalWidth, h / img.naturalHeight) * zoom;
     const dw = img.naturalWidth * scale;
     const dh = img.naturalHeight * scale;
     // never shift so far that an empty band shows at the top
     const dy = Math.min(dh * shiftY, Math.max(0, (dh - h) / 2));
-    ctx.drawImage(img, (w - dw) / 2, (h - dh) / 2 + dy, dw, dh);
+    const x = (w - dw) / 2;
+    const y = (h - dh) / 2 + dy;
+    if (!rotate) {
+      ctx.drawImage(img, x, y, dw, dh);
+    } else {
+      // the unrotated frame underneath fills the small corners the rotated one leaves uncovered
+      ctx.drawImage(img, x, y, dw, dh);
+      const px = x + dw / 2;
+      const py = y + dh * pivotY;
+      ctx.save();
+      ctx.translate(px, py);
+      ctx.rotate((rotate * Math.PI) / 180);
+      ctx.translate(-px, -py);
+      ctx.drawImage(img, x, y, dw, dh);
+      ctx.restore();
+    }
   }, []);
 
   const idxRef = useRef(frontFrame);

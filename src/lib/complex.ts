@@ -71,13 +71,13 @@ export const COMPLEX = {
     whole: "tout_villa",
     /** Frame (0-based) that faces the front door — frame-15 for every villa type. */
     frontFrame: 14,
-    /** frameOffset: Final was rendered 2 frames later — its frame-17 matches RDC/1st frame-15.
-     *  zoom / shiftY: its camera is also a little further and higher, so its frames are drawn
-     *  2% larger and 1.1% (of the image height) lower to line the ground up with RDC/1st. */
+    /** frameOffset: Final was rendered ~2.36 frames later — whole-frame part: its frame-17 ≈ RDC/1st frame-15.
+     *  The leftover ~0.36 frame (≈2°) and its slightly different camera are corrected on screen:
+     *  rotate (degrees, around pivotY = fraction of the image height) and zoom; measured on all 60 frames. */
     floors: [
-      { id: "rdc", subfolder: "RDC", label: "RDC", frameOffset: 0, zoom: 1, shiftY: 0 },
-      { id: "etage_1", subfolder: "etage_1", label: "1st", frameOffset: 0, zoom: 1, shiftY: 0 },
-      { id: "etage_2", subfolder: "etage_2", label: "Final", frameOffset: 2, zoom: 1.02, shiftY: 0.011 },
+      { id: "rdc", subfolder: "RDC", label: "RDC", frameOffset: 0, zoom: 1, shiftY: 0, rotate: 0, pivotY: 0.5 },
+      { id: "etage_1", subfolder: "etage_1", label: "1st", frameOffset: 0, zoom: 1, shiftY: 0, rotate: 0, pivotY: 0.5 },
+      { id: "etage_2", subfolder: "etage_2", label: "Final", frameOffset: 2, zoom: 1.01, shiftY: 0, rotate: 1.5, pivotY: 0.556 },
     ],
     facadeFrames: [
       { index: 0, label: "Front" },

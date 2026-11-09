@@ -3456,6 +3456,28 @@ html:not(.phone-layout) .scene360-pano canvas {
   pointer-events: none;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
+/* measurement number badge (1, 2, 3…) in front of the distance */
+/* (the engine sets display:block on the label, so the badge is inline-block) */
+.v360-measure-label {
+  padding: 5px 10px 5px 5px;
+  line-height: 20px;
+}
+.v360-measure-num {
+  display: inline-block;
+  vertical-align: top;
+  margin-inline-end: 7px;
+  text-align: center;
+  line-height: 20px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 4px;
+  box-sizing: border-box;
+  border-radius: 10px;
+  background: #4fc3f7;
+  color: #0e1a26;
+  font-size: 12px;
+  font-weight: 700;
+}
 
 /* Floor + room caption (top centre). */
 .visite360-caption {
