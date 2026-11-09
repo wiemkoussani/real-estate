@@ -75,9 +75,10 @@ export const COMPLEX = {
      *  The leftover ~0.36 frame (≈2°) and its slightly different camera are corrected on screen:
      *  rotate (degrees, around pivotY = fraction of the image height) and zoom; measured on all 60 frames. */
     floors: [
-      { id: "rdc", subfolder: "RDC", label: "RDC", frameOffset: 0, zoom: 1, shiftY: 0, rotate: 0, pivotY: 0.5 },
-      { id: "etage_1", subfolder: "etage_1", label: "1st", frameOffset: 0, zoom: 1, shiftY: 0, rotate: 0, pivotY: 0.5 },
-      { id: "etage_2", subfolder: "etage_2", label: "Final", frameOffset: 2, zoom: 1.01, shiftY: 0, rotate: 1.5, pivotY: 0.556 },
+      { id: "rdc", subfolder: "RDC", label: "RDC", frameOffset: 0, zoom: 1, shiftX: 0, shiftY: 0, rotate: 0, pivotY: 0.5 },
+      { id: "etage_1", subfolder: "etage_1", label: "1st", frameOffset: 0, zoom: 1, shiftX: 0, shiftY: 0, rotate: 0, pivotY: 0.5 },
+      // fitted on the house base (what the eye follows) + the ground around it
+      { id: "etage_2", subfolder: "etage_2", label: "Final", frameOffset: 2, zoom: 1.01, shiftX: -0.006, shiftY: 0, rotate: 2, pivotY: 0.72 },
     ],
     facadeFrames: [
       { index: 0, label: "Front" },

@@ -1949,9 +1949,10 @@ function Spin360({ type, folder }: { type: number; folder: string }) {
   const floorCfg = COMPLEX.villa360.floors.find((f) => f.subfolder.toLowerCase() === folder.toLowerCase());
   const frameOffset = floorCfg?.frameOffset ?? 0;
   // per-floor camera correction (Final is rendered slightly further / higher)
-  const viewFix = useRef({ zoom: 1, shiftY: 0, rotate: 0, pivotY: 0.5 });
+  const viewFix = useRef({ zoom: 1, shiftX: 0, shiftY: 0, rotate: 0, pivotY: 0.5 });
   viewFix.current = {
     zoom: floorCfg?.zoom ?? 1,
+    shiftX: floorCfg?.shiftX ?? 0,
     shiftY: floorCfg?.shiftY ?? 0,
     rotate: floorCfg?.rotate ?? 0,
     pivotY: floorCfg?.pivotY ?? 0.5,
@@ -1975,7 +1976,7 @@ function Spin360({ type, folder }: { type: number; folder: string }) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.fillStyle = "#E8EDF2";
     ctx.fillRect(0, 0, w, h);
-    const { zoom, shiftY, rotate, pivotY } = viewFix.current;
+    const { zoom, shiftX, shiftY, rotate, pivotY } = viewFix.current;
     const scale = Math.max(w / img.naturalWidth, h / img.naturalHeight) * zoom;
     const dw = img.naturalWidth * scale;
     const dh = img.naturalHeight * scale;
@@ -1991,7 +1992,7 @@ function Spin360({ type, folder }: { type: number; folder: string }) {
       const px = x + dw / 2;
       const py = y + dh * pivotY;
       ctx.save();
-      ctx.translate(px, py);
+      ctx.translate(px + dw * shiftX, py);
       ctx.rotate((rotate * Math.PI) / 180);
       ctx.translate(-px, -py);
       ctx.drawImage(img, x, y, dw, dh);

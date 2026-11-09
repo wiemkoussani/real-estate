@@ -3462,16 +3462,17 @@ html:not(.phone-layout) .scene360-pano canvas {
   position: absolute;
   top: -5px;
   right: -5px;
-  min-width: 17px;
-  height: 17px;
+  min-width: 18px;
+  height: 18px;
   padding: 0 4px;
   box-sizing: border-box;
   border-radius: 9px;
-  background: #b7f5c8;
-  color: #12341f;
+  background: #3B7DD8; /* site blue, same as the active floor / Floorplan 3D buttons */
+  color: #fff;
+  border: 1.5px solid #fff;
   font-size: 10px;
   font-weight: 700;
-  line-height: 17px;
+  line-height: 15px;
   text-align: center;
   pointer-events: none;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
