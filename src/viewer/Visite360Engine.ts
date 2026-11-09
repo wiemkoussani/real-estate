@@ -197,12 +197,10 @@ const DOUBLE_TAP_WINDOW = 1; // s after a move started
 const TEX_CACHE_MAX = 12;
 const CUBE_FACES = ["px", "nx", "py", "ny", "pz", "nz"] as const; // three.js order
 
-const RING_DIAMETER = 0.42; // m
+const RING_DIAMETER = 0.38; // m — one standard size for every ring (hovered one included)
 const RING_THICKNESS = 0.012;
 const DOT_RADIUS = 0.04;
 const CURSOR_RADIUS = 0.05;
-/** Rings are drawn at the size they would have at this distance (m), at any distance. */
-const RING_SCREEN_REF_M = 2.2;
 const RING_HIT_RADIUS = 0.34; // m — a click this close to a ring's centre goes to that ring
 
 // -------------------------------------------------------------------- easing
@@ -1072,19 +1070,7 @@ export class Visite360Engine {
     this.camera.updateMatrixWorld();
   }
 
-  /** Rings keep the same size on screen whatever their distance (they don't grow as you get closer). */
-  private sizeRings() {
-    const eye = this.camera.position;
-    const ref = RING_SCREEN_REF_M * 100 * this.s;
-    const fit = (m: THREE.Object3D) => {
-      if (m.visible) m.scale.setScalar(Math.max(0.05, m.position.distanceTo(eye) / ref));
-    };
-    this.floorMarkers.forEach(fit);
-    if (this.hoverMarker) fit(this.hoverMarker);
-  }
-
   private render() {
-    this.sizeRings();
     this.renderer.clear();
     this.renderer.render(this.scene, this.camera);
     this.renderer.clearDepth();
