@@ -71,10 +71,11 @@ export const COMPLEX = {
     whole: "tout_villa",
     /** Frame (0-based) that faces the front door — frame-15 for every villa type. */
     frontFrame: 14,
+    /** frameOffset: Final was rendered 2 frames later — its frame-17 matches RDC/1st frame-15. */
     floors: [
-      { id: "rdc", subfolder: "RDC", label: "RDC" },
-      { id: "etage_1", subfolder: "etage_1", label: "1st" },
-      { id: "etage_2", subfolder: "etage_2", label: "Final" },
+      { id: "rdc", subfolder: "RDC", label: "RDC", frameOffset: 0 },
+      { id: "etage_1", subfolder: "etage_1", label: "1st", frameOffset: 0 },
+      { id: "etage_2", subfolder: "etage_2", label: "Final", frameOffset: 2 },
     ],
     facadeFrames: [
       { index: 0, label: "Front" },

@@ -6189,7 +6189,7 @@ html.phone-layout .detail.phone-sheet.sheet-full .detail-side {
   overflow: visible;
   padding: 0;
   flex: none;
-  transform: scale(0.72);
+  transform: scale(0.6);
   transform-origin: 50% 100%;
 }
 .tip.follow.tip-card .units.cards .unit {
@@ -6200,3 +6200,22 @@ html.phone-layout .detail.phone-sheet.sheet-full .detail-side {
 
 /* Contact form: favourites box disabled until a card has a heart */
 .lead-check.is-off { opacity: 0.55; cursor: not-allowed; }
+
+/* PC villa page on tall screens (≥960px): Figma sizes — 14px spacing, 66px contact card,
+   36px gender chips, 44px fields, 80px message, 48px submit. Shorter screens keep the tighter form above. */
+@media (min-height: 960px) {
+  html:not(.phone-layout) .detail-side.form-mode { gap: 12px; }
+  html:not(.phone-layout) .detail-side.form-mode .lead.side { gap: 9px; padding: 14px 16px 16px; }
+  html:not(.phone-layout) .detail-side.form-mode .contact-info { height: 66px; margin-bottom: 6px; }
+  html:not(.phone-layout) .detail-side.form-mode .contact-logo { height: 61px; }
+  html:not(.phone-layout) .detail-side.form-mode .contact-genders button { height: 36px; }
+  html:not(.phone-layout) .detail-side.form-mode .lead.side input,
+  html:not(.phone-layout) .detail-side.form-mode .lead.side .dial-btn { height: 44px; }
+  html:not(.phone-layout) .detail-side.form-mode .lead.side label.lead-check input { height: 16px; }
+  html:not(.phone-layout) .detail-side.form-mode .lead.side textarea { height: 72px; padding: 12px 14px; }
+  html:not(.phone-layout) .detail-side.form-mode .lead.side button[type="submit"] {
+    height: 48px; min-height: 48px; max-height: 48px;
+  }
+}
+/* Figma heart chip: 28×23 */
+.plan-wrap .heart { height: 23px; }

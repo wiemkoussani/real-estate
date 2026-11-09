@@ -1906,8 +1906,8 @@ function ContactSidebar({ unit, favUnits, onBack }: { unit: Unit | null; favUnit
           <input type="checkbox" name="favorites" disabled={!favUnits.length} />
           <span>
             {favUnits.length
-              ? `إرفاق الفلل التي أعجبتني بالطلب (${favUnits.length})`
-              : "إرفاق الفلل التي أعجبتني بالطلب (اضغط ♡ على البطاقات أولاً)"}
+              ? `أرسل الفيلات التي أعجبتك (${favUnits.length})`
+              : "أرسل الفيلات التي أعجبتك"}
           </span>
         </label>
         {issueCount > 0 && <p className="form-alert"><FieldMark />{issueCountLine(issueCount)}</p>}
@@ -1932,6 +1932,8 @@ function Spin360({ type, folder }: { type: number; folder: string }) {
   const [idx, setIdx] = useState(frontFrame);
   const [loading, setLoading] = useState(true);
   const shownType = useRef(type);
+  const frameOffset =
+    COMPLEX.villa360.floors.find((f) => f.subfolder.toLowerCase() === folder.toLowerCase())?.frameOffset ?? 0;
 
   const draw = useCallback((i: number) => {
     const canvas = canvasRef.current;
@@ -1982,7 +1984,8 @@ function Spin360({ type, folder }: { type: number; folder: string }) {
     }
     const inFlight = pending.current.get(index);
     if (inFlight) return inFlight;
-    const src = tourVillaUrl(tour, type, folder, index);
+    // images[] is indexed by viewing angle; some floors were rendered starting a few frames later
+    const src = tourVillaUrl(tour, type, folder, (index + frameOffset) % n);
     if (!src) return Promise.resolve();
     const gen = generation.current;
     loadingSet.current.add(index);
@@ -2010,7 +2013,7 @@ function Spin360({ type, folder }: { type: number; folder: string }) {
     if (img.src !== src) img.src = src;
     else if (img.complete && img.naturalWidth) finish(true);
     return promise;
-  }, [n, tour, type, folder, draw]);
+  }, [n, tour, type, folder, draw, frameOffset]);
 
   const warmAround = useCallback((center: number) => {
     if (!n) return;
@@ -2183,8 +2186,10 @@ function VillaTour({
   const floors = COMPLEX.villa360?.floors ?? [];
   // RDC → 1st → Final (do not reverse)
   const floorOrder = floors;
-  // always open on the ground floor (RDC)
-  const [floor, setFloor] = useState(floors.find((f) => f.id === "rdc")?.id ?? floors[0]?.id ?? "");
+  // always open on the top floor (Final)
+  const [floor, setFloor] = useState(
+    floors.find((f) => f.id === "etage_2")?.id ?? floors[floors.length - 1]?.id ?? "",
+  );
   const floorFolder =
     floors.find((f) => f.id === floor)?.subfolder ?? floors[0]?.subfolder ?? "RDC";
   const badge = STATUS_AR[unit.status] ?? unit.status;
@@ -2315,20 +2320,20 @@ function VillaTour({
           </div>
           <div className="side-stats" dir="rtl">
             <div>
-              <span>المساحة</span>
-              <b>{unit.surface}</b>
-            </div>
-            <div>
-              <span>غرف النوم</span>
-              <b>{unit.rooms}</b>
+              <span>النموذج</span>
+              <b>{modelOf(unit)}</b>
             </div>
             <div>
               <span>الطوابق</span>
               <b>{unit.floor}</b>
             </div>
             <div>
-              <span>النموذج</span>
-              <b>{modelOf(unit)}</b>
+              <span>غرف النوم</span>
+              <b>{unit.rooms}</b>
+            </div>
+            <div>
+              <span>المساحة</span>
+              <b>{unit.surface}</b>
             </div>
           </div>
           <div className="plan-wrap">
