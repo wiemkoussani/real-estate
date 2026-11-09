@@ -175,6 +175,7 @@ export default function Visite360Viewer({ className, startId }: Props) {
               onClick={toggleMeasure}
             >
               <IconRuler />
+              {measureCount > 0 ? <span className="tool-count">{measureCount}</span> : null}
             </button>
             {measureCount > 0 ? (
               <button
