@@ -71,6 +71,8 @@ export type LeadRow = {
   unit_display_id: string | null;
   complex_slug: string;
   complex_id: string | null;
+  to_favorites?: boolean | null;
+  favorite_units?: string[] | null;
 };
 
 export type AssetRow = {

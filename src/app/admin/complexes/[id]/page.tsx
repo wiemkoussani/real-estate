@@ -645,7 +645,7 @@ export default function ComplexAdminPage() {
         <>
           <h2>Leads</h2>
           <table>
-            <thead><tr><th>Date</th><th>Last name</th><th>First name</th><th>Email</th><th>Phone</th><th>Villa</th></tr></thead>
+            <thead><tr><th>Date</th><th>Last name</th><th>First name</th><th>Email</th><th>Phone</th><th>Villa</th><th>Favourites</th></tr></thead>
             <tbody>
               {leads.map((l) => (
                 <tr key={l.id}>
@@ -655,6 +655,7 @@ export default function ComplexAdminPage() {
                   <td>{l.email}</td>
                   <td>{l.tel}</td>
                   <td>{l.unit_display_id}</td>
+                  <td>{l.favorite_units?.length ? l.favorite_units.join(", ") : "—"}</td>
                 </tr>
               ))}
             </tbody>

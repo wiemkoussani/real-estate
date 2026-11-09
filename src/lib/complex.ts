@@ -69,6 +69,8 @@ export const COMPLEX = {
     framePrefix: "frame-",
     frameExt: ".webp",
     whole: "tout_villa",
+    /** Frame (0-based) that faces the front door — frame-15 for every villa type. */
+    frontFrame: 14,
     floors: [
       { id: "rdc", subfolder: "RDC", label: "RDC" },
       { id: "etage_1", subfolder: "etage_1", label: "1st" },

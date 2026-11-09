@@ -338,6 +338,8 @@ export class OrbitEngine {
     this.cropX = 0;
     this.cropY = 0;
     this.applyTransform();
+    // keep the colour overlay on the same crop as the photo (else colours sit off the houses)
+    this.syncCamera();
     this.syncMeshVisibility();
     this.draw("low");
     this.settle();
@@ -719,6 +721,11 @@ export class OrbitEngine {
     this.hoveredId = null;
     this.previewId = null;
     this.syncMeshVisibility();
+    // Already close to another house: pull back to the full view first, then turn, then go in.
+    if (this.zoom > 1.01 || Math.abs(this.panX) > 1 || Math.abs(this.panY) > 1) {
+      await this.pullBack();
+      if (this.disposed) return;
+    }
     const best = this.bestFrameForUnit(id);
     if (best !== this.currentFrame) {
       await this.goToFrame(best);
@@ -785,6 +792,39 @@ export class OrbitEngine {
     this.syncCamera();
     this.approaching = false;
     this.settle();
+  }
+
+  /** Zoom back out to the whole maquette (zoom 1, centred), dropping the previous house's tint. */
+  private async pullBack() {
+    this.focusedId = null;
+    this.syncMeshVisibility();
+    this.cancelUpgrade();
+    const fromZoom = this.zoom;
+    const fromPanX = this.panX;
+    const fromPanY = this.panY;
+    const fromCropX = this.cropX;
+    const fromCropY = this.cropY;
+    await this.tween(560, (e) => {
+      this.zoom = fromZoom + (1 - fromZoom) * e;
+      this.panX = fromPanX * (1 - e);
+      this.panY = fromPanY * (1 - e);
+      this.cropX = fromCropX * (1 - e);
+      this.cropY = fromCropY * (1 - e);
+      this.paintCurrent();
+      this.syncCamera();
+      this.applyTransform();
+    });
+    if (this.disposed) return;
+    this.zoom = 1;
+    this.panX = 0;
+    this.panY = 0;
+    this.cropX = 0;
+    this.cropY = 0;
+    this.paintCurrent();
+    this.syncCamera();
+    this.applyTransform();
+    // short pause on the full view so the move reads as back → turn → in
+    await new Promise((r) => setTimeout(r, 120));
   }
 
   /** House position on the full aerial, before the phone crop. */

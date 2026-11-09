@@ -25,6 +25,8 @@ export default function Visite360Viewer({ className, startId }: Props) {
   const [currentId, setCurrentId] = useState("");
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [measuring, setMeasuring] = useState(false);
+  const [measureCount, setMeasureCount] = useState(0);
 
   // ---------------------------------------------------------------- engine
   useEffect(() => {
@@ -35,6 +37,8 @@ export default function Visite360Viewer({ className, startId }: Props) {
     let engine: Visite360Engine | null = null;
     setLoaded(false);
     setError(null);
+    setMeasuring(false);
+    setMeasureCount(0);
 
     (async () => {
       try {
@@ -57,6 +61,7 @@ export default function Visite360Viewer({ className, startId }: Props) {
           onArrive: (id) => !disposed && setCurrentId(id),
           onFirstFrame: () => !disposed && setLoaded(true),
           onError: (m) => !disposed && setError(m),
+          onMeasurementsChange: (n) => !disposed && setMeasureCount(n),
         });
         engineRef.current = engine;
         // ?pick → log clicked points (for placing hotspots) and expose the engine in the console
@@ -84,6 +89,12 @@ export default function Visite360Viewer({ className, startId }: Props) {
   const rooms = (activeFloor?.rooms ?? []).map((id) => ({ id, label: camById.get(id)?.lb ?? id }));
 
   const goTo = useCallback((id: string) => engineRef.current?.teleportTo(id), []);
+
+  const toggleMeasure = () => {
+    const next = !measuring;
+    setMeasuring(next);
+    engineRef.current?.setMeasureMode(next);
+  };
 
   // keep the active room centred in the rail
   useEffect(() => {
@@ -151,7 +162,33 @@ export default function Visite360Viewer({ className, startId }: Props) {
         </div>
       ) : null}
 
-      {loaded && floors.length > 1 ? (
+      {loaded ? (
+        <div className="visite360-side">
+          {/* measure tool sits above the floor buttons (above Roof) */}
+          <div className="visite360-measure-tools">
+            <button
+              type="button"
+              className={`visite360-tool${measuring ? " on" : ""}`}
+              title={measuring ? "Stop measuring" : "Measure distance"}
+              aria-label={measuring ? "Stop measuring" : "Measure distance"}
+              aria-pressed={measuring}
+              onClick={toggleMeasure}
+            >
+              <IconRuler />
+            </button>
+            {measureCount > 0 ? (
+              <button
+                type="button"
+                className="visite360-tool"
+                title="Clear measurements"
+                aria-label="Clear measurements"
+                onClick={() => engineRef.current?.clearMeasurements()}
+              >
+                <IconTrash />
+              </button>
+            ) : null}
+          </div>
+          {floors.length > 1 ? (
         <div className="visite360-floors" role="tablist" aria-label="Floors">
           {/* top floor first, like elevator buttons: Roof / First / Ground */}
           {[...floors].reverse().map((f) => (
@@ -166,6 +203,8 @@ export default function Visite360Viewer({ className, startId }: Props) {
               {f.label}
             </button>
           ))}
+        </div>
+          ) : null}
         </div>
       ) : null}
 
@@ -189,3 +228,26 @@ export default function Visite360Viewer({ className, startId }: Props) {
     </div>
   );
 }
+
+const svg = {
+  width: 20,
+  height: 20,
+  viewBox: "0 0 24 24",
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: 1.8,
+  strokeLinecap: "round" as const,
+  strokeLinejoin: "round" as const,
+  "aria-hidden": true,
+};
+const IconRuler = () => (
+  <svg {...svg}>
+    <path d="M3 17 17 3l4 4L7 21z" />
+    <path d="m7 13 2 2M10 10l2 2M13 7l2 2" />
+  </svg>
+);
+const IconTrash = () => (
+  <svg {...svg}>
+    <path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" />
+  </svg>
+);

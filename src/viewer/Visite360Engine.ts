@@ -201,6 +201,7 @@ const RING_DIAMETER = 0.42; // m
 const RING_THICKNESS = 0.012;
 const DOT_RADIUS = 0.04;
 const CURSOR_RADIUS = 0.05;
+const RING_HIT_RADIUS = 0.34; // m — a click this close to a ring's centre goes to that ring
 
 // -------------------------------------------------------------------- easing
 
@@ -276,6 +277,7 @@ export class Visite360Engine {
   private hoverDest: number | null = null;
   private surfaceCursor!: THREE.Mesh;
   private markersSuppressed = false;
+  private walking = false; // rings hidden during a walk, shown again on arrival
 
   private hotspots: HotspotRuntime[] = [];
   private infoBox: HTMLDivElement | null = null;
@@ -495,6 +497,7 @@ export class Visite360Engine {
         if (this.currentTex) this.useMoveMaterial(refA, dest, this.currentTex, tex);
         this.moveDone = 0;
         this.status = Move.MOVING;
+        this.setWalking();
         this.o.onCameraChange?.(this.cams[e].id, e);
       })
       .catch((err) => console.error("Visite360: teleport texture failed", err));
@@ -867,6 +870,35 @@ export class Visite360Engine {
   }
 
   /** The ring nearest to the clicked point wins — this is what clicks actually do. */
+  /**
+   * Ring under the screen point, if any. Rings are drawn on top of everything, so a
+   * ring can sit visually over a sofa, a stair or a glass panel: we test the click ray
+   * against each ring's own floor level instead of trusting the surface it hits.
+   */
+  private ringAtScreen(clientX: number, clientY: number): number | null {
+    const r = this.o.canvas.getBoundingClientRect();
+    const ndc = new THREE.Vector2(((clientX - r.left) / r.width) * 2 - 1, -((clientY - r.top) / r.height) * 2 + 1);
+    this.raycaster.setFromCamera(ndc, this.camera);
+    const o = this.raycaster.ray.origin;
+    const d = this.raycaster.ray.direction;
+    if (Math.abs(d.y) < 1e-4) return null;
+    let best: number | null = null;
+    let bestT = Infinity;
+    this.floorEligible.forEach((ok, i) => {
+      if (!ok || this.walking || this.markersSuppressed) return;
+      const a = this.floorAnchor(i);
+      const t = (a.y - o.y) / d.y;
+      if (t <= 0 || t >= bestT) return;
+      const px = o.x + d.x * t - a.x;
+      const pz = o.z + d.z * t - a.z;
+      if (Math.hypot(px, pz) <= RING_HIT_RADIUS) {
+        bestT = t;
+        best = i;
+      }
+    });
+    return best;
+  }
+
   private nearestReachable(point: THREE.Vector3) {
     let best = -1;
     let bestD = Infinity;
@@ -887,14 +919,33 @@ export class Visite360Engine {
    * rotMode: 0 keep heading, 1 turn a little towards the click (max 15°), 2 face the click.
    * keyboard: a key press that finds nothing does nothing (no turn-in-place).
    */
-  private startMove(fullMove: boolean, rotMode: number, checkAngle: boolean, keyboard: boolean, hit: Hit | null) {
-    if (this.status !== Move.NONE || !hit) return;
+  private startMove(
+    fullMove: boolean,
+    rotMode: number,
+    checkAngle: boolean,
+    keyboard: boolean,
+    hit: Hit | null,
+    ring: number | null = null,
+  ) {
+    if (this.status !== Move.NONE) return;
+    if (ring !== null) {
+      // clicked a ring: go exactly there; "look point" = straight ahead along the walk
+      const here = this.camera.position;
+      const dest = this.cams[ring].pos;
+      const dir = new THREE.Vector3(dest.x - here.x, 0, dest.z - here.z);
+      if (dir.lengthSq() < 1e-6) dir.set(0, 0, -1).applyQuaternion(this.rigQuat).setY(0);
+      hit = { point: dest.clone().addScaledVector(dir.normalize(), 3), normal: null, distance: 0 };
+    }
+    if (!hit) return;
     this.moveStartTime = performance.now() / 1000;
     this.status = Move.PREPARING;
 
-    this.desiredCam = this.chooseDestination(hit, fullMove, checkAngle);
-    const near = this.nearestReachable(hit.point);
-    if (near !== null) this.desiredCam = near;
+    if (ring !== null) this.desiredCam = ring;
+    else {
+      this.desiredCam = this.chooseDestination(hit, fullMove, checkAngle);
+      const near = this.nearestReachable(hit.point);
+      if (near !== null) this.desiredCam = near;
+    }
 
     const here = this.camera.position.clone();
     const dest = this.cams[this.desiredCam].pos;
@@ -929,6 +980,7 @@ export class Visite360Engine {
       this.nextTex = this.currentTex;
       this.moveDone = 0;
       this.status = Move.MOVING;
+      this.setWalking();
       return;
     }
     const target = this.desiredCam;
@@ -940,6 +992,7 @@ export class Visite360Engine {
         if (this.currentTex) this.useMoveMaterial(this.cams[this.prevCamera].pos, dest, this.currentTex, tex);
         this.moveDone = 0;
         this.status = Move.MOVING;
+        this.setWalking();
         this.o.onCameraChange?.(this.cams[target].id, target);
       })
       .catch((e) => {
@@ -992,6 +1045,7 @@ export class Visite360Engine {
 
   private arrive() {
     this.status = Move.NONE;
+    this.walking = false;
     const i = this.desiredCam;
     this.rigPos.copy(this.cams[i].pos);
     this.rigQuat.copy(this.desiredQuat);
@@ -1201,8 +1255,9 @@ export class Visite360Engine {
       return;
     }
     if (this.status !== Move.NONE) return;
-    if (button === 0) this.startMove(ctl.defMove ?? false, ctl.defRot ?? 1, true, false, hit);
-    else this.startMove(ctl.altMove ?? true, ctl.altRot ?? 2, true, false, hit);
+    const ring = this.ringAtScreen(x, y);
+    if (button === 0) this.startMove(ctl.defMove ?? false, ctl.defRot ?? 1, true, false, hit, ring);
+    else this.startMove(ctl.altMove ?? true, ctl.altRot ?? 2, true, false, hit, ring);
   }
 
   private onWheel(e: WheelEvent) {
@@ -1327,7 +1382,26 @@ export class Visite360Engine {
       this.floorLabels.push(this.pill());
       this.floorEligible.push(false);
     });
+    // Destination ring: bigger, solid and filled so you see exactly where a click goes.
     this.hoverMarker = this.ringMesh("hoverMarker");
+    this.hoverMarker.scale.setScalar(1.25);
+    this.hoverMarker.traverse((o) => {
+      const m = (o as THREE.Mesh).material as THREE.MeshBasicMaterial | undefined;
+      if (m) m.opacity = 1;
+    });
+    const fill = new THREE.Mesh(
+      new THREE.CircleGeometry(RING_DIAMETER / 2, 48).rotateX(-Math.PI / 2),
+      new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: 0.22,
+        side: THREE.DoubleSide,
+        depthTest: false,
+        depthWrite: false,
+      }),
+    );
+    fill.renderOrder = 9;
+    this.hoverMarker.add(fill);
     this.hoverLabel = this.pill();
     this.surfaceCursor = new THREE.Mesh(
       new THREE.CircleGeometry(CURSOR_RADIUS, 12),
@@ -1350,8 +1424,32 @@ export class Visite360Engine {
     let a = this.floorAnchors.get(i);
     if (a) return a;
     const p = this.cams[i].pos;
-    const h = this.pick(p, new THREE.Vector3(0, -1, 0), 50);
+    const down = new THREE.Vector3(0, -1, 0);
+    const h = this.pick(p, down, 50);
     a = h ? h.point.clone().add(new THREE.Vector3(0, 0.02, 0)) : new THREE.Vector3(p.x, p.y - 1.5, p.z);
+    // Panoramas are shot ~1.46 m above the floor. A much shorter drop means furniture
+    // (e.g. the kitchen island) is under the camera: put the ring on the nearest clear floor beside it.
+    const M = 100 * this.s; // one metre in world units
+    const floorDrop = 1.46 * M;
+    if (h && p.y - h.point.y < floorDrop - 0.3 * M) {
+      const floorY = p.y - floorDrop;
+      let best: THREE.Vector3 | null = null;
+      for (let r = 0.3; r <= 2.0 && !best; r += 0.1) {
+        for (let k = 0; k < 24; k++) {
+          const ang = (k / 24) * Math.PI * 2;
+          const dir = new THREE.Vector3(Math.cos(ang), 0, Math.sin(ang));
+          // no wall between the camera and the spot (checked at eye height, above the furniture)
+          if (this.pick(p, dir, r * M + 0.15 * M)) continue;
+          const top = p.clone().addScaledVector(dir, r * M);
+          const hit = this.pick(top, down, 50);
+          if (hit && Math.abs(hit.point.y - floorY) < 0.15 * M) {
+            best = hit.point.clone().add(new THREE.Vector3(0, 0.02, 0));
+            break;
+          }
+        }
+      }
+      if (best) a = best;
+    }
     this.floorAnchors.set(i, a);
     return a;
   }
@@ -1376,9 +1474,15 @@ export class Visite360Engine {
 
   private refreshFloorMarkers() {
     this.floorMarkers.forEach((m, i) => {
-      m.visible = !this.markersSuppressed && this.floorEligible[i] && i !== this.hoverDest;
+      m.visible = !this.markersSuppressed && !this.walking && this.floorEligible[i] && i !== this.hoverDest;
       if (!m.visible) this.floorLabels[i].style.display = "none";
     });
+  }
+
+  private setWalking() {
+    this.walking = true;
+    this.hideHover();
+    this.refreshFloorMarkers();
   }
 
   private setHoverDest(i: number | null) {
@@ -1410,7 +1514,7 @@ export class Visite360Engine {
     const chosen = this.chooseDestination(hit, ctl.defMove ?? false, true);
     this.prevPos.copy(saveP);
     this.prevQuat.copy(saveQ);
-    const dest = this.nearestReachable(hit.point) ?? chosen;
+    const dest = this.ringAtScreen(this.hoverX, this.hoverY) ?? this.nearestReachable(hit.point) ?? chosen;
 
     if (dest === null || dest === this.prevCamera) {
       this.setHoverDest(null);

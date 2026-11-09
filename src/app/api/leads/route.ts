@@ -40,7 +40,10 @@ export async function POST(req: Request) {
     const gender = String(body?.gender ?? "").trim().slice(0, 20);
     const subject = String(body?.subject ?? "").trim().slice(0, 120);
     const message = String(body?.message ?? "").trim().slice(0, 800);
-    const toFavorites = Boolean(body?.toFavorites);
+    const favoriteUnits: string[] = Array.isArray(body?.favoriteUnits)
+      ? [...new Set((body.favoriteUnits as unknown[]).map((v) => String(v ?? "").trim().slice(0, 40)).filter(Boolean))].slice(0, 60)
+      : [];
+    const toFavorites = Boolean(body?.toFavorites) && favoriteUnits.length > 0;
     const unitId = body?.unitId ? String(body.unitId).slice(0, 80) : null;
     const unitDisplayId = body?.unitDisplayId ? String(body.unitDisplayId).slice(0, 40) : null;
     const complex = String(body?.complex ?? "villas-ajyad").slice(0, 80);
@@ -74,13 +77,17 @@ export async function POST(req: Request) {
       complex_slug: complex,
       complex_id: cx?.id ?? null,
     };
+    const details = { ...base, gender, subject, message, to_favorites: toFavorites };
     let { error } = await supabase.from("leads").insert({
-      ...base,
-      gender,
-      subject,
-      message,
-      to_favorites: toFavorites,
+      ...details,
+      favorite_units: toFavorites ? favoriteUnits : null,
     });
+    if (error && toFavorites) {
+      // favorite_units column not created yet (migration 010): keep the list in the message
+      const note = `الفلل المفضلة: ${favoriteUnits.join("، ")}`;
+      const retry = await supabase.from("leads").insert({ ...details, message: message ? `${message}\n\n${note}` : note });
+      error = retry.error;
+    }
     if (error) {
       const retry = await supabase.from("leads").insert(base);
       error = retry.error;

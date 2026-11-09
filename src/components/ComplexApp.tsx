@@ -264,8 +264,11 @@ export default function ComplexApp({ slug, initialTour }: { slug: string; initia
 
   useEffect(() => {
     let cancelled = false;
+    // Only swap the tour when the data really changed: a new tour object rebuilds the
+    // 3D stage, which would restart the loading counter from 0.
     const apply = (next: TourMedia) => {
-      if (!cancelled) setTour(next);
+      if (cancelled) return;
+      setTour((prev) => (prev && JSON.stringify(prev) === JSON.stringify(next) ? prev : next));
     };
     if (initialTour) apply(initialTour);
     // Refresh from API so branding logo / assets are not missing after SSR.
@@ -575,7 +578,8 @@ function ComplexStage({ tour, introOpen, onEnter }: { tour: TourMedia; introOpen
     void import("@/viewer/OrbitEngine").then(({ OrbitEngine }) => {
       if (cancelled) return;
       engine = new OrbitEngine(stage, { bg, bgNext, three }, {
-        onLoadProgress: setLoadPct,
+        // the counter only goes up, even if the stage is rebuilt
+        onLoadProgress: (pct) => setLoadPct((prev) => Math.max(prev, pct)),
         onFrame: (i) => {
           setFrame(i);
           setHeadingDir(engine!.getHeadingDir());
@@ -700,6 +704,8 @@ function ComplexStage({ tour, introOpen, onEnter }: { tour: TourMedia; introOpen
     };
   }, [ready, filtered, scene360Strip, scene360Open, tourUnit]);
 
+  const favsRef = useRef(favs);
+  favsRef.current = favs;
   const toggleFav = (id: string) => {
     const removing = favs.includes(id);
     setFavs((prev) => {
@@ -717,10 +723,13 @@ function ComplexStage({ tour, introOpen, onEnter }: { tour: TourMedia; introOpen
       setLeavingFavs((ids) => ids.filter((x) => x !== id));
       return;
     }
+    // last liked card removed: once it has slid out, go back to all the cards
+    const lastOne = favs.filter((x) => x !== id).length === 0;
     setLeavingFavs((ids) => (ids.includes(id) ? ids : [...ids, id]));
     leaveTimers.current.set(id, window.setTimeout(() => {
       leaveTimers.current.delete(id);
       setLeavingFavs((ids) => ids.filter((x) => x !== id));
+      if (lastOne && favsRef.current.length === 0) setFavOnly(false);
     }, 480));
   };
 
@@ -868,9 +877,39 @@ function ComplexStage({ tour, introOpen, onEnter }: { tour: TourMedia; introOpen
     stripScrollCleanup.current = null;
     stripElRef.current = node;
     if (!node) return;
+    // Short glide after a drag: the strip keeps going a little in the drag direction, then eases to a stop.
+    let coastRaf = 0;
+    const stopCoast = () => {
+      if (coastRaf) cancelAnimationFrame(coastRaf);
+      coastRaf = 0;
+    };
+    const samples: { t: number; x: number }[] = [];
+    const coast = (v0: number) => {
+      stopCoast();
+      let v = Math.max(-3, Math.min(3, v0)); // px per ms, capped so a hard flick stays a "little" push
+      if (Math.abs(v) < 0.15) return;
+      let last = performance.now();
+      let pos = node.scrollLeft; // tracked as a float: scrollLeft rounds small steps away
+      const max = node.scrollWidth - node.clientWidth;
+      const step = (now: number) => {
+        const dt = Math.min(40, now - last);
+        last = now;
+        pos = Math.max(0, Math.min(max, pos - v * dt));
+        node.scrollLeft = pos;
+        v *= Math.pow(0.9, dt / 16.67); // friction
+        // stop when slow or when the strip hits an end
+        if (Math.abs(v) < 0.02 || pos <= 0 || pos >= max) {
+          coastRaf = 0;
+          return;
+        }
+        coastRaf = requestAnimationFrame(step);
+      };
+      coastRaf = requestAnimationFrame(step);
+    };
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
       e.stopPropagation();
+      stopCoast();
       if (Math.abs(e.deltaY) <= Math.abs(e.deltaX) && e.deltaX === 0) return;
       node.scrollLeft += e.deltaY + e.deltaX;
     };
@@ -881,6 +920,9 @@ function ComplexStage({ tour, introOpen, onEnter }: { tour: TourMedia; introOpen
     let activePointer: number | null = null;
     const onDown = (e: PointerEvent) => {
       if (e.button !== 0) return;
+      stopCoast();
+      samples.length = 0;
+      samples.push({ t: performance.now(), x: e.clientX });
       tracking = true;
       dragging = false;
       stripDragRef.current = false;
@@ -899,8 +941,11 @@ function ComplexStage({ tour, introOpen, onEnter }: { tour: TourMedia; introOpen
         node.classList.add("is-dragging");
       }
       e.preventDefault();
-      // 1:1 with the pointer — no coast / push after release
+      // 1:1 with the pointer while dragging; a short glide follows on release
       node.scrollLeft = startScroll - dx;
+      const now = performance.now();
+      samples.push({ t: now, x: e.clientX });
+      while (samples.length > 2 && now - samples[0].t > 100) samples.shift();
     };
     const onUp = (e: PointerEvent) => {
       if (activePointer !== null && e.pointerId !== activePointer) return;
@@ -909,6 +954,13 @@ function ComplexStage({ tour, introOpen, onEnter }: { tour: TourMedia; introOpen
       if (!dragging) return;
       dragging = false;
       node.classList.remove("is-dragging");
+      // release speed over the last ~100 ms (0 if the pointer was held still before letting go)
+      const now = performance.now();
+      const first = samples[0];
+      const lastS = samples[samples.length - 1];
+      const held = !lastS || now - lastS.t > 80;
+      const span = first && lastS ? lastS.t - first.t : 0;
+      coast(held || span <= 0 ? 0 : (lastS.x - first.x) / span);
       window.setTimeout(() => {
         stripDragRef.current = false;
       }, 40);
@@ -919,6 +971,7 @@ function ComplexStage({ tour, introOpen, onEnter }: { tour: TourMedia; introOpen
     node.addEventListener("pointerup", onUp);
     node.addEventListener("pointercancel", onUp);
     stripScrollCleanup.current = () => {
+      stopCoast();
       node.removeEventListener("wheel", onWheel);
       node.removeEventListener("pointerdown", onDown);
       node.removeEventListener("pointermove", onMove);
@@ -1014,6 +1067,7 @@ function ComplexStage({ tour, introOpen, onEnter }: { tour: TourMedia; introOpen
           {formOpen ? (
             <ContactSidebar
               unit={selected}
+              favUnits={favs.map((id) => units.find((u) => u.id === id)?.displayId ?? id)}
               onBack={() => {
                 setFormOpen(false);
                 // Phone/tablet: leave the contact form for the map, not the unit list.
@@ -1272,15 +1326,9 @@ function ComplexStage({ tour, introOpen, onEnter }: { tour: TourMedia; introOpen
         <canvas ref={threeRef} className="layer webgl" />
 
         {hover && hoverPos && !tourUnit && !scene360Open && (
-          <div className="tip follow" style={{ left: hoverPos.x, top: hoverPos.y }}>
-            {mediaSrc(tourPlanUrl(tour, hover)) ? <img src={tourPlanUrl(tour, hover)} alt="" /> : null}
-            <div>
-              <div className="tip-head">
-                <b>{hover.displayId}</b>
-                <small className={hover.status}>{STATUS_LABEL[hover.status]}</small>
-              </div>
-              <p>{hover.surface} m² · {hover.rooms} rooms</p>
-            </div>
+          // the same card as in the side list, just smaller
+          <div className="tip follow tip-card" style={{ left: hoverPos.x, top: hoverPos.y }}>
+            <MiniUnitCard unit={hover} photo={cardPhoto(tour, hover)} liked={favs.includes(hover.id)} />
           </div>
         )}
         {selected && !hover && !tourUnit && !scene360Open && approachedRef.current === selected.id && (
@@ -1696,7 +1744,42 @@ function ComplexStage({ tour, introOpen, onEnter }: { tour: TourMedia; introOpen
   );
 }
 
-function ContactSidebar({ unit, onBack }: { unit: Unit | null; onBack: () => void }) {
+/** Read-only copy of the side-list card (used for the hover card over a house). */
+function MiniUnitCard({ unit, photo, liked }: { unit: Unit; photo: string; liked: boolean }) {
+  const price = sarParts(unitPrice(unit));
+  return (
+    <div className="units cards">
+      <div className="unit">
+        <div className="card-side">
+          {photo ? <img src={photo} alt="" /> : <span className="card-img-fallback" />}
+          <span className={liked ? "heart on" : "heart"}>
+            <IconHeart size={12} filled={liked} />
+          </span>
+        </div>
+        <div className="card-copy">
+          <div className="card-availability">
+            <div className="card-identity">
+              <strong>{unit.displayId}</strong>
+              <span className="card-price" dir="ltr" lang="en">
+                <span className="sar-cur">{price.currency}</span>
+                <span className="sar-num">{price.amount}</span>
+              </span>
+            </div>
+            <em className={`badge ${unit.status}`}>{STATUS_AR[unit.status]}</em>
+          </div>
+          <div className="card-divider" aria-hidden="true" />
+          <div className="card-specs">
+            <span className="spec-rooms"><b>{unit.rooms}</b><small>غرف النوم</small></span>
+            <span className="spec-area"><b>{unit.surface}</b><small>المساحة</small></span>
+            <span className="spec-floor"><b>{unit.floor}</b><small>الطوابق</small></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ContactSidebar({ unit, favUnits, onBack }: { unit: Unit | null; favUnits: string[]; onBack: () => void }) {
   const tour = useTour();
   const [busy, setBusy] = useState(false);
   const [ok, setOk] = useState(false);
@@ -1739,7 +1822,8 @@ function ContactSidebar({ unit, onBack }: { unit: Unit | null; onBack: () => voi
       gender,
       subject: String(fd.get("subject") || "").trim(),
       message: String(fd.get("message") || "").trim(),
-      toFavorites: fd.get("favorites") === "on",
+      toFavorites: fd.get("favorites") === "on" && favUnits.length > 0,
+      favoriteUnits: fd.get("favorites") === "on" ? favUnits : [],
       unitId: unit?.id ?? null,
       unitDisplayId: unit?.displayId ?? null,
       complex: tour.slug,
@@ -1818,9 +1902,13 @@ function ContactSidebar({ unit, onBack }: { unit: Unit | null; onBack: () => voi
         <label>هل لديك رسالة لنا؟
           <textarea name="message" placeholder="اكتب رسالتك هنا..." aria-label="هل لديك رسالة لنا؟" />
         </label>
-        <label className="lead-check">
-          <input type="checkbox" name="favorites" />
-          <span>إرسال إلى المفضلة</span>
+        <label className={`lead-check${favUnits.length ? "" : " is-off"}`}>
+          <input type="checkbox" name="favorites" disabled={!favUnits.length} />
+          <span>
+            {favUnits.length
+              ? `إرفاق الفلل التي أعجبتني بالطلب (${favUnits.length})`
+              : "إرفاق الفلل التي أعجبتني بالطلب (اضغط ♡ على البطاقات أولاً)"}
+          </span>
         </label>
         {issueCount > 0 && <p className="form-alert"><FieldMark />{issueCountLine(issueCount)}</p>}
         {err && <p className="err">{err}</p>}
@@ -1838,9 +1926,12 @@ function Spin360({ type, folder }: { type: number; folder: string }) {
   const loadingSet = useRef(new Set<number>());
   const dragging = useRef(false);
   const startX = useRef(0);
-  const [idx, setIdx] = useState(0);
-  const [loading, setLoading] = useState(true);
   const n = tour.villaFrames;
+  // open on the front door side
+  const frontFrame = n ? Math.min(n - 1, COMPLEX.villa360.frontFrame ?? 0) : 0;
+  const [idx, setIdx] = useState(frontFrame);
+  const [loading, setLoading] = useState(true);
+  const shownType = useRef(type);
 
   const draw = useCallback((i: number) => {
     const canvas = canvasRef.current;
@@ -1870,11 +1961,16 @@ function Spin360({ type, folder }: { type: number; folder: string }) {
     );
   }, []);
 
-  const idxRef = useRef(0);
+  const idxRef = useRef(frontFrame);
   idxRef.current = idx;
 
-  const ensureFrame = useCallback((i: number) => {
-    if (!n) return;
+  // bumped on every floor / villa change so late loads from the previous set are ignored
+  const generation = useRef(0);
+  const pending = useRef(new Map<number, Promise<void>>());
+
+  /** Load one frame; resolves once it is ready (or failed). */
+  const ensureFrame = useCallback((i: number): Promise<void> => {
+    if (!n) return Promise.resolve();
     const index = ((i % n) + n) % n;
     const existing = images.current[index];
     if (existing?.complete && existing.naturalWidth) {
@@ -1882,19 +1978,24 @@ function Spin360({ type, folder }: { type: number; folder: string }) {
         setLoading(false);
         draw(index);
       }
-      return;
+      return Promise.resolve();
     }
-    if (loadingSet.current.has(index)) return;
+    const inFlight = pending.current.get(index);
+    if (inFlight) return inFlight;
+    const src = tourVillaUrl(tour, type, folder, index);
+    if (!src) return Promise.resolve();
+    const gen = generation.current;
     loadingSet.current.add(index);
     const img = existing ?? new Image();
     images.current[index] = img;
     img.decoding = "async";
-    const src = tourVillaUrl(tour, type, folder, index);
-    if (!src) {
-      loadingSet.current.delete(index);
-      return;
-    }
+    let done!: () => void;
+    const promise = new Promise<void>((resolve) => (done = resolve));
+    pending.current.set(index, promise);
     const finish = (ok: boolean) => {
+      done();
+      if (gen !== generation.current) return; // floor changed meanwhile
+      pending.current.delete(index);
       loadingSet.current.delete(index);
       if (idxRef.current !== index) return;
       if (ok) {
@@ -1908,6 +2009,7 @@ function Spin360({ type, folder }: { type: number; folder: string }) {
     img.onerror = () => finish(false);
     if (img.src !== src) img.src = src;
     else if (img.complete && img.naturalWidth) finish(true);
+    return promise;
   }, [n, tour, type, folder, draw]);
 
   const warmAround = useCallback((center: number) => {
@@ -1920,11 +2022,35 @@ function Spin360({ type, folder }: { type: number; folder: string }) {
   }, [n, ensureFrame]);
 
   useEffect(() => {
+    generation.current += 1;
     images.current = [];
     loadingSet.current = new Set();
-    setIdx(0);
+    pending.current = new Map();
+    // new floor: stay on the same side; new villa type: back to the front door
+    const start = shownType.current === type ? idxRef.current : frontFrame;
+    shownType.current = type;
+    idxRef.current = start;
+    setIdx(start);
     setLoading(true);
-    warmAround(0);
+    warmAround(start);
+    // Background: load every frame of this floor, nearest to the current view first,
+    // a few at a time so the frames you turn to next always come before far ones.
+    let stopped = false;
+    const queue: number[] = [];
+    for (let d = 5; d <= Math.ceil(n / 2); d++) queue.push(start + d, start - d);
+    const worker = async () => {
+      while (!stopped && queue.length) {
+        // re-sort by distance to where the user is looking now
+        const at = idxRef.current;
+        const dist = (i: number) => {
+          const k = (((i - at) % n) + n) % n;
+          return Math.min(k, n - k);
+        };
+        queue.sort((a, b) => dist(a) - dist(b));
+        await ensureFrame(queue.shift()!);
+      }
+    };
+    for (let w = 0; w < 4; w++) void worker();
     const onResize = () => draw(idxRef.current);
     window.addEventListener("resize", onResize);
     const wrap = wrapRef.current;
@@ -1939,10 +2065,11 @@ function Spin360({ type, folder }: { type: number; folder: string }) {
       ro.observe(wrap);
     }
     return () => {
+      stopped = true;
       window.removeEventListener("resize", onResize);
       ro?.disconnect();
     };
-  }, [type, folder, tour, warmAround, draw]);
+  }, [type, folder, tour, warmAround, draw, frontFrame, ensureFrame, n]);
 
   useEffect(() => {
     warmAround(idx);
@@ -1994,7 +2121,8 @@ function Spin360({ type, folder }: { type: number; folder: string }) {
         if (!dragging.current) return;
         const d = e.clientX - startX.current;
         if (Math.abs(d) > 8) {
-          spin(d > 0 ? 1 : -1);
+          // same direction as the main maquette: the house follows the finger
+          spin(d > 0 ? -1 : 1);
           startX.current = e.clientX;
         }
       }}
@@ -2055,13 +2183,19 @@ function VillaTour({
   const floors = COMPLEX.villa360?.floors ?? [];
   // RDC → 1st → Final (do not reverse)
   const floorOrder = floors;
-  const [floor, setFloor] = useState(floors[0]?.id ?? "");
+  // always open on the ground floor (RDC)
+  const [floor, setFloor] = useState(floors.find((f) => f.id === "rdc")?.id ?? floors[0]?.id ?? "");
   const floorFolder =
     floors.find((f) => f.id === floor)?.subfolder ?? floors[0]?.subfolder ?? "RDC";
   const badge = STATUS_AR[unit.status] ?? unit.status;
   const [isPhone, setIsPhone] = useState(false);
-  const [sheetHeight, setSheetHeight] = useState(0.52);
-  const dragRef = useRef<{ startY: number; startH: number } | null>(null);
+  // Phone sheet: opens at 52%. Pulled up to 60% it fills the whole screen;
+  // pulled down from full it goes back to 52% so the villa shows again.
+  const SHEET_OPEN = 0.52;
+  const SHEET_SNAP_FULL = 0.6;
+  const [sheetHeight, setSheetHeight] = useState(SHEET_OPEN);
+  const [sheetDragging, setSheetDragging] = useState(false);
+  const dragRef = useRef<{ startY: number; startH: number; h: number } | null>(null);
 
   useEffect(() => {
     const sync = () => setIsPhone(isPhoneLayout());
@@ -2074,15 +2208,16 @@ function VillaTour({
   const onSheetPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isPhone) return;
     e.currentTarget.setPointerCapture(e.pointerId);
-    dragRef.current = { startY: e.clientY, startH: sheetHeight };
+    dragRef.current = { startY: e.clientY, startH: sheetHeight, h: sheetHeight };
+    setSheetDragging(true);
   };
 
   const onSheetPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!dragRef.current || !isPhone) return;
     const dy = dragRef.current.startY - e.clientY;
-    const next = dragRef.current.startH + dy / window.innerHeight;
-    // Phone sheet: between 25% (min) and 52% (max / default).
-    setSheetHeight(Math.min(0.52, Math.max(0.25, next)));
+    const next = Math.min(1, Math.max(0.25, dragRef.current.startH + dy / window.innerHeight));
+    dragRef.current.h = next;
+    setSheetHeight(next);
   };
 
   const onSheetPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -2092,18 +2227,29 @@ function VillaTour({
     } catch {
       /* ignore */
     }
+    const { startH, h } = dragRef.current;
     dragRef.current = null;
+    setSheetDragging(false);
+    if (startH >= 0.99) {
+      // from full screen: a real pull down brings the villa back
+      setSheetHeight(h < 0.92 ? Math.min(h, SHEET_OPEN) : 1);
+    } else if (h >= SHEET_SNAP_FULL) {
+      setSheetHeight(1);
+    } else if (h > SHEET_OPEN) {
+      setSheetHeight(SHEET_OPEN);
+    }
   };
+  const sheetCss = `min(${(sheetHeight * 100).toFixed(2)}vh, 100%)`;
 
   const sheetStyle = isPhone
     ? ({
-        ["--sheet-h" as string]: `${sheetHeight * 100}vh`,
+        ["--sheet-h" as string]: sheetCss,
       } as React.CSSProperties)
     : undefined;
 
   return (
     <div
-      className={`detail${isPhone ? " phone-sheet" : ""}${tab === "visit" ? " visit-full" : ""}`}
+      className={`detail${isPhone ? " phone-sheet" : ""}${tab === "visit" ? " visit-full" : ""}${isPhone && !sheetDragging ? " sheet-settle" : ""}${isPhone && sheetHeight >= 0.99 ? " sheet-full" : ""}`}
       style={sheetStyle}
     >
       <div className="detail-body">
@@ -2148,7 +2294,7 @@ function VillaTour({
 
         <aside
           className="detail-side form-mode"
-          style={isPhone ? { height: `${sheetHeight * 100}vh` } : undefined}
+          style={isPhone ? { height: sheetCss } : undefined}
           hidden={tab === "visit"}
         >
           {isPhone ? (
@@ -2167,21 +2313,21 @@ function VillaTour({
             </div>
             <span className={`side-badge st-${unit.status}`}>{badge}</span>
           </div>
-          <div className="side-stats">
+          <div className="side-stats" dir="rtl">
             <div>
-              <span>Area</span>
+              <span>المساحة</span>
               <b>{unit.surface}</b>
             </div>
             <div>
-              <span>Rooms</span>
+              <span>غرف النوم</span>
               <b>{unit.rooms}</b>
             </div>
             <div>
-              <span>Floors</span>
+              <span>الطوابق</span>
               <b>{unit.floor}</b>
             </div>
             <div>
-              <span>Model</span>
+              <span>النموذج</span>
               <b>{modelOf(unit)}</b>
             </div>
           </div>
@@ -2240,7 +2386,8 @@ function DetailLead({
       email: String(fd.get("email") ?? ""),
       tel: String(fd.get("tel") ?? ""),
       message: String(fd.get("message") ?? ""),
-      favorites: Boolean(fd.get("favorites")),
+      toFavorites: Boolean(fd.get("favorites")),
+      favoriteUnits: fd.get("favorites") ? [unit.displayId] : [],
       unitId: unit.id,
       unitDisplayId: unit.displayId,
       complex: COMPLEX.name,

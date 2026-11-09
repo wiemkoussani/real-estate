@@ -3488,16 +3488,50 @@ html:not(.phone-layout) .scene360-pano canvas {
   color: rgba(255, 255, 255, 0.5);
 }
 
-/* Floors: vertical buttons on the left, vertically centred (NHC floors="side"). */
-.visite360-floors {
+/* Left column: measure tool on top, then floors (Roof / First / Ground), vertically centred. */
+.visite360-side {
   position: absolute;
   top: 50%;
   left: 16px;
   z-index: 55;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  align-items: center;
+  gap: 14px;
   transform: translateY(-50%);
+}
+.visite360-floors {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.visite360-measure-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.visite360-tool {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: rgba(20, 24, 32, 0.72);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: rgba(255, 255, 255, 0.92);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.visite360-tool:hover {
+  background: rgba(40, 46, 58, 0.85);
+  color: #fff;
+}
+.visite360-tool.on {
+  background: #fff;
+  color: #141820;
 }
 .visite360-floors button,
 .visite360-rooms button {
@@ -5756,8 +5790,12 @@ html.phone-layout .visite360 {
   width: 100%;
   height: 100%;
 }
-html.phone-layout .visite360-floors {
+html.phone-layout .visite360-side {
   left: 10px;
+}
+html.phone-layout .visite360-tool {
+  width: 34px;
+  height: 34px;
 }
 html.phone-layout .visite360-floors button {
   min-width: 58px;
@@ -6069,3 +6107,96 @@ html.phone-layout .plan-wrap {
 .contact-genders button:active {
   transform: scale(0.96);
 }
+
+/* PC villa page: the whole form fits on screen with no inner scroll.
+   The form is a little tighter and the photo above it gives up height on short screens. */
+html:not(.phone-layout) .detail-side.form-mode {
+  gap: 10px;
+  padding-bottom: 16px;
+}
+html:not(.phone-layout) .detail-side.form-mode .plan-wrap {
+  flex: 0 1 184px;
+  height: auto;
+  min-height: 72px;
+  max-height: 184px;
+}
+html:not(.phone-layout) .detail-side.form-mode .lead.side {
+  flex: none;
+  overflow: visible;
+  gap: 9px;
+  padding: 12px 14px 14px;
+}
+html:not(.phone-layout) .detail-side.form-mode .contact-info {
+  height: 54px;
+  margin-bottom: 4px;
+}
+html:not(.phone-layout) .detail-side.form-mode .contact-logo {
+  height: 50px;
+}
+html:not(.phone-layout) .detail-side.form-mode .contact-genders button {
+  height: 32px;
+}
+html:not(.phone-layout) .detail-side.form-mode .lead.side label {
+  gap: 4px;
+}
+html:not(.phone-layout) .detail-side.form-mode .lead.side input,
+html:not(.phone-layout) .detail-side.form-mode .lead.side .dial-btn {
+  height: 38px;
+}
+html:not(.phone-layout) .detail-side.form-mode .lead.side label.lead-check {
+  gap: 8px;
+}
+html:not(.phone-layout) .detail-side.form-mode .lead.side label.lead-check input {
+  height: 16px;
+}
+html:not(.phone-layout) .detail-side.form-mode .lead.side textarea {
+  height: 56px;
+  padding: 10px 14px;
+}
+html:not(.phone-layout) .detail-side.form-mode .lead.side button[type="submit"] {
+  height: 42px;
+  min-height: 42px;
+  max-height: 42px;
+  margin-top: 2px;
+}
+
+/* Phone villa sheet: glide to 52% / full screen when the finger lets go (no glide while dragging). */
+html.phone-layout .detail.phone-sheet.sheet-settle .detail-side {
+  transition: height 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+html.phone-layout .detail.phone-sheet.sheet-settle .detail-stage {
+  transition: inset 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+/* Full-screen sheet: square top so it reads as a page, not a card */
+html.phone-layout .detail.phone-sheet.sheet-full .detail-side {
+  border-radius: 0;
+  padding-top: env(safe-area-inset-top);
+}
+
+/* Hover over a house: the side-list card itself, at ~72% size. */
+.tip.follow.tip-card {
+  display: block;
+  padding: 0;
+  max-width: none;
+  max-height: none;
+  background: transparent;
+  box-shadow: none;
+  border-radius: 12px;
+}
+/* scaled from its bottom centre, so it still sits just above the cursor */
+.tip.follow.tip-card .units.cards {
+  width: 340px;
+  overflow: visible;
+  padding: 0;
+  flex: none;
+  transform: scale(0.72);
+  transform-origin: 50% 100%;
+}
+.tip.follow.tip-card .units.cards .unit {
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
+}
+.tip.follow.tip-card .tip-head,
+.tip.follow.tip-card p { display: none; }
+
+/* Contact form: favourites box disabled until a card has a heart */
+.lead-check.is-off { opacity: 0.55; cursor: not-allowed; }
