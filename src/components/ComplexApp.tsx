@@ -1943,7 +1943,11 @@ function Spin360({ type, folder }: { type: number; folder: string }) {
   const n = tour.villaFrames;
   // open on the front door side
   const frontFrame = n ? Math.min(n - 1, COMPLEX.villa360.frontFrame ?? 0) : 0;
-  const [idx, setIdx] = useState(frontFrame);
+  // pos = total frames turned (never wraps); idx = which of the n frames is shown.
+  // The compass needle follows pos, so it always turns the same way as the click,
+  // even after one or more full turns.
+  const [pos, setPos] = useState(frontFrame);
+  const idx = n > 0 ? ((pos % n) + n) % n : 0;
   const [loading, setLoading] = useState(true);
   const shownType = useRef(type);
   const floorCfg = COMPLEX.villa360.floors.find((f) => f.subfolder.toLowerCase() === folder.toLowerCase());
@@ -2070,7 +2074,10 @@ function Spin360({ type, folder }: { type: number; folder: string }) {
     const start = shownType.current === type ? idxRef.current : frontFrame;
     shownType.current = type;
     idxRef.current = start;
-    setIdx(start);
+    setPos((p) => {
+      const cur = n > 0 ? ((p % n) + n) % n : 0;
+      return p - cur + start;
+    });
     setLoading(true);
     warmAround(start);
     // Background: load every frame of this floor, nearest to the current view first,
@@ -2122,7 +2129,7 @@ function Spin360({ type, folder }: { type: number; folder: string }) {
     }
   }, [idx, warmAround, draw]);
 
-  const spin = (dir: 1 | -1) => setIdx((v) => (v + dir + n) % n);
+  const spin = (dir: 1 | -1) => { if (n > 0) setPos((p) => p + dir); };
   const holdRef = useRef<number | null>(null);
 
   const stopHold = () => {
@@ -2142,9 +2149,10 @@ function Spin360({ type, folder }: { type: number; folder: string }) {
   useEffect(() => () => stopHold(), []);
 
   // Same as maquette HUD: needle rotates; letter snaps to N / NE / E / …
-  const headingDeg = n > 0 ? (idx / n) * 360 : 0;
+  const headingDeg = n > 0 ? (pos / n) * 360 : 0;
+  const normDeg = ((headingDeg % 360) + 360) % 360;
   const headingDir = (["N", "NE", "E", "SE", "S", "SW", "W", "NW"] as const)[
-    Math.round(headingDeg / 45) % 8
+    Math.round(normDeg / 45) % 8
   ];
 
   return (
