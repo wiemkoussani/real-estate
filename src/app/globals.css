@@ -3764,7 +3764,6 @@ html:not(.phone-layout) .scene360-pano canvas {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
-  filter: drop-shadow(0px 1px 5.9px rgba(0, 0, 0, 0.25));
 }
 .side-stats > div {
   display: flex;
@@ -3777,7 +3776,8 @@ html:not(.phone-layout) .scene360-pano canvas {
   border-radius: 12px;
   background: #F4F7FA;
   border: 0;
-  box-shadow: none;
+  /* Figma: 0 1px 5.9px rgba(0,0,0,.25) — as box-shadow (a drop-shadow filter of the same value looks ~2× bigger) */
+  box-shadow: 0px 1px 5.9px 0px rgba(0, 0, 0, 0.25);
   text-align: center;
 }
 .side-stats span {
@@ -3805,7 +3805,8 @@ html:not(.phone-layout) .scene360-pano canvas {
   border-radius: 12px;
   overflow: hidden;
   background: #E8EEF3;
-  filter: drop-shadow(0px 4px 8.8px rgba(0, 0, 0, 0.25));
+  /* Figma: 0 4px 8.8px rgba(0,0,0,.25) */
+  box-shadow: 0px 4px 8.8px 0px rgba(0, 0, 0, 0.25);
 }
 .plan-wrap img {
   display: block;
@@ -6183,18 +6184,37 @@ html.phone-layout .detail.phone-sheet.sheet-full .detail-side {
   box-shadow: none;
   border-radius: 12px;
 }
-/* scaled from its bottom centre, so it still sits just above the cursor */
+/* Compact hover card: real size (no scaling) so the text stays readable;
+   smaller photo, tighter padding and gaps make the card itself small. */
 .tip.follow.tip-card .units.cards {
-  width: 340px;
+  width: 232px;
   overflow: visible;
   padding: 0;
   flex: none;
-  transform: scale(0.6);
-  transform-origin: 50% 100%;
+  transform: none;
 }
 .tip.follow.tip-card .units.cards .unit {
+  height: auto;
+  padding: 5px;
+  column-gap: 8px;
+  border-radius: 10px;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
 }
+.tip.follow.tip-card .units.cards .card-side { width: 58px; height: 60px; flex: 0 0 58px; }
+.tip.follow.tip-card .units.cards .unit img,
+.tip.follow.tip-card .units.cards .unit .card-img-fallback { width: 58px; height: 60px; border-radius: 7px; }
+.tip.follow.tip-card .units.cards .unit .heart { top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 6px !important; }
+.tip.follow.tip-card .units.cards .unit .heart svg { width: 10px; height: 10px; }
+.tip.follow.tip-card .units.cards .card-copy { height: auto; gap: 4px; }
+.tip.follow.tip-card .units.cards .card-availability { height: auto; gap: 6px; align-items: center; }
+.tip.follow.tip-card .units.cards .card-identity { height: auto; gap: 1px; }
+.tip.follow.tip-card .units.cards .unit strong { font-size: 13px; line-height: 15px; }
+.tip.follow.tip-card .units.cards .card-price { font-size: 12px; line-height: 14px; gap: 4px; }
+.tip.follow.tip-card .units.cards .unit .badge { height: 20px; padding: 0 7px; border-radius: 10px; font-size: 11px; margin-top: 0; }
+.tip.follow.tip-card .units.cards .card-specs { height: auto; }
+.tip.follow.tip-card .units.cards .card-specs span { width: auto; max-width: none; height: auto; flex: 1 1 0; gap: 1px; }
+.tip.follow.tip-card .units.cards .card-specs span b { width: auto; height: auto; font-size: 12px; line-height: 14px; }
+.tip.follow.tip-card .units.cards .card-specs span small { width: auto; height: auto; font-size: 9.5px; line-height: 11px; }
 .tip.follow.tip-card .tip-head,
 .tip.follow.tip-card p { display: none; }
 

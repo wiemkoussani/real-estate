@@ -1932,8 +1932,11 @@ function Spin360({ type, folder }: { type: number; folder: string }) {
   const [idx, setIdx] = useState(frontFrame);
   const [loading, setLoading] = useState(true);
   const shownType = useRef(type);
-  const frameOffset =
-    COMPLEX.villa360.floors.find((f) => f.subfolder.toLowerCase() === folder.toLowerCase())?.frameOffset ?? 0;
+  const floorCfg = COMPLEX.villa360.floors.find((f) => f.subfolder.toLowerCase() === folder.toLowerCase());
+  const frameOffset = floorCfg?.frameOffset ?? 0;
+  // per-floor camera correction (Final is rendered slightly further / higher)
+  const viewFix = useRef({ zoom: 1, shiftY: 0 });
+  viewFix.current = { zoom: floorCfg?.zoom ?? 1, shiftY: floorCfg?.shiftY ?? 0 };
 
   const draw = useCallback((i: number) => {
     const canvas = canvasRef.current;
@@ -1953,14 +1956,13 @@ function Spin360({ type, folder }: { type: number; folder: string }) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.fillStyle = "#E8EDF2";
     ctx.fillRect(0, 0, w, h);
-    const scale = Math.max(w / img.naturalWidth, h / img.naturalHeight);
-    ctx.drawImage(
-      img,
-      (w - img.naturalWidth * scale) / 2,
-      (h - img.naturalHeight * scale) / 2,
-      img.naturalWidth * scale,
-      img.naturalHeight * scale,
-    );
+    const { zoom, shiftY } = viewFix.current;
+    const scale = Math.max(w / img.naturalWidth, h / img.naturalHeight) * zoom;
+    const dw = img.naturalWidth * scale;
+    const dh = img.naturalHeight * scale;
+    // never shift so far that an empty band shows at the top
+    const dy = Math.min(dh * shiftY, Math.max(0, (dh - h) / 2));
+    ctx.drawImage(img, (w - dw) / 2, (h - dh) / 2 + dy, dw, dh);
   }, []);
 
   const idxRef = useRef(frontFrame);
