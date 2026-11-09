@@ -4959,7 +4959,13 @@ html:not(.phone-layout) .scene360-pano canvas {
   border: 1px solid #e0e7f3;
   border-radius: 14px;
   box-shadow: 0 10px 28px rgba(18, 33, 74, 0.14);
-  overflow: hidden;
+  /* ~6 codes visible, the rest scrolls */
+  max-height: min(232px, calc(100dvh - 24px));
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
   animation: dial-list-in 0.18s ease both;
 }
 @keyframes dial-list-in {

@@ -201,6 +201,8 @@ const RING_DIAMETER = 0.42; // m
 const RING_THICKNESS = 0.012;
 const DOT_RADIUS = 0.04;
 const CURSOR_RADIUS = 0.05;
+/** Rings are drawn at the size they would have at this distance (m), at any distance. */
+const RING_SCREEN_REF_M = 2.2;
 const RING_HIT_RADIUS = 0.34; // m — a click this close to a ring's centre goes to that ring
 
 // -------------------------------------------------------------------- easing
@@ -1070,7 +1072,19 @@ export class Visite360Engine {
     this.camera.updateMatrixWorld();
   }
 
+  /** Rings keep the same size on screen whatever their distance (they don't grow as you get closer). */
+  private sizeRings() {
+    const eye = this.camera.position;
+    const ref = RING_SCREEN_REF_M * 100 * this.s;
+    const fit = (m: THREE.Object3D) => {
+      if (m.visible) m.scale.setScalar(Math.max(0.05, m.position.distanceTo(eye) / ref));
+    };
+    this.floorMarkers.forEach(fit);
+    if (this.hoverMarker) fit(this.hoverMarker);
+  }
+
   private render() {
+    this.sizeRings();
     this.renderer.clear();
     this.renderer.render(this.scene, this.camera);
     this.renderer.clearDepth();
@@ -1384,7 +1398,7 @@ export class Visite360Engine {
     });
     // Destination ring: bigger, solid and filled so you see exactly where a click goes.
     this.hoverMarker = this.ringMesh("hoverMarker");
-    this.hoverMarker.scale.setScalar(1.25);
+    // same size as the other rings: hovering a spot must not make it grow
     this.hoverMarker.traverse((o) => {
       const m = (o as THREE.Mesh).material as THREE.MeshBasicMaterial | undefined;
       if (m) m.opacity = 1;

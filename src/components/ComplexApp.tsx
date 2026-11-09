@@ -61,7 +61,56 @@ const DIAL_CODES = [
   { d: "+20", n: "Égypte" },
   { d: "+971", n: "EAU" },
   { d: "+965", n: "Koweït" },
+  { d: "+974", n: "Qatar" },
+  { d: "+973", n: "Bahreïn" },
+  { d: "+968", n: "Oman" },
+  { d: "+962", n: "Jordanie" },
+  { d: "+961", n: "Liban" },
+  { d: "+963", n: "Syrie" },
+  { d: "+964", n: "Irak" },
+  { d: "+967", n: "Yémen" },
+  { d: "+970", n: "Palestine" },
+  { d: "+218", n: "Libye" },
+  { d: "+222", n: "Mauritanie" },
+  { d: "+249", n: "Soudan" },
+  { d: "+90", n: "Turquie" },
+  { d: "+33", n: "France" },
+  { d: "+32", n: "Belgique" },
+  { d: "+41", n: "Suisse" },
+  { d: "+49", n: "Allemagne" },
+  { d: "+39", n: "Italie" },
+  { d: "+34", n: "Espagne" },
+  { d: "+44", n: "Royaume-Uni" },
+  { d: "+1", n: "États-Unis / Canada" },
+  { d: "+92", n: "Pakistan" },
+  { d: "+91", n: "Inde" },
 ];
+
+/**
+ * "+971 54213568" / "00971…" typed or pasted in the number field → { dial: "+971", rest: "54213568" }.
+ * Only once something follows the code (a space or more digits), so "+21" doesn't jump early;
+ * the longest matching code wins (+216 before +2…).
+ */
+function splitDialPrefix(value: string): { dial: string; rest: string } | null {
+  const m = value.match(/^\s*(?:\+|00)([\d\s().-]*)$/);
+  if (!m) return null;
+  const raw = m[1];
+  const digits = raw.replace(/\D/g, "");
+  const best = DIAL_CODES.map((c) => c.d.slice(1))
+    .filter((code) => digits.startsWith(code))
+    .sort((a, b) => b.length - a.length)[0];
+  if (!best) return null;
+  // walk the raw text past the code's digits
+  let seen = 0;
+  let i = 0;
+  while (i < raw.length && seen < best.length) {
+    if (/\d/.test(raw[i])) seen++;
+    i++;
+  }
+  const after = raw.slice(i);
+  if (!after) return null; // still typing the code
+  return { dial: `+${best}`, rest: after.replace(/^[\s().-]+/, "") };
+}
 
 function telFromForm(fd: FormData) {
   const dial = String(fd.get("dial") || "+216").trim();
@@ -117,6 +166,7 @@ function PhoneField({ required, placeholder }: { required?: boolean; placeholder
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLSpanElement>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
   const [menuPos, setMenuPos] = useState<{ top: number; left: number; width: number } | null>(null);
 
   useLayoutEffect(() => {
@@ -124,7 +174,9 @@ function PhoneField({ required, placeholder }: { required?: boolean; placeholder
       setMenuPos(null);
       return;
     }
-    const place = () => {
+    const place = (e?: Event) => {
+      // scrolling inside the list itself must not move it
+      if (e && (e.target as HTMLElement | null)?.closest?.(".dial-list")) return;
       const r = btnRef.current?.getBoundingClientRect();
       if (!r) return;
       const width = Math.max(r.width, 72);
@@ -139,6 +191,15 @@ function PhoneField({ required, placeholder }: { required?: boolean; placeholder
       window.removeEventListener("scroll", place, true);
     };
   }, [open]);
+
+  // opening the list: scroll it so the selected code is in view (once, not on every reposition)
+  const menuShown = menuPos !== null;
+  useEffect(() => {
+    if (!open || !menuShown) return;
+    const list = listRef.current;
+    const on = list?.querySelector<HTMLElement>("button.on");
+    if (list && on) list.scrollTop = on.offsetTop - list.clientHeight / 2 + on.offsetHeight / 2;
+  }, [open, menuShown]);
 
   useEffect(() => {
     if (!open) return;
@@ -180,6 +241,7 @@ function PhoneField({ required, placeholder }: { required?: boolean; placeholder
         {open && menuPos && (
           <ul
             id="dial-list"
+            ref={listRef}
             className="dial-list"
             role="listbox"
             aria-label="رمز الدولة"
@@ -191,6 +253,7 @@ function PhoneField({ required, placeholder }: { required?: boolean; placeholder
                   type="button"
                   role="option"
                   aria-selected={c.d === dial}
+                  title={c.n}
                   className={c.d === dial ? "on" : undefined}
                   onClick={() => {
                     setDial(c.d);
@@ -204,7 +267,22 @@ function PhoneField({ required, placeholder }: { required?: boolean; placeholder
           </ul>
         )}
       </span>
-      <input name="tel" type="tel" required={required} autoComplete="tel" inputMode="tel" placeholder={placeholder} />
+      <input
+        name="tel"
+        type="tel"
+        required={required}
+        autoComplete="tel"
+        inputMode="tel"
+        placeholder={placeholder}
+        onChange={(e) => {
+          const hit = splitDialPrefix(e.currentTarget.value);
+          if (!hit) return;
+          setDial(hit.dial);
+          const el = e.currentTarget;
+          el.value = hit.rest;
+          el.setSelectionRange?.(hit.rest.length, hit.rest.length);
+        }}
+      />
     </span>
   );
 }
@@ -299,6 +377,55 @@ export default function ComplexApp({ slug, initialTour }: { slug: string; initia
   );
 }
 
+/* ---------- villa interior frames: shared cache, preloaded before the maquette opens ---------- */
+
+const villaImgCache = new Map<string, HTMLImageElement>();
+
+/** Download one interior frame into the shared cache (Spin360 reuses it). Resolves on load or error. */
+function preloadVillaImg(src: string): Promise<void> {
+  let img = villaImgCache.get(src);
+  if (!img) {
+    img = new Image();
+    img.decoding = "async";
+    img.src = src;
+    villaImgCache.set(src, img);
+  }
+  const el = img;
+  if (el.complete) return Promise.resolve();
+  return new Promise((resolve) => {
+    el.addEventListener("load", () => resolve(), { once: true });
+    el.addEventListener("error", () => resolve(), { once: true });
+  });
+}
+
+/** Every other frame (half = 0 → 1st, 3rd, 5th…; half = 1 → the others) of every villa type and floor, Final floor first. */
+function villaFrameUrls(tour: TourMedia, half: 0 | 1) {
+  const n = tour.villaFrames;
+  const floors = [...(COMPLEX.villa360?.floors ?? [])].reverse(); // Final is the floor that opens first
+  const out: string[] = [];
+  for (const f of floors) {
+    for (const t of Object.keys(COMPLEX.villaTypes).map(Number)) {
+      for (let i = half; i < n; i += 2) {
+        const src = tourVillaUrl(tour, t, f.subfolder, i);
+        if (src) out.push(src);
+      }
+    }
+  }
+  return [...new Set(out)];
+}
+
+/** Load urls a few at a time; onEach is called after each one finishes. */
+async function loadPool(urls: string[], workers: number, stopped: () => boolean, onEach: () => void) {
+  let next = 0;
+  const work = async () => {
+    while (!stopped() && next < urls.length) {
+      await preloadVillaImg(urls[next++]);
+      if (!stopped()) onEach();
+    }
+  };
+  await Promise.all(Array.from({ length: workers }, work));
+}
+
 function cardPhoto(tour: TourMedia, unit: Unit) {
   // Prefer ≤20KB card thumbs when present; keep full plans for detail/hover.
   const thumb =
@@ -316,7 +443,7 @@ function cardPhoto(tour: TourMedia, unit: Unit) {
 }
 
 function IntroScreen({ ready, loadPct, onEnter }: { ready: boolean; loadPct: number; onEnter: () => void }) {
-  const open = ready || loadPct >= 100;
+  const open = ready || loadPct >= 99.999;
   const [nhc, setNhc] = useState(true);
   const [fullOn, setFullOn] = useState(false);
   useEffect(() => {
@@ -398,6 +525,37 @@ function ComplexStage({ tour, introOpen, onEnter }: { tour: TourMedia; introOpen
 
   const [ready, setReady] = useState(false);
   const [loadPct, setLoadPct] = useState(0);
+  // half of the villa interior frames are loaded before the maquette opens, the other half right after
+  const [villaPct, setVillaPct] = useState(0);
+  const [villaHalfDone, setVillaHalfDone] = useState(false);
+  const [villaHasFrames, setVillaHasFrames] = useState(true);
+  useEffect(() => {
+    let stop = false;
+    const stopped = () => stop;
+    const first = villaFrameUrls(tour, 0);
+    const second = villaFrameUrls(tour, 1);
+    setVillaHasFrames(first.length > 0);
+    if (!first.length) {
+      setVillaPct(100);
+      setVillaHalfDone(true);
+      return;
+    }
+    let done = 0;
+    setVillaPct(0);
+    setVillaHalfDone(false);
+    void loadPool(first, 4, stopped, () => {
+      done++;
+      setVillaPct((done / first.length) * 100);
+    }).then(() => {
+      if (stop) return;
+      setVillaHalfDone(true);
+      // the other half in the background, gently
+      void loadPool(second, 2, stopped, () => {});
+    });
+    return () => {
+      stop = true;
+    };
+  }, [tour]);
   const [units, setUnits] = useState<Unit[]>([]);
   const [frame, setFrame] = useState(0);
   const [hover, setHover] = useState<Unit | null>(null);
@@ -1050,7 +1208,11 @@ function ComplexStage({ tour, introOpen, onEnter }: { tour: TourMedia; introOpen
 
   return (
     <div className={`app${toolsOpen ? " tools-on" : ""}${layoutReady ? " layout-ready" : ""}${filtersOpen || filtersClosing ? " filters-open" : ""}${scene360Strip ? " strip360-on" : ""}${scene360Open || scene360Closing ? " scene360-mode" : ""}${tourUnit ? " tour-open" : ""}`}>
-      {introOpen && <IntroScreen ready={ready} loadPct={loadPct} onEnter={onEnter} />}
+      {introOpen && <IntroScreen
+          ready={ready && villaHalfDone}
+          loadPct={villaHasFrames ? loadPct * 0.5 + villaPct * 0.5 : loadPct}
+          onEnter={onEnter}
+        />}
       <aside className={`panel ${listOpen ? "open" : ""} ${formOpen ? "form-wide" : ""} ${filtersOpen ? "filters-on" : ""}`}>
         <button
           className="peek"
@@ -2030,7 +2192,10 @@ function Spin360({ type, folder }: { type: number; folder: string }) {
     if (!src) return Promise.resolve();
     const gen = generation.current;
     loadingSet.current.add(index);
-    const img = existing ?? new Image();
+    // reuse the frame preloaded at startup when there is one
+    const cached = villaImgCache.get(src);
+    const cachedOk = cached && !(cached.complete && !cached.naturalWidth); // skip a frame that failed at startup
+    const img = existing ?? (cachedOk ? cached : new Image());
     images.current[index] = img;
     img.decoding = "async";
     let done!: () => void;
