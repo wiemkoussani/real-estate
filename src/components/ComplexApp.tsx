@@ -316,7 +316,7 @@ export default function ComplexApp({ slug, initialTour, initialVilla }: { slug: 
   const [splash, setSplash] = useState(true);
   const [entered, setEntered] = useState(false);
 
-  // Anonymous analytics: visit (new after 1 h), source, device, visible time.
+  // Anonymous analytics: every opening is a visit; source, device, visible time.
   useEffect(() => {
     void startVisit(slug);
   }, [slug]);
@@ -718,14 +718,21 @@ function ComplexStage({ tour, introOpen, onEnter, initialVilla }: { tour: TourMe
     return () => window.clearTimeout(t);
   }, [ready, tour.locationQuery, tour.locationLat, tour.locationLng, tour.name]);
 
+  /** second tap on the house while the camera is still flying to it: go inside as soon as it lands */
+  const enterWhenLandedRef = useRef(false);
   const pickUnit = async (u: Unit, engine?: OrbitEngineType | null) => {
     const en = engine ?? engineRef.current;
-    if (!en || busyRef.current) return;
+    if (!en) return;
+    if (busyRef.current) {
+      if (approachedRef.current === u.id) enterWhenLandedRef.current = true;
+      return;
+    }
     if (approachedRef.current === u.id) {
       setTourUnit(u);
       return;
     }
     busyRef.current = true;
+    enterWhenLandedRef.current = false;
     approachedRef.current = u.id;
     setSelected(u);
     setTourUnit(null);
@@ -733,6 +740,10 @@ function ComplexStage({ tour, introOpen, onEnter, initialVilla }: { tour: TourMe
     // doesn't drift off the house while the aerial spins.
     await en.approach(u.id);
     busyRef.current = false;
+    if (enterWhenLandedRef.current && approachedRef.current === u.id) {
+      enterWhenLandedRef.current = false;
+      setTourUnit(u);
+    }
   };
 
   useEffect(() => {
@@ -1279,6 +1290,10 @@ function ComplexStage({ tour, introOpen, onEnter, initialVilla }: { tour: TourMe
   // phone / browser Back closes the villa, Forward re-enters it
   useEffect(() => {
     const onPop = () => {
+      if (skipPopRef.current) {
+        skipPopRef.current = false; // our own step back after the arrow: villa already closed
+        return;
+      }
       villaPushedRef.current = false;
       const u = villaFromPath(window.location.pathname);
       if (u) {
@@ -1291,24 +1306,35 @@ function ComplexStage({ tour, introOpen, onEnter, initialVilla }: { tour: TourMe
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [units, basePath]);
 
-  // opened directly on /c/<slug>/<villa>: step inside once the visitor has entered the maquette
+  // opened directly on /c/<slug>/<villa>: show the inside of that villa straight away
+  // (no intro screen, no flight over the maquette)
   const deepLinkDone = useRef(false);
   useEffect(() => {
-    if (deepLinkDone.current || !initialVilla || !ready || introOpen || !units.length) return;
+    if (deepLinkDone.current || !initialVilla || !ready || !units.length) return;
     deepLinkDone.current = true;
     const id = initialVilla.toLowerCase();
     const u = units.find((x) => x.displayId.toLowerCase() === id);
-    if (u) void enterVillaRef.current(u);
-    else window.history.replaceState(null, "", basePath + window.location.search);
-  }, [initialVilla, ready, introOpen, units, basePath]);
-
-  const leaveVilla = () => {
-    if (villaPushedRef.current) {
-      villaPushedRef.current = false;
-      window.history.back(); // popstate closes the villa
+    if (!u) {
+      window.history.replaceState(null, "", basePath + window.location.search);
       return;
     }
+    if (introOpen) onEnter();
+    setSelected(u);
+    setTourUnit(u);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialVilla, ready, units, basePath]);
+
+  // the back arrow closes the villa right away (phones answer history.back() late),
+  // then steps the browser history back quietly so the address and Back button stay right
+  const skipPopRef = useRef(false);
+  const leaveVilla = () => {
+    const pushed = villaPushedRef.current;
+    villaPushedRef.current = false;
     closeVilla();
+    if (pushed) {
+      skipPopRef.current = true;
+      window.history.back();
+    }
   };
 
   return (

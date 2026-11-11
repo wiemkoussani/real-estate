@@ -50,7 +50,7 @@ export type ComplexRow = {
 
 /** Client dashboard counters for one project (see /api/client/dashboard). */
 export type ProjectStats = {
-  /** tour visits (the same device counts again after 1 hour) */
+  /** tour visits: every opening counts (unique visitors are counted per device) */
   visitors: number;
   /** visitors since the client last opened the project */
   newVisitors: number;

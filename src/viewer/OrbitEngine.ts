@@ -345,8 +345,16 @@ export class OrbitEngine {
     this.syncCamera();
     this.syncMeshVisibility();
     this.draw("low");
-    this.settle();
+    // back on the full view: show it at once, decode the HD frame a moment later
+    // (decoding a big frame right away makes phones stutter when leaving a villa)
+    this.isNavigating = false;
+    if (this.resetHdTimer) clearTimeout(this.resetHdTimer);
+    this.resetHdTimer = setTimeout(() => {
+      this.resetHdTimer = 0;
+      if (!this.disposed && !this.approaching) this.settle();
+    }, 450);
   }
+  private resetHdTimer: ReturnType<typeof setTimeout> | 0 = 0;
 
   settle() {
     this.isNavigating = false;
@@ -778,8 +786,16 @@ export class OrbitEngine {
     const toZoom = COMPLEX.zoomMax;
     const toPanX = toZoom * (placed.cw / 2 - villaX);
     const toPanY = toZoom * (placed.ch / 2 - villaY);
-    await sharp;
+    // Don't hold the zoom for the HD frame (slow on mobile data): wait at most a moment,
+    // then zoom on what is shown; the HD frame swaps in by itself when it arrives.
+    const frameAtZoom = this.currentFrame;
+    const sharpInTime = await Promise.race([sharp.then(() => true), new Promise<boolean>((r) => setTimeout(() => r(false), 350))]);
     if (this.disposed) return;
+    if (!sharpInTime) {
+      void sharp.then(() => {
+        if (!this.disposed && this.currentFrame === frameAtZoom && !this.isNavigating) this.crossfadeHigh(frameAtZoom);
+      });
+    }
     this.paintCurrent();
     await this.tween(640, (e) => {
       this.zoom = 1 + (toZoom - 1) * e;
@@ -1528,10 +1544,11 @@ export class OrbitEngine {
 
   private onClick = (e: MouseEvent) => {
     if (this.inputLocked || this.uiBlock(e.target)) return;
-    if (this.moved || this.approaching || this.panMode) return;
+    // a tap during the approach still counts (the app decides: same house = go inside when it lands)
+    if (this.moved || this.panMode) return;
     const unit = this.hit(e);
     if (unit) this.events.onSelect?.(unit);
-    else this.events.onEmptyClick?.();
+    else if (!this.approaching) this.events.onEmptyClick?.(); // don't reset mid-flight
   };
 
   private hit(e: MouseEvent | PointerEvent): Unit | null {

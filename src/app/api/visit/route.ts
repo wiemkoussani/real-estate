@@ -3,7 +3,6 @@ import { createServerSupabase } from "@/lib/supabase/server";
 import { createServiceSupabase } from "@/lib/supabase/service";
 
 const ID_OK = /^[a-zA-Z0-9-]{8,64}$/;
-const GAP_MS = 60 * 60 * 1000;
 const SOURCES = ["direct", "qr", "facebook", "instagram", "whatsapp", "google", "tiktok", "snapchat", "x", "email", "other"];
 const DEVICES = ["mobile", "desktop", "tablet"];
 const OSES = ["iOS", "Android", "Windows", "macOS", "Linux", "Other"];
@@ -26,10 +25,7 @@ function geo(req: Request) {
   };
 }
 
-/**
- * Public tour opened. The same device counts as a new visit only if its last counted visit
- * is at least 1 hour old; either way the current visit id is returned for duration / villa tracking.
- */
+/** Public tour opened: every opening counts as a new visit (the id is returned for duration / villa tracking). */
 export async function POST(req: Request) {
   const body = await req.json().catch(() => null);
   const slug = String(body?.slug ?? "");
@@ -51,17 +47,6 @@ export async function POST(req: Request) {
     ]);
     if (profile?.role === "admin" || member) return NextResponse.json({ ok: true, skipped: true, visitId: null });
   }
-
-  const since = new Date(Date.now() - GAP_MS).toISOString();
-  const { data: recent } = await service
-    .from("complex_visits")
-    .select("id")
-    .eq("complex_id", cx.id)
-    .eq("visitor_id", visitorId)
-    .gt("created_at", since)
-    .order("created_at", { ascending: false })
-    .limit(1);
-  if (recent?.length) return NextResponse.json({ ok: true, counted: false, visitId: recent[0].id });
 
   const base = { complex_id: cx.id, visitor_id: visitorId };
   const details = {

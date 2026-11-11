@@ -1,7 +1,7 @@
 /**
  * Anonymous tour analytics (browser side).
  * A random device id lives in localStorage; nothing personal is sent.
- * The server counts a new visit when the device's last one is at least 1 hour old.
+ * Every opening of the tour counts as a new visit; unique visitors are counted per device.
  */
 
 let visitId: number | null = null;
@@ -83,7 +83,11 @@ function flushDuration() {
 }
 
 /** Tour opened: register (or continue) the visit and start timing visible time. */
+let startedFor = "";
 export async function startVisit(slug: string) {
+  // one page load = one visit (React may run the opening effect twice in development)
+  if (startedFor === slug) return;
+  startedFor = slug;
   slugRef = slug;
   visitorId = deviceId();
   if (!visitorId) return;
