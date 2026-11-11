@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { DESIGN_W, DESIGN_H, setUiScale } from "./ui-scale";
 import { useRouter } from "next/navigation";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
 import { AxisWatermark, IcBell, IcCamera, IcChart, IcChevronDown, IcGrid, IcHelp, IcLogout, IcUsers } from "./DashIcons";
@@ -49,6 +50,25 @@ function initials(name: string) {
 
 export default function ClientShell({ children, view, onView, notifications, name, avatarUrl, onAvatar, searchItems }: Props) {
   const router = useRouter();
+  // The dashboard is drawn on the 1920 × 1080 Figma frame and scaled to fit the window (like Figma's preview),
+  // so proportions match the design on any computer screen. Phones / small windows keep the normal layout.
+  const [scale, setScale] = useState(1);
+  const [viewH, setViewH] = useState(1080);
+  useLayoutEffect(() => {
+    const fit = () => {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      // browsers without CSS zoom (Firefox before v126) keep the normal, unscaled layout
+      const canZoom = typeof CSS !== "undefined" && CSS.supports?.("zoom", "0.5");
+      const s = !canZoom || w < 1024 ? 1 : Math.min(1, w / DESIGN_W, h / DESIGN_H);
+      setUiScale(s);
+      setScale(s);
+      setViewH(h);
+    };
+    fit();
+    window.addEventListener("resize", fit);
+    return () => window.removeEventListener("resize", fit);
+  }, []);
   const [menuOpen, setMenuOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [photoErr, setPhotoErr] = useState("");
@@ -103,7 +123,7 @@ export default function ClientShell({ children, view, onView, notifications, nam
   ];
 
   return (
-    <div className={`axd axd-view-${view}`}>
+    <div className={`axd axd-view-${view}`} style={{ zoom: scale, ["--axd-h" as string]: `${viewH / scale}px` }}>
       <AxisWatermark className="axd-watermark" />
 
       <aside className="axd-side">

@@ -476,6 +476,7 @@ export class OrbitEngine {
   private onResize = () => this.resize();
 
   private resize() {
+    this.requestRender();
     const w = this.container.clientWidth;
     const h = this.container.clientHeight;
     if (w < 2 || h < 2) return;
@@ -608,6 +609,7 @@ export class OrbitEngine {
     if (!this.tour.glbUrl) return;
     const gltf = await loader.loadAsync(this.tour.glbUrl);
     this.scene.add(gltf.scene);
+    this.requestRender();
     gltf.scene.updateMatrixWorld(true);
 
     const registerCam = (cam: THREE.Camera) => {
@@ -906,9 +908,11 @@ export class OrbitEngine {
     const mat = mesh.material as THREE.MeshBasicMaterial;
     mat.color.setHex(STATUS_COLOR[unit.status as UnitStatus] ?? 0x94a3b0);
     mat.needsUpdate = true;
+    this.requestRender();
   }
 
   private syncMeshVisibility() {
+    this.requestRender();
     Object.entries(this.unitMeshes).forEach(([name, mesh]) => {
       const unit = this.units[name];
       const mat = mesh.material as THREE.MeshBasicMaterial;
@@ -1233,6 +1237,7 @@ export class OrbitEngine {
   }
 
   private syncCamera() {
+    this.requestRender();
     const cam = this.glbCameras[this.currentFrame];
     if (!cam) return;
     cam.updateMatrixWorld(true);
@@ -1478,12 +1483,21 @@ export class OrbitEngine {
     if (t) this.dragTo(t.clientX, t.clientY);
   };
 
+  /** the colour layer only needs drawing when something changed (camera, size, which houses show, a fade) */
+  private needsRender = true;
+  private requestRender() {
+    this.needsRender = true;
+  }
+
   private loop = () => {
     if (this.disposed) return;
     this.rafLoop = requestAnimationFrame(this.loop);
-    const w = this.container.clientWidth;
-    const h = this.container.clientHeight;
-    if (w > 1 && h > 1 && (w !== this.lastCw || h !== this.lastCh)) this.resize();
+    // without ResizeObserver, poll the size (reading it every frame forces a layout, costly on phones)
+    if (!this.resizeObserver) {
+      const w = this.container.clientWidth;
+      const h = this.container.clientHeight;
+      if (w > 1 && h > 1 && (w !== this.lastCw || h !== this.lastCh)) this.resize();
+    }
     if (this.phoneFit()) {
       const { cw, ch } = this.getDrawRect();
       this.renderer.setScissorTest(false);
@@ -1491,13 +1505,22 @@ export class OrbitEngine {
       this.renderer.clear();
       this.syncCamera();
     }
-    Object.values(this.unitMeshes).forEach((m) => {
+    let fading = false;
+    for (const m of Object.values(this.unitMeshes)) {
       const mat = m.material as THREE.MeshBasicMaterial;
       const target = m.userData.targetOpacity;
-      if (typeof target !== "number") return;
-      if (Math.abs(mat.opacity - target) > 0.002) mat.opacity += (target - mat.opacity) * 0.18;
-      else mat.opacity = target;
-    });
+      if (typeof target !== "number") continue;
+      if (Math.abs(mat.opacity - target) > 0.002) {
+        mat.opacity += (target - mat.opacity) * 0.18;
+        fading = true;
+      } else if (mat.opacity !== target) {
+        mat.opacity = target;
+        fading = true;
+      }
+    }
+    // nothing moved: keep the last drawn image (a still maquette costs nothing, phones stay fluid)
+    if (!this.needsRender && !fading) return;
+    this.needsRender = false;
     this.renderer.render(this.scene, this.activeCamera);
   };
 

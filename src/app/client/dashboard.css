@@ -13,9 +13,9 @@
   position: relative;
   display: flex;
   align-items: flex-start;
-  min-height: 100dvh;
+  min-height: var(--axd-h, 100dvh);
   isolation: isolate;
-  overflow-x: hidden;
+  overflow-x: clip; /* not "hidden": hidden makes this a scroll box and the sidebar would stop sticking */
   background: linear-gradient(180deg, #dde5f6 0%, #f1f4fc 52%, #e8edfa 100%);
   background-attachment: fixed;
   color: var(--axd-ink);
@@ -53,7 +53,7 @@
   display: flex;
   flex-direction: column;
   width: 246px;
-  height: 100dvh;
+  height: var(--axd-h, 100dvh);
   padding: 0 0 18px 22px;
   background: var(--axd-side);
   box-shadow: 0 4.9px 4.9px rgba(0, 0, 0, 0.25);
@@ -63,12 +63,12 @@
   display: flex;
   justify-content: center;
   width: 203px;
-  padding-top: 34px;
-  height: 199px;
+  padding-top: 22px;
+  height: 187px;
 }
 .axd-logo img {
-  width: 76px;
-  height: auto;
+  width: 111px;
+  height: 146px;
   object-fit: contain;
 }
 .axd-nav {
@@ -267,7 +267,7 @@
   position: relative;
   flex: 1;
   min-width: 0;
-  min-height: 100dvh;
+  min-height: var(--axd-h, 100dvh);
 }
 .axd-search {
   position: absolute;
@@ -597,7 +597,7 @@
 }
 
 /* ---------- smaller screens ---------- */
-@media (max-width: 1280px) {
+@media (max-width: 1023px) {
   .axd-side { width: 92px; padding-left: 14px; }
   .axd-logo { width: 64px; height: 150px; }
   .axd-logo img { width: 52px; }
@@ -648,7 +648,7 @@
   --axc-ink: #0d1735;
   --axc-muted: #7383ac;
   --axc-line: #e1e6f3;
-  padding: 108px 24px 32px 23px;
+  padding: 108px 24px 0 23px;
 }
 .axc-head {
   display: flex;
@@ -826,7 +826,7 @@
 .axc-th.plain { cursor: default; }
 
 .axc-row {
-  min-height: 54px;
+  min-height: 51px;
   background: rgba(255, 255, 255, 0.31);
   border-bottom: 1.15px solid #e6eaf5;
   transition: background 0.15s ease;
@@ -1137,14 +1137,16 @@ button.axc-status:hover { filter: brightness(0.97); }
 .axc-export-menu b.xls { background: #1d7044; }
 .axc-export-menu b.pdf { background: #e5252a; }
 
-@media (max-width: 1100px) {
+@media (max-width: 1023px) {
   .axc-controls { flex-wrap: wrap; }
   .axc-head { flex-wrap: wrap; }
   .axp-tabs { margin: 8px 0 0; }
 }
 
 /* ======================= Project › Apartments ======================= */
-.axa .axc-head { margin-bottom: 30px; }
+.axc.axa { padding-top: 97px; padding-bottom: 8px; }
+.axa .axc-head { margin-bottom: 15px; }
+.axa .axc-head .axp-tabs { margin-bottom: -2px; } /* sits on the title row, clear of the filters card */
 .axa-emblem {
   display: grid;
   place-items: center;
@@ -1169,7 +1171,7 @@ button.axc-status:hover { filter: brightness(0.97); }
   align-items: center;
   justify-content: flex-end;
   gap: 14px;
-  margin: 0 0 12px;
+  margin: -12px 0 10px;
 }
 .axa-msg { color: #0a7a4a; font-size: 14px; }
 .axa-bar .axd-err { margin: 0; font-size: 14px; }
@@ -1565,7 +1567,7 @@ button.axc-status:hover { filter: brightness(0.97); }
   color: #9aa6b8;
 }
 
-@media (max-width: 1000px) {
+@media (max-width: 1023px) {
   .axq { padding: 24px 16px; }
   .axq-head { flex-direction: column; align-items: flex-start; }
   .axq-grid,
@@ -1955,7 +1957,7 @@ button.axc-status:hover { filter: brightness(0.97); }
 .axn-kv dt { color: var(--axn-text); }
 .axn-kv dd { font-weight: 700; color: var(--axn-text); }
 
-@media (max-width: 1100px) {
+@media (max-width: 1023px) {
   .axn { padding: 24px 16px; }
   .axn-head { flex-direction: column; align-items: flex-start; }
   .axn-row.half,

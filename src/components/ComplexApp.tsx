@@ -556,8 +556,11 @@ function ComplexStage({ tour, introOpen, onEnter, initialVilla }: { tour: TourMe
     }).then(() => {
       if (stop) return;
       setVillaHalfDone(true);
-      // the other half in the background, gently
-      void loadPool(second, 2, stopped, () => {});
+      // The other half in the background, gently — on computers only. On a phone it means tens of MB
+      // downloaded and decoded for minutes, which makes the whole maquette sluggish; there the villa
+      // viewer loads the frames it needs when a villa is open.
+      const phone = isPhoneLayout() || window.matchMedia?.("(pointer: coarse)").matches;
+      if (!phone) void loadPool(second, 2, stopped, () => {});
     });
     return () => {
       stop = true;

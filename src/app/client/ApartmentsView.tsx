@@ -5,6 +5,7 @@ import { useConfirm } from "@/components/ConfirmDialog";
 import { COMPLEX } from "@/lib/complex";
 import type { ComplexRow, UnitRow, UnitStatus } from "@/lib/types";
 import { exportExcel, exportPdf } from "./contacts-export";
+import { toUi } from "./ui-scale";
 import {
   IcArrowLeft,
   IcArrowRight,
@@ -180,12 +181,13 @@ export default function ApartmentsView({
   }, [edit, exportOpen]);
 
   const openEdit = (e: React.MouseEvent, u: UnitRow) => {
+    // screen pixels → dashboard pixels (the page is zoomed to fit the window)
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const w = 280;
     setEdit({
       id: u.id,
-      x: Math.max(8, Math.min(r.right - w, window.innerWidth - w - 8)),
-      y: Math.min(r.bottom + 6, window.innerHeight - 260),
+      x: Math.max(8, Math.min(toUi(r.right) - w, toUi(window.innerWidth) - w - 8)),
+      y: Math.min(toUi(r.bottom) + 6, toUi(window.innerHeight) - 260),
       status: u.status,
       price: String(priceOf(u)),
     });
@@ -344,6 +346,11 @@ export default function ApartmentsView({
             <IcChevronDown size={17} />
           </label>
           <span className="axc-spacer" />
+          <button type="button" className="axc-btn" onClick={() => fileRef.current?.click()} title="Update status / price of many villas from a CSV file">
+            <IcImport size={18} stroke={1.8} />
+            Import
+          </button>
+          <input ref={fileRef} type="file" accept=".csv,text/csv" hidden onChange={(e) => void importFile(e.target.files?.[0])} />
           <div className="axc-export" ref={exportRef}>
             <button type="button" className="axc-btn" aria-haspopup="menu" aria-expanded={exportOpen} onClick={() => setExportOpen((v) => !v)}>
               <IcExport size={18} />
@@ -363,15 +370,12 @@ export default function ApartmentsView({
         </div>
       </div>
 
-      <div className="axa-bar">
-        {msg ? <p className="axa-msg" role="status">{msg}</p> : null}
-        {err ? <p className="axd-err" role="alert">{err}</p> : null}
-        <button type="button" className="axa-import" onClick={() => fileRef.current?.click()} title="Update status / price of many villas from a CSV file">
-          <IcImport size={16} stroke={1.5} />
-          Import
-        </button>
-        <input ref={fileRef} type="file" accept=".csv,text/csv" hidden onChange={(e) => void importFile(e.target.files?.[0])} />
-      </div>
+      {msg || err ? (
+        <div className="axa-bar">
+          {msg ? <p className="axa-msg" role="status">{msg}</p> : null}
+          {err ? <p className="axd-err" role="alert">{err}</p> : null}
+        </div>
+      ) : null}
 
       <div className="axa-card">
         <div className="axa-scroll">

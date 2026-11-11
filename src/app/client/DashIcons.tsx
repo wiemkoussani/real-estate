@@ -184,9 +184,10 @@ export const IcDoor = ({ size = 24, stroke = 2 }: P) => (
     <path d="M13 4.56v16.01a.5.5 0 0 1-.62.49L5 19V5.56a2 2 0 0 1 1.51-1.94l4-1A2 2 0 0 1 13 4.56Z" />
   </svg>
 );
+/** arrow coming down into the tray (Export is the opposite: arrow leaving it) */
 export const IcImport = ({ size = 24, stroke = 2 }: P) => (
   <svg {...base(size, stroke)}>
-    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 8l5-5 5 5M12 3v12" />
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
   </svg>
 );
 export const IcPencil = ({ size = 24, stroke = 2 }: P) => (

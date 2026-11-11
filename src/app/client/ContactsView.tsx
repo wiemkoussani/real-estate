@@ -2,6 +2,7 @@
 
 import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { exportExcel, exportPdf } from "./contacts-export";
+import { toUi } from "./ui-scale";
 import { useConfirm } from "@/components/ConfirmDialog";
 import type { ComplexRow, LeadRow, LeadStatus, UnitRow } from "@/lib/types";
 import {
@@ -250,8 +251,9 @@ export default function ContactsView({
   }, [notePop, statusPop]);
 
   const anchor = (e: React.MouseEvent, key: string, below = false): Pop => {
+    // screen pixels → dashboard pixels (the page is zoomed to fit the window)
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    return below ? { key, x: r.left, y: r.bottom + 6 } : { key, x: e.clientX, y: e.clientY + 10 };
+    return below ? { key, x: toUi(r.left), y: toUi(r.bottom) + 6 } : { key, x: toUi(e.clientX), y: toUi(e.clientY) + 10 };
   };
 
   const cycleSort = (key: SortKey) =>
@@ -384,7 +386,7 @@ export default function ContactsView({
 
   const notePopContact = notePop ? contacts.find((c) => c.key === notePop.key) : null;
   const statusPopContact = statusPop ? contacts.find((c) => c.key === statusPop.key) : null;
-  const clampX = (x: number, w: number) => Math.max(8, Math.min(x, (typeof window !== "undefined" ? window.innerWidth : 1920) - w - 8));
+  const clampX = (x: number, w: number) => Math.max(8, Math.min(x, (typeof window !== "undefined" ? toUi(window.innerWidth) : 1920) - w - 8));
 
   const pageButtons = (() => {
     if (pages <= 5) return Array.from({ length: pages }, (_, i) => i + 1);

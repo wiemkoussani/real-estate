@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { toUi } from "./ui-scale";
 
 /* Shared formatting */
 export const fmtN = (n: number) => n.toLocaleString("en-US");
@@ -70,7 +71,7 @@ export function Donut({ slices, total, unit }: { slices: Slice[]; total: number;
                 transform={`rotate(-90 ${size / 2} ${size / 2})`}
                 onMouseMove={(e) => {
                   const box = (e.currentTarget.ownerSVGElement as SVGSVGElement).getBoundingClientRect();
-                  setTip({ x: e.clientX - box.left + 12, y: e.clientY - box.top + 12, title: s.label, lines: [[unit, fmtN(s.value)], ["Share", `${s.pct}%`]] });
+                  setTip({ x: toUi(e.clientX - box.left) + 12, y: toUi(e.clientY - box.top) + 12, title: s.label, lines: [[unit, fmtN(s.value)], ["Share", `${s.pct}%`]] });
                 }}
               />
             );
@@ -153,7 +154,7 @@ export function LineChart({ points, labelA, labelB, colorA, colorB, bucketDays }
           aria-label={`${labelA} and ${labelB} over time`}
           onMouseMove={(e) => {
             const box = e.currentTarget.getBoundingClientRect();
-            const px = e.clientX - box.left;
+            const px = toUi(e.clientX - box.left);
             const i = Math.round(((px - padL) / iw) * (points.length - 1));
             setHover(points.length ? Math.max(0, Math.min(points.length - 1, i)) : null);
           }}
