@@ -411,6 +411,25 @@ export default function ComplexAdminPage() {
       <form className="settings-row" onSubmit={(e) => e.preventDefault()}>
         <label>Name <input value={cx.name} onChange={(e) => setCx({ ...cx, name: e.target.value })} onBlur={() => void saveComplex({ name: cx.name })} /></label>
         <label>
+          City
+          <input
+            value={cx.city ?? ""}
+            placeholder="Khamis Mushait"
+            onChange={(e) => setCx({ ...cx, city: e.target.value })}
+            onBlur={() => void saveComplex({ city: cx.city?.trim() || null })}
+          />
+        </label>
+        <label>
+          Short description
+          <input
+            value={cx.description ?? ""}
+            placeholder="Modern living in the heart of the city"
+            maxLength={80}
+            onChange={(e) => setCx({ ...cx, description: e.target.value })}
+            onBlur={() => void saveComplex({ description: cx.description?.trim() || null })}
+          />
+        </label>
+        <label>
           Visibility
           <select value={cx.published ? "1" : "0"} onChange={(e) => void saveComplex({ published: e.target.value === "1" })}>
             <option value="0">Hidden</option>

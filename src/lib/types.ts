@@ -43,6 +43,22 @@ export type ComplexRow = {
   villa_frames: number;
   render_w: number;
   render_h: number;
+  description?: string | null;
+  city?: string | null;
+  created_at?: string;
+};
+
+/** Client dashboard counters for one project (see /api/client/dashboard). */
+export type ProjectStats = {
+  /** devices that opened the tour (1 per device per day) */
+  visitors: number;
+  /** visitors since the client last opened the project */
+  newVisitors: number;
+  /** people interested in a villa (leads) since the client last opened the project */
+  newLeads: number;
+  /** red badge = newVisitors + newLeads */
+  badge: number;
+  lastSeenAt: string | null;
 };
 
 export type UnitRow = {

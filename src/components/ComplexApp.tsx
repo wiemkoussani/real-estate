@@ -310,10 +310,32 @@ function ChargeSplash() {
   );
 }
 
-export default function ComplexApp({ slug, initialTour }: { slug: string; initialTour?: TourMedia | null }) {
+export default function ComplexApp({ slug, initialTour, initialVilla }: { slug: string; initialTour?: TourMedia | null; initialVilla?: string }) {
   const [tour, setTour] = useState<TourMedia | null>(initialTour ?? null);
   const [splash, setSplash] = useState(true);
   const [entered, setEntered] = useState(false);
+
+  // Count this device as a visitor of the project (server keeps 1 per device per day).
+  useEffect(() => {
+    try {
+      let id = localStorage.getItem("axis-visitor");
+      if (!id) {
+        // randomUUID is missing on plain-http LAN testing (not a secure context)
+        id = typeof crypto.randomUUID === "function"
+          ? crypto.randomUUID()
+          : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+        localStorage.setItem("axis-visitor", id);
+      }
+      void fetch("/api/visit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug, visitorId: id }),
+        keepalive: true,
+      }).catch(() => {});
+    } catch {
+      /* private mode / no storage: not counted */
+    }
+  }, [slug]);
 
   useEffect(() => {
     let closed = false;
@@ -373,7 +395,7 @@ export default function ComplexApp({ slug, initialTour }: { slug: string; initia
   return (
     <TourCtx.Provider value={tour}>
       {splash && <ChargeSplash />}
-      <ComplexStage tour={tour} introOpen={!entered} onEnter={() => setEntered(true)} />
+      <ComplexStage tour={tour} introOpen={!entered} onEnter={() => setEntered(true)} initialVilla={initialVilla} />
     </TourCtx.Provider>
   );
 }
@@ -515,7 +537,7 @@ function InIcon() {
   return <svg width="17.09" height="17.09" viewBox="0 0 24 24" fill="#fff"><path d="M6.5 9H4V20h2.5V9zM5.2 4A1.6 1.6 0 1 0 5.2 7.2 1.6 1.6 0 0 0 5.2 4zM20 20h-2.5v-5.6c0-1.6-.6-2.6-2-2.6-1 0-1.6.7-1.9 1.4-.1.2-.1.6-.1.9V20H11V9h2.4v1.5c.4-.7 1.3-1.8 3.2-1.8 2.3 0 4 1.5 4 4.8V20z" /></svg>;
 }
 
-function ComplexStage({ tour, introOpen, onEnter }: { tour: TourMedia; introOpen: boolean; onEnter: () => void }) {
+function ComplexStage({ tour, introOpen, onEnter, initialVilla }: { tour: TourMedia; introOpen: boolean; onEnter: () => void; initialVilla?: string }) {
   const stageRef = useRef<HTMLDivElement>(null);
   const bgRef = useRef<HTMLCanvasElement>(null);
   const bgNextRef = useRef<HTMLCanvasElement>(null);
@@ -1215,6 +1237,85 @@ function ComplexStage({ tour, introOpen, onEnter }: { tour: TourMedia; introOpen
 
   const openUnit = (u: Unit) => {
     void pickUnit(u);
+  };
+
+  /* ---------- villa address in the URL bar: /c/<slug>/<villa number> ---------- */
+  const basePath = `/c/${tour.slug}`;
+  const villaPath = (u: Unit) => `${basePath}/${encodeURIComponent(u.displayId)}`;
+  const villaFromPath = (path: string) => {
+    if (!path.startsWith(`${basePath}/`)) return null;
+    const id = decodeURIComponent(path.slice(basePath.length + 1).split("/")[0] || "").toLowerCase();
+    return id ? units.find((u) => u.displayId.toLowerCase() === id) ?? null : null;
+  };
+  // true when we pushed the villa URL ourselves, so closing = going back one step
+  const villaPushedRef = useRef(false);
+
+  const closeVilla = () => {
+    setTourUnit(null);
+    setSelected(null);
+    approachedRef.current = null;
+    engineRef.current?.resetView();
+  };
+  const closeVillaRef = useRef(closeVilla);
+  closeVillaRef.current = closeVilla;
+
+  /** Approach the villa (if needed) and step inside it. */
+  const enterVilla = async (u: Unit) => {
+    if (approachedRef.current !== u.id) await pickUnit(u);
+    if (approachedRef.current === u.id) setTourUnit(u);
+  };
+  const enterVillaRef = useRef(enterVilla);
+  enterVillaRef.current = enterVilla;
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const path = window.location.pathname;
+    if (tourUnit) {
+      const target = villaPath(tourUnit);
+      if (path !== target) {
+        window.history.pushState({ axisVilla: tourUnit.id }, "", target + window.location.search);
+        villaPushedRef.current = true;
+      }
+    } else if (path !== basePath && !villaPushedRef.current) {
+      // opened from a villa link, now closed: back to the project address
+      window.history.replaceState(null, "", basePath + window.location.search);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tourUnit, basePath]);
+
+  // phone / browser Back closes the villa, Forward re-enters it
+  useEffect(() => {
+    const onPop = () => {
+      villaPushedRef.current = false;
+      const u = villaFromPath(window.location.pathname);
+      if (u) {
+        villaPushedRef.current = true;
+        void enterVillaRef.current(u);
+      } else closeVillaRef.current();
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [units, basePath]);
+
+  // opened directly on /c/<slug>/<villa>: step inside once the visitor has entered the maquette
+  const deepLinkDone = useRef(false);
+  useEffect(() => {
+    if (deepLinkDone.current || !initialVilla || !ready || introOpen || !units.length) return;
+    deepLinkDone.current = true;
+    const id = initialVilla.toLowerCase();
+    const u = units.find((x) => x.displayId.toLowerCase() === id);
+    if (u) void enterVillaRef.current(u);
+    else window.history.replaceState(null, "", basePath + window.location.search);
+  }, [initialVilla, ready, introOpen, units, basePath]);
+
+  const leaveVilla = () => {
+    if (villaPushedRef.current) {
+      villaPushedRef.current = false;
+      window.history.back(); // popstate closes the villa
+      return;
+    }
+    closeVilla();
   };
 
   return (
@@ -1930,12 +2031,7 @@ function ComplexStage({ tour, introOpen, onEnter }: { tour: TourMedia; introOpen
           unit={tourUnit}
           liked={favs.includes(tourUnit.id)}
           onToggleFav={() => toggleFav(tourUnit.id)}
-          onClose={() => {
-            setTourUnit(null);
-            setSelected(null);
-            approachedRef.current = null;
-            engineRef.current?.resetView();
-          }}
+          onClose={leaveVilla}
         />
       )}
     </div>
