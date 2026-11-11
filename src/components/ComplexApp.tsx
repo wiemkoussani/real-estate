@@ -31,6 +31,7 @@ import {
 import { GalleryPage, HelpPage, LocationPage } from "@/components/TourPages";
 import PanoramaViewer from "@/components/PanoramaViewer";
 import Visite360Viewer from "@/components/Visite360Viewer";
+import { attachGlideScroll } from "@/lib/glide-scroll";
 
 const STATUS_LABEL: Record<UnitStatus, string> = {
   available: "Available",
@@ -568,6 +569,9 @@ function ComplexStage({ tour, introOpen, onEnter }: { tour: TourMedia; introOpen
   const filtersCloseTimer = useRef<number | null>(null);
   const [favOnly, setFavOnly] = useState(false);
   const [heartPop, setHeartPop] = useState(false);
+  // No liked villas yet: the heart just nudges and shows "0" instead of switching to an empty list
+  const [heartNudge, setHeartNudge] = useState(false);
+  const heartNudgeTimer = useRef<number | null>(null);
   const [listMotion, setListMotion] = useState(false);
   const listMotionTimer = useRef<number | null>(null);
   const [leavingFavs, setLeavingFavs] = useState<string[]>([]);
@@ -1029,6 +1033,13 @@ function ComplexStage({ tour, introOpen, onEnter }: { tour: TourMedia; introOpen
     setScene360Open(true);
   };
 
+  // PC side list of villa cards: same smooth drag-glide + eased wheel as the 360 strip.
+  const unitsListCleanup = useRef<(() => void) | null>(null);
+  const unitsListRef = useCallback((node: HTMLDivElement | null) => {
+    unitsListCleanup.current?.();
+    unitsListCleanup.current = node ? attachGlideScroll(node, "y") : null;
+  }, []);
+
   const stripScrollCleanup = useRef<(() => void) | null>(null);
   const stripRef = useCallback((node: HTMLDivElement | null) => {
     stripScrollCleanup.current?.();
@@ -1269,8 +1280,15 @@ function ComplexStage({ tour, introOpen, onEnter }: { tour: TourMedia; introOpen
             <div className="panel-actions-ring">
               <button
                 type="button"
-                className={`tool-fab heart-fab ${favOnly ? "on" : ""} ${heartPop ? "pop" : ""}`}
+                className={`tool-fab heart-fab ${favOnly ? "on" : ""} ${heartPop ? "pop" : ""} ${heartNudge ? "nudge" : ""}`}
                 onClick={() => {
+                  if (!favOnly && favs.length === 0) {
+                    if (heartNudgeTimer.current) window.clearTimeout(heartNudgeTimer.current);
+                    setHeartNudge(false);
+                    window.requestAnimationFrame(() => setHeartNudge(true));
+                    heartNudgeTimer.current = window.setTimeout(() => setHeartNudge(false), 1200);
+                    return;
+                  }
                   leaveTimers.current.forEach((t) => window.clearTimeout(t));
                   leaveTimers.current.clear();
                   setLeavingFavs([]);
@@ -1290,14 +1308,18 @@ function ComplexStage({ tour, introOpen, onEnter }: { tour: TourMedia; introOpen
                 <span className="heart-glyph">
                   <IconHeart size={20} filled={favOnly} />
                 </span>
-                {favs.length > 0 ? <span className="fav-count">{favs.length}</span> : null}
+                {favs.length > 0 ? (
+                  <span className="fav-count">{favs.length}</span>
+                ) : heartNudge ? (
+                  <span className="fav-count fav-zero" aria-live="polite">0</span>
+                ) : null}
               </button>
               <button type="button" className={`tool-fab filter-fab ${filtersOpen ? "on" : ""}`} onClick={() => { if (filtersOpen) closeFilters(); else setFiltersOpen(true); }} title="Filters" aria-label="Filters" aria-pressed={filtersOpen}>
                 <IconFilters size={19} filled={filtersOpen} />
               </button>
             </div>
           </div>
-          <div className={`units cards${listMotion ? " fav-swap" : ""}`}>
+          <div ref={unitsListRef} className={`units cards${listMotion ? " fav-swap" : ""}`}>
             {filtered.map((u) => {
               const photo = cardPhoto(tour, u);
               const liked = favs.includes(u.id);

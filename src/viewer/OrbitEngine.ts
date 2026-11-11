@@ -71,6 +71,9 @@ export class OrbitEngine {
   private pinchStartDist = 0;
   private pinchStartZoom = 1;
   private moved = false;
+  /** Where the current press started — a tap with a bit of finger jitter must still count as a click. */
+  private pressX = 0;
+  private pressY = 0;
   private rafDraw: number | null = null;
   private rafLoop: number | null = null;
   private upgradeTimer: number | null = null;
@@ -1281,6 +1284,8 @@ export class OrbitEngine {
     this.isDragging = true;
     this.isNavigating = !this.panMode;
     this.moved = false;
+    this.pressX = x;
+    this.pressY = y;
     this.dragStartX = x;
     this.pointerX = x;
     this.panStartX = x;
@@ -1294,7 +1299,8 @@ export class OrbitEngine {
 
   private dragTo(x: number, y: number) {
     if (this.panMode || this.turnLocked()) {
-      this.moved = true;
+      // only a real drag cancels the click (fingers always jitter a few px on a tap)
+      if (Math.hypot(x - this.pressX, y - this.pressY) > 8) this.moved = true;
       this.panX += x - this.panStartX;
       this.panY += y - this.panStartY;
       this.panStartX = x;

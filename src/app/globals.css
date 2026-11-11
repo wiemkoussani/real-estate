@@ -624,6 +624,24 @@ body {
   from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
 }
+/* No favourites yet: small grow-and-back on the heart, a "0" appears then fades */
+.tool-fab.heart-fab.nudge .heart-glyph {
+  animation: heart-nudge 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes heart-nudge {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+.tool-fab .fav-count.fav-zero {
+  animation: fav-zero 1.2s ease forwards;
+}
+@keyframes fav-zero {
+  0% { opacity: 0; transform: translateX(-4px); }
+  15% { opacity: 1; transform: translateX(0); }
+  70% { opacity: 1; }
+  100% { opacity: 0; }
+}
 .tool-fab.heart-fab:has(.fav-count) {
   width: auto;
   min-width: 49px;
@@ -1548,6 +1566,14 @@ body {
   padding: 0 0 14px;
   box-sizing: border-box;
   scrollbar-width: none;
+}
+/* drag-to-scroll (src/lib/glide-scroll.ts): no text selection, grabbing cursor while dragging */
+.panel .units.cards.is-dragging {
+  cursor: grabbing;
+  user-select: none;
+}
+.panel .units.cards.is-dragging .unit {
+  cursor: grabbing;
 }
 .panel .units.cards .unit.leaving {
   pointer-events: none;
@@ -5612,6 +5638,14 @@ html.phone-layout .tip {
   left: 10px;
   max-width: min(220px, calc(100vw - 96px));
   bottom: calc(132px + env(safe-area-inset-bottom, 0px));
+}
+/* The hover card follows the cursor (top/left set inline): undo the phone
+   bottom anchor, otherwise it stretches the card and lifts it far above the pointer. */
+html.phone-layout .tip.follow {
+  bottom: auto;
+}
+html.phone-layout .tip.follow.tip-card {
+  max-width: none;
 }
 
 html.phone-layout .filters-flyout {
