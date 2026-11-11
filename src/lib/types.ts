@@ -50,13 +50,13 @@ export type ComplexRow = {
 
 /** Client dashboard counters for one project (see /api/client/dashboard). */
 export type ProjectStats = {
-  /** devices that opened the tour (1 per device per day) */
+  /** tour visits (the same device counts again after 1 hour) */
   visitors: number;
   /** visitors since the client last opened the project */
   newVisitors: number;
   /** people interested in a villa (leads) since the client last opened the project */
   newLeads: number;
-  /** red badge = newVisitors + newLeads */
+  /** red badge = 1 if there are new visitors (however many) + newLeads */
   badge: number;
   lastSeenAt: string | null;
 };
@@ -89,7 +89,13 @@ export type LeadRow = {
   complex_id: string | null;
   to_favorites?: boolean | null;
   favorite_units?: string[] | null;
+  gender?: string | null;
+  subject?: string | null;
+  message?: string | null;
+  status?: LeadStatus | null;
 };
+
+export type LeadStatus = "new" | "in_progress" | "sold";
 
 export type AssetRow = {
   id: string;

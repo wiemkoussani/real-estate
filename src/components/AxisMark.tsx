@@ -1,6 +1,6 @@
 export default function AxisMark({
   size = 48,
-  word = true,
+  word = false,
 }: {
   size?: number;
   word?: boolean;

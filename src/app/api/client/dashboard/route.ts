@@ -19,7 +19,9 @@ async function statsFor(service: SupabaseClient, cx: ComplexRow, lastSeen: strin
     count(lastSeen ? visits().gt("created_at", lastSeen) : visits()),
     count(lastSeen ? leads().gt("created_at", lastSeen) : leads()),
   ]);
-  return { visitors, newVisitors, newLeads, badge: newVisitors + newLeads, lastSeenAt: lastSeen };
+  // badge: new visitors count once ("people came"), then +1 per person who filled the form
+  const badge = (newVisitors > 0 ? 1 : 0) + newLeads;
+  return { visitors, newVisitors, newLeads, badge, lastSeenAt: lastSeen };
 }
 
 /** Cover photo for the project card: first gallery image, else the first aerial frame. */
@@ -61,7 +63,7 @@ export async function GET() {
 
     const [{ data: unitRows }, { data: leadRows }, { data: memberRows }, coverMap] = await Promise.all([
       service.from("units").select("*").in("complex_id", ids).order("display_id"),
-      service.from("leads").select("*").in("complex_id", ids).order("created_at", { ascending: false }).limit(300),
+      service.from("leads").select("*").in("complex_id", ids).order("created_at", { ascending: false }).limit(5000),
       service.from("complex_members").select("*").eq("profile_id", auth.user.id),
       coversFor(service, ids),
     ]);

@@ -3,11 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
-import { AxisWatermark, IcBell, IcCamera, IcChart, IcChevronDown, IcGrid, IcHelp, IcLogout, IcSearch, IcUsers } from "./DashIcons";
+import { AxisWatermark, IcBell, IcCamera, IcChart, IcChevronDown, IcGrid, IcHelp, IcLogout, IcUsers } from "./DashIcons";
+import GlobalSearch, { type SearchHit } from "./GlobalSearch";
 import "../admin/admin.css";
 import "./dashboard.css";
 
-export type ClientView = "projects" | "analytics" | "contacts";
+/** "project" = inside one project (its own Apartments / Analytics / Contacts tabs) */
+export type ClientView = "projects" | "analytics" | "contacts" | "project";
 
 type Props = {
   children: React.ReactNode;
@@ -18,6 +20,8 @@ type Props = {
   name: string;
   avatarUrl: string | null;
   onAvatar: (url: string) => void;
+  /** everything "Search anything" can find */
+  searchItems: SearchHit[];
 };
 
 /** Square-crop and shrink the picked photo to 256px WebP before upload. */
@@ -43,7 +47,7 @@ function initials(name: string) {
   return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() || "?";
 }
 
-export default function ClientShell({ children, view, onView, notifications, name, avatarUrl, onAvatar }: Props) {
+export default function ClientShell({ children, view, onView, notifications, name, avatarUrl, onAvatar, searchItems }: Props) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -99,7 +103,7 @@ export default function ClientShell({ children, view, onView, notifications, nam
   ];
 
   return (
-    <div className="axd">
+    <div className={`axd axd-view-${view}`}>
       <AxisWatermark className="axd-watermark" />
 
       <aside className="axd-side">
@@ -182,11 +186,7 @@ export default function ClientShell({ children, view, onView, notifications, nam
       </aside>
 
       <div className="axd-work">
-        {/* Search everything: wired up at the end, once every page exists */}
-        <label className="axd-search">
-          <IcSearch size={21} stroke={1.7} />
-          <input type="search" placeholder="Search anything..." aria-label="Search anything" />
-        </label>
+        <GlobalSearch items={searchItems} />
         {children}
       </div>
     </div>

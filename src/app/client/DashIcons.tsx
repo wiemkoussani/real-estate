@@ -122,3 +122,83 @@ export function AxisWatermark({ className }: { className?: string }) {
     </svg>
   );
 }
+
+export const IcUsersRound = ({ size = 24, stroke = 2 }: P) => (
+  <svg {...base(size, stroke)}>
+    <path d="M18 21a8 8 0 0 0-16 0" />
+    <circle cx="10" cy="8" r="5" />
+    <path d="M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3" />
+  </svg>
+);
+export const IcFilter = ({ size = 24, stroke = 2 }: P) => (
+  <svg {...base(size, stroke)}>
+    <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" />
+  </svg>
+);
+export const IcExport = ({ size = 24, stroke = 2 }: P) => (
+  <svg {...base(size, stroke)}>
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />
+  </svg>
+);
+export const IcRotate = ({ size = 24, stroke = 2 }: P) => (
+  <svg {...base(size, stroke)}>
+    <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+    <path d="M21 3v5h-5" />
+  </svg>
+);
+export const IcTrash = ({ size = 24, stroke = 2 }: P) => (
+  <svg {...base(size, stroke)}>
+    <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6" />
+  </svg>
+);
+/** ⇕ — no sort */
+export const IcSortNone = ({ size = 24, stroke = 2 }: P) => (
+  <svg {...base(size, stroke)}>
+    <path d="m7 15 5 5 5-5M7 9l5-5 5 5" />
+  </svg>
+);
+/** the two chevrons flipped — ascending */
+export const IcSortFlipped = ({ size = 24, stroke = 2 }: P) => (
+  <svg {...base(size, stroke)}>
+    <path d="m7 20 5-5 5 5M7 4l5 5 5-5" />
+  </svg>
+);
+export const IcArrowLeft = ({ size = 24, stroke = 2 }: P) => (
+  <svg {...base(size, stroke)}>
+    <path d="m12 19-7-7 7-7M19 12H5" />
+  </svg>
+);
+export const IcArrowRight = ({ size = 24, stroke = 2 }: P) => (
+  <svg {...base(size, stroke)}>
+    <path d="M5 12h14M12 5l7 7-7 7" />
+  </svg>
+);
+export const IcX = ({ size = 24, stroke = 2 }: P) => (
+  <svg {...base(size, stroke)}>
+    <path d="M18 6 6 18M6 6l12 12" />
+  </svg>
+);
+export const IcDoor = ({ size = 24, stroke = 2 }: P) => (
+  <svg {...base(size, stroke)}>
+    <path d="M13 4h3a2 2 0 0 1 2 2v14M2 20h3M13 20h9M10 12v.01" />
+    <path d="M13 4.56v16.01a.5.5 0 0 1-.62.49L5 19V5.56a2 2 0 0 1 1.51-1.94l4-1A2 2 0 0 1 13 4.56Z" />
+  </svg>
+);
+export const IcImport = ({ size = 24, stroke = 2 }: P) => (
+  <svg {...base(size, stroke)}>
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 8l5-5 5 5M12 3v12" />
+  </svg>
+);
+export const IcPencil = ({ size = 24, stroke = 2 }: P) => (
+  <svg {...base(size, stroke)}>
+    <path d="M21.17 6.81a1 1 0 0 0-3.98-3.98L3.84 16.17a2 2 0 0 0-.5.83l-1.32 4.35a.5.5 0 0 0 .62.62l4.35-1.32a2 2 0 0 0 .83-.5zM15 5l4 4" />
+  </svg>
+);
+export const IcQr = ({ size = 24, stroke = 2 }: P) => (
+  <svg {...base(size, stroke)}>
+    <rect x="3" y="3" width="5" height="5" rx="1" />
+    <rect x="16" y="3" width="5" height="5" rx="1" />
+    <rect x="3" y="16" width="5" height="5" rx="1" />
+    <path d="M21 16h-3a2 2 0 0 0-2 2v3M21 21v.01M12 7v3a2 2 0 0 1-2 2H7M3 12h.01M12 3h.01M12 16v.01M16 12h1M21 12v.01M12 21v-1" />
+  </svg>
+);

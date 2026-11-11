@@ -31,6 +31,7 @@ import {
 import { GalleryPage, HelpPage, LocationPage } from "@/components/TourPages";
 import PanoramaViewer from "@/components/PanoramaViewer";
 import Visite360Viewer from "@/components/Visite360Viewer";
+import { startVisit, trackFavorite, trackUnitView } from "@/lib/track";
 import { attachGlideScroll } from "@/lib/glide-scroll";
 
 const STATUS_LABEL: Record<UnitStatus, string> = {
@@ -315,26 +316,9 @@ export default function ComplexApp({ slug, initialTour, initialVilla }: { slug: 
   const [splash, setSplash] = useState(true);
   const [entered, setEntered] = useState(false);
 
-  // Count this device as a visitor of the project (server keeps 1 per device per day).
+  // Anonymous analytics: visit (new after 1 h), source, device, visible time.
   useEffect(() => {
-    try {
-      let id = localStorage.getItem("axis-visitor");
-      if (!id) {
-        // randomUUID is missing on plain-http LAN testing (not a secure context)
-        id = typeof crypto.randomUUID === "function"
-          ? crypto.randomUUID()
-          : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
-        localStorage.setItem("axis-visitor", id);
-      }
-      void fetch("/api/visit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug, visitorId: id }),
-        keepalive: true,
-      }).catch(() => {});
-    } catch {
-      /* private mode / no storage: not counted */
-    }
+    void startVisit(slug);
   }, [slug]);
 
   useEffect(() => {
@@ -892,6 +876,7 @@ function ComplexStage({ tour, introOpen, onEnter, initialVilla }: { tour: TourMe
   favsRef.current = favs;
   const toggleFav = (id: string) => {
     const removing = favs.includes(id);
+    if (!removing) trackFavorite(units.find((u) => u.id === id)?.displayId ?? "");
     setFavs((prev) => {
       const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
       localStorage.setItem("axis-favs", JSON.stringify(next));
@@ -1247,6 +1232,14 @@ function ComplexStage({ tour, introOpen, onEnter, initialVilla }: { tour: TourMe
     const id = decodeURIComponent(path.slice(basePath.length + 1).split("/")[0] || "").toLowerCase();
     return id ? units.find((u) => u.displayId.toLowerCase() === id) ?? null : null;
   };
+  // analytics: how long each villa stays open
+  useEffect(() => {
+    if (!tourUnit) return;
+    const villa = tourUnit.displayId;
+    const opened = Date.now();
+    return () => trackUnitView(villa, (Date.now() - opened) / 1000);
+  }, [tourUnit]);
+
   // true when we pushed the villa URL ourselves, so closing = going back one step
   const villaPushedRef = useRef(false);
 
