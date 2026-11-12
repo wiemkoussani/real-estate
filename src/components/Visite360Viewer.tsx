@@ -4,6 +4,41 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { visite360Base, visite360ImageBase, visite360TourUrl } from "@/lib/complex";
 import { Visite360Engine, type TourData } from "@/viewer/Visite360Engine";
 
+// Arabic labels for the tour (tour.json ships English names from the export).
+const ROOM_AR: Record<string, string> = {
+  Entrance: "المدخل",
+  "Living Room": "غرفة المعيشة",
+  Kitchen: "المطبخ",
+  "Dining Room": "غرفة الطعام",
+  Majlis: "المجلس",
+  Staircase: "الدرج",
+  "Upper Hall": "الصالة العلوية",
+  "Shared Bathroom": "دورة المياه المشتركة",
+  "Roof Hall": "صالة السطح",
+  "Guest WC": "دورة مياه الضيوف",
+};
+const FLOOR_AR: Record<string, string> = {
+  ground: "الدور الأرضي",
+  first: "الدور الأول",
+  roof: "السطح",
+};
+function roomAr(lb?: string) {
+  if (!lb) return lb;
+  if (ROOM_AR[lb]) return ROOM_AR[lb];
+  const bath = /^Bedroom (\d+) Bathroom$/.exec(lb);
+  if (bath) return `دورة مياه غرفة النوم ${bath[1]}`;
+  const bed = /^Bedroom (\d+)$/.exec(lb);
+  if (bed) return `غرفة النوم ${bed[1]}`;
+  return lb;
+}
+function arabizeTour(t: TourData): TourData {
+  return {
+    ...t,
+    floors: t.floors?.map((f) => ({ ...f, label: FLOOR_AR[f.id] ?? f.label })),
+    cameras: t.cameras.map((c) => ({ ...c, lb: roomAr(c.lb) })),
+  };
+}
+
 type Props = {
   className?: string;
   /** Camera id to open on (defaults to tour.json `startCamera`). */
@@ -44,7 +79,7 @@ export default function Visite360Viewer({ className, startId }: Props) {
       try {
         const res = await fetch(visite360TourUrl());
         if (!res.ok) throw new Error(`tour.json ${res.status}`);
-        const data = (await res.json()) as TourData;
+        const data = arabizeTour((await res.json()) as TourData);
         if (disposed) return;
         if (startId && data.cameras.some((c) => c.n === startId)) data.startCamera = startId;
         setTour(data);
@@ -70,7 +105,7 @@ export default function Visite360Viewer({ className, startId }: Props) {
         }
         await engine.start();
       } catch (e) {
-        if (!disposed) setError(e instanceof Error ? e.message : "Failed to load Visite 360");
+        if (!disposed) setError(e instanceof Error ? e.message : "تعذّر تحميل الجولة الافتراضية");
       }
     })();
 
@@ -151,12 +186,12 @@ export default function Visite360Viewer({ className, startId }: Props) {
 
       <div className={`visite360-loading${loaded || error ? " is-done" : ""}`} aria-hidden={loaded}>
         <span className="visite360-spinner" />
-        <span>Loading Visite 360…</span>
+        <span>جارٍ تحميل الجولة 360°…</span>
       </div>
       {error ? <div className="visite360-error">{error}</div> : null}
 
       {loaded && current ? (
-        <div className="visite360-caption" aria-live="polite">
+        <div className="visite360-caption" dir="rtl" aria-live="polite">
           {floors.length > 1 && activeFloor ? <span>{activeFloor.label}</span> : null}
           {current.lb ? <strong>{current.lb}</strong> : null}
         </div>
@@ -169,8 +204,8 @@ export default function Visite360Viewer({ className, startId }: Props) {
             <button
               type="button"
               className={`visite360-tool${measuring ? " on" : ""}`}
-              title={measuring ? "Stop measuring" : "Measure distance"}
-              aria-label={measuring ? "Stop measuring" : "Measure distance"}
+              title={measuring ? "إيقاف القياس" : "قياس المسافة"}
+              aria-label={measuring ? "إيقاف القياس" : "قياس المسافة"}
               aria-pressed={measuring}
               onClick={toggleMeasure}
             >
@@ -181,8 +216,8 @@ export default function Visite360Viewer({ className, startId }: Props) {
               <button
                 type="button"
                 className="visite360-tool"
-                title="Clear measurements"
-                aria-label="Clear measurements"
+                title="مسح القياسات"
+                aria-label="مسح القياسات"
                 onClick={() => engineRef.current?.clearMeasurements()}
               >
                 <IconTrash />
@@ -190,7 +225,7 @@ export default function Visite360Viewer({ className, startId }: Props) {
             ) : null}
           </div>
           {floors.length > 1 ? (
-        <div className="visite360-floors" role="tablist" aria-label="Floors">
+        <div className="visite360-floors" role="tablist" aria-label="الطوابق">
           {/* top floor first, like elevator buttons: Roof / First / Ground */}
           {[...floors].reverse().map((f) => (
             <button
@@ -210,7 +245,7 @@ export default function Visite360Viewer({ className, startId }: Props) {
       ) : null}
 
       {loaded && rooms.length ? (
-        <div className="visite360-rooms" ref={barRef} role="tablist" aria-label="Rooms">
+        <div className="visite360-rooms" ref={barRef} role="tablist" aria-label="الغرف" dir="rtl">
           {rooms.map((r) => (
             <button
               key={r.id}

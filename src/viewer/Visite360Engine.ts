@@ -1656,7 +1656,7 @@ export class Visite360Engine {
     };
     const m = a.distanceTo(b) / (this.s * 100); // world metres → real metres
     const label = mk("v360-measure-label");
-    label.textContent = m >= 1 ? `${m.toFixed(2)} m` : `${(m * 100).toFixed(0)} cm`;
+    label.textContent = m >= 1 ? `${m.toFixed(2)} م` : `${(m * 100).toFixed(0)} سم`;
     this.measurements.push({ a, b, line, dotA: mk("v360-measure-dot"), dotB: mk("v360-measure-dot"), label });
     this.o.onMeasurementsChange?.(this.measurements.length);
   }

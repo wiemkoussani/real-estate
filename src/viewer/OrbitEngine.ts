@@ -188,7 +188,8 @@ export class OrbitEngine {
   }
 
   getHeadingDir() {
-    const dirs = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"] as const;
+    // Arabic compass: ش شمال · ق شرق · ج جنوب · غ غرب
+    const dirs = ["ش", "ش.ق", "ق", "ج.ق", "ج", "ج.غ", "غ", "ش.غ"] as const;
     return dirs[Math.round(this.getHeading() / 45) % 8];
   }
 

@@ -591,7 +591,7 @@ function ComplexStage({ tour, introOpen, onEnter, initialVilla }: { tour: TourMe
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [layoutReady, setLayoutReady] = useState(false);
-  const [headingDir, setHeadingDir] = useState("N");
+  const [headingDir, setHeadingDir] = useState("ش");
   const [headingDeg, setHeadingDeg] = useState(0);
   const [helpOpen, setHelpOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
@@ -1791,7 +1791,7 @@ function ComplexStage({ tour, introOpen, onEnter, initialVilla }: { tour: TourMe
                 <b>{selected.displayId}</b>
                 <small className={selected.status}>{STATUS_LABEL[selected.status]}</small>
               </div>
-              <em className="hint">Click again to enter · انقر مرة أخرى للدخول</em>
+              <em className="hint" dir="rtl">انقر مرة أخرى للدخول</em>
             </div>
           </div>
         )}
@@ -1931,7 +1931,7 @@ function ComplexStage({ tour, introOpen, onEnter, initialVilla }: { tour: TourMe
                       </button>
                     ))
                   ) : (
-                    <p className="scene360-strip-empty">360 scenes will appear here once uploaded in admin.</p>
+                    <p className="scene360-strip-empty">ستظهر مشاهد 360 هنا قريباً.</p>
                   )}
                 </div>
               </div>
@@ -2096,7 +2096,7 @@ function ComplexStage({ tour, introOpen, onEnter, initialVilla }: { tour: TourMe
               </div>
             ) : (
               <div className="scene360-empty">
-                <p>360 scenes will appear here once uploaded in admin.</p>
+                <p>ستظهر مشاهد 360 هنا قريباً.</p>
               </div>
             )}
             <div className="scene360-bar" onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
@@ -2601,7 +2601,7 @@ function Spin360({ type, folder }: { type: number; folder: string }) {
   // Same as maquette HUD: needle rotates; letter snaps to N / NE / E / …
   const headingDeg = n > 0 ? (pos / n) * 360 : 0;
   const normDeg = ((headingDeg % 360) + 360) % 360;
-  const headingDir = (["N", "NE", "E", "SE", "S", "SW", "W", "NW"] as const)[
+  const headingDir = (["ش", "ش.ق", "ق", "ج.ق", "ج", "ج.غ", "غ", "ش.غ"] as const)[
     Math.round(normDeg / 45) % 8
   ];
 
@@ -2626,7 +2626,7 @@ function Spin360({ type, folder }: { type: number; folder: string }) {
       }}
     >
       <canvas ref={canvasRef} />
-      {loading && <div className="tour-load">Loading…</div>}
+      {loading && <div className="tour-load" dir="rtl">جارٍ التحميل…</div>}
       <div className="spin compass">
         <button
           type="button"
@@ -2755,15 +2755,15 @@ function VillaTour({
       <div className="detail-body">
         <div className="detail-stage">
           <div className="detail-top">
-            <button type="button" className="tool-back" onClick={onClose} aria-label="Back">
+            <button type="button" className="tool-back" onClick={onClose} aria-label="رجوع">
               <IconBack />
             </button>
-            <div className="detail-tabs">
+            <div className="detail-tabs" dir="ltr">
               <button type="button" className={tab === "plan" ? "on" : ""} onClick={() => setTab("plan")}>
-                Floorplan 3D
+                <bdi dir="rtl">المخطط 3D</bdi>
               </button>
               <button type="button" className={tab === "visit" ? "on" : ""} onClick={() => setTab("visit")}>
-                Visite 360
+                <bdi dir="rtl">جولة 360°</bdi>
               </button>
             </div>
           </div>
@@ -2806,10 +2806,12 @@ function VillaTour({
               onPointerCancel={onSheetPointerUp}
             />
           ) : null}
-          <div className="side-head">
+          <div className="side-head" dir="rtl">
             <div>
-              <div className="side-project">{tour.name}</div>
-              <h2>Investment apartment {unit.displayId}</h2>
+              <div className="side-project">فيلات أجياد</div>
+              <h2>
+                فيلا استثمارية <bdi dir="ltr">{unit.displayId}</bdi>
+              </h2>
             </div>
             <span className={`side-badge st-${unit.status}`}>{badge}</span>
           </div>

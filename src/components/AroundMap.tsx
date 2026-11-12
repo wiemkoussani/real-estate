@@ -28,13 +28,13 @@ type Payload = { lat: number; lng: number; address: string; places: PoiPlace[] }
 type TravelMode = "car" | "foot";
 type RouteInfo = { distance: number; duration: number; path: [number, number][] };
 
-const fmtKm = (m: number) => (m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(m < 10000 ? 1 : 0)} km`);
+const fmtKm = (m: number) => (m < 1000 ? `${Math.round(m)} م` : `${(m / 1000).toFixed(m < 10000 ? 1 : 0)} كم`);
 const fmtTime = (s: number) => {
   const min = Math.max(1, Math.round(s / 60));
-  if (min < 60) return `${min} min`;
+  if (min < 60) return `${min} دقيقة`;
   const h = Math.floor(min / 60);
   const rest = min % 60;
-  return rest ? `${h} h ${rest} min` : `${h} h`;
+  return rest ? `${h} س ${rest} د` : `${h} ساعة`;
 };
 
 export function AroundMap({
@@ -324,7 +324,7 @@ export function AroundMap({
         dashArray: travel === "foot" ? "2 10" : undefined,
         lineCap: "round",
       }).addTo(layer);
-      line.bindTooltip(`${fmtTime(route.duration)} · ${fmtKm(route.distance)}`, {
+      line.bindTooltip(`<span dir="rtl">${fmtTime(route.duration)} · ${fmtKm(route.distance)}</span>`, {
         permanent: true,
         direction: "center",
         className: "poi-route-tip",
@@ -356,50 +356,50 @@ export function AroundMap({
     <div className="poi-explorer" dir="ltr">
       <div className="poi-map-wrap">
         <div ref={mapEl} className="poi-map" />
-        {!data && !err && <div className="poi-status">Loading map…</div>}
-        {data && placesLoading && <div className="poi-status poi-status-soft">Loading places…</div>}
+        {!data && !err && <div className="poi-status" dir="rtl">جارٍ تحميل الخريطة…</div>}
+        {data && placesLoading && <div className="poi-status poi-status-soft" dir="rtl">جارٍ تحميل الأماكن…</div>}
         {err && <div className="poi-status">{err}</div>}
       </div>
       <aside className="poi-panel">
         <div className="poi-panel-top">
           <button type="button" className={mode === "list" ? "on" : ""} onClick={() => setMode(mode === "list" ? "filters" : "list")}>
-            <IconList size={14} /> List
+            <IconList size={14} /> القائمة
           </button>
         </div>
         <h3>{title}</h3>
         <p className="poi-addr">{picked ? picked.name : data?.address || query}</p>
-        <label className="poi-dest">
-          <span>Destination</span>
-          <input value={dest} onChange={(e) => setDest(e.target.value)} placeholder="or click on map" />
+        <label className="poi-dest" dir="rtl">
+          <span>الوجهة</span>
+          <input value={dest} onChange={(e) => setDest(e.target.value)} placeholder="أو انقر على الخريطة" />
         </label>
         {picked && (
-          <div className="poi-route">
+          <div className="poi-route" dir="rtl">
             <div className="poi-route-head">
               <span className="poi-mini" dangerouslySetInnerHTML={{ __html: PIN_SVG[picked.kind] }} />
               <strong>{picked.name}</strong>
-              <button type="button" className="poi-route-x" onClick={clearRoute} aria-label="Close route">
+              <button type="button" className="poi-route-x" onClick={clearRoute} aria-label="إغلاق المسار">
                 ×
               </button>
             </div>
             <div className="poi-route-modes">
               <button type="button" className={travel === "car" ? "on" : ""} onClick={() => setTravel("car")}>
-                Car
+                سيارة
               </button>
               <button type="button" className={travel === "foot" ? "on" : ""} onClick={() => setTravel("foot")}>
-                Walk
+                مشياً
               </button>
             </div>
-            {routeState === "loading" && <p className="poi-route-msg">Calculating route…</p>}
-            {routeState === "error" && <p className="poi-route-msg">Route unavailable</p>}
+            {routeState === "loading" && <p className="poi-route-msg">جارٍ حساب المسار…</p>}
+            {routeState === "error" && <p className="poi-route-msg">المسار غير متاح</p>}
             {route && routeState === "idle" && (
               <div className="poi-route-stats">
                 <div>
                   <b>{fmtTime(route.duration)}</b>
-                  <span>Time</span>
+                  <span>الوقت</span>
                 </div>
                 <div>
                   <b>{fmtKm(route.distance)}</b>
-                  <span>Distance</span>
+                  <span>المسافة</span>
                 </div>
               </div>
             )}
@@ -421,7 +421,7 @@ export function AroundMap({
                 </button>
               </li>
             ))}
-            {!visible.length && <li className="poi-empty">No places for these filters</li>}
+            {!visible.length && <li className="poi-empty" dir="rtl">لا توجد أماكن لهذه الفلاتر</li>}
           </ul>
         ) : (
           <div className="poi-filters">

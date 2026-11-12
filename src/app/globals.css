@@ -3531,7 +3531,8 @@ html:not(.phone-layout) .scene360-pano canvas {
 }
 .visite360-caption span + strong::before {
   content: "·";
-  margin-right: 8px;
+  display: inline-block;
+  margin: 0 8px;
   color: rgba(255, 255, 255, 0.5);
 }
 
@@ -6588,3 +6589,14 @@ html.phone-layout .street360-tag b { font-size: 11px; }
   .street360-dot::after { animation: none; opacity: 0; }
 }
 
+
+/* Visite 360 — Arabic UI text */
+.visite360-caption,
+.visite360-floors button,
+.visite360-rooms button,
+.visite360-loading,
+.v360-pill,
+.v360-measure-label,
+.detail-tabs button {
+  font-family: var(--font-noto-arabic), var(--font-saira), system-ui, sans-serif;
+}
