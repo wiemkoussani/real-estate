@@ -33,6 +33,7 @@ import PanoramaViewer from "@/components/PanoramaViewer";
 import Visite360Viewer from "@/components/Visite360Viewer";
 import { startVisit, trackFavorite, trackUnitView } from "@/lib/track";
 import { attachGlideScroll } from "@/lib/glide-scroll";
+import { STREET_360_PINS } from "@/lib/street360";
 
 const STATUS_LABEL: Record<UnitStatus, string> = {
   available: "Available",
@@ -684,8 +685,8 @@ function ComplexStage({ tour, introOpen, onEnter, initialVilla }: { tour: TourMe
     if (!q) return;
     const hasExact = Number.isFinite(tour.locationLat) && Number.isFinite(tour.locationLng);
     const key = hasExact
-      ? `poi-map-v16:${tour.locationLat.toFixed(5)},${tour.locationLng.toFixed(5)}`
-      : `poi-map-v16:${q}`;
+      ? `poi-map-v17:${tour.locationLat.toFixed(5)},${tour.locationLng.toFixed(5)}`
+      : `poi-map-v17:${q}`;
     try {
       const raw = sessionStorage.getItem(key);
       if (raw) {
@@ -885,6 +886,93 @@ function ComplexStage({ tour, introOpen, onEnter, initialVilla }: { tour: TourMe
       if (timer) window.clearTimeout(timer);
     };
   }, [ready, filtered, scene360Strip, scene360Open, tourUnit]);
+
+  // Phone: tapping a villa on the map glides the card strip to that villa's card.
+  useEffect(() => {
+    const dock = dockRef.current;
+    if (!dock || !selected || !isPhoneLayout()) return;
+    const card = dock.querySelector<HTMLElement>(`.unit[data-unit-id="${CSS.escape(selected.id)}"]`);
+    if (!card) return;
+    const pad = parseFloat(getComputedStyle(dock).paddingLeft) || 0;
+    const max = dock.scrollWidth - dock.clientWidth;
+    const from = dock.scrollLeft;
+    const to = Math.max(0, Math.min(max, card.offsetLeft - pad)); // same spot scroll-snap "start" rests on
+    const pulse = () => {
+      card.classList.remove("dock-arrive");
+      void card.offsetWidth; // restart the animation
+      card.classList.add("dock-arrive");
+    };
+    if (Math.abs(to - from) < 2) {
+      pulse();
+      return;
+    }
+    dockFacedIdRef.current = selected.id;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const dur = reduce ? 0 : Math.min(900, 380 + Math.abs(to - from) * 0.12);
+    const snap = dock.style.scrollSnapType;
+    dock.style.scrollSnapType = "none"; // snap would fight the animated scroll
+    const t0 = performance.now();
+    const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+    let raf = 0;
+    const step = (now: number) => {
+      const t = dur ? Math.min(1, (now - t0) / dur) : 1;
+      dock.scrollLeft = from + (to - from) * ease(t);
+      if (t < 1) raf = requestAnimationFrame(step);
+      else {
+        dock.style.scrollSnapType = snap;
+        raf = 0;
+        pulse();
+      }
+    };
+    // a finger on the strip takes over from the animation
+    const stop = () => {
+      if (!raf) return;
+      cancelAnimationFrame(raf);
+      raf = 0;
+      dock.style.scrollSnapType = snap;
+    };
+    dock.addEventListener("touchstart", stop, { passive: true });
+    raf = requestAnimationFrame(step);
+    return () => {
+      stop();
+      dock.removeEventListener("touchstart", stop);
+    };
+  }, [selected]);
+
+  // Street 360 pins on the aerial: follow the map (turn / zoom / pan) by moving the DOM directly each frame.
+  const streetPins = useMemo(
+    () => (STREET_360_PINS[tour.slug] ?? []).filter((p) => tour.scenes360.some((s) => s.id === p.sceneId)),
+    [tour.slug, tour.scenes360],
+  );
+  const pinEls = useRef<(HTMLButtonElement | null)[]>([]);
+  const showStreetPins = ready && !introOpen && !tourUnit && !scene360Open && streetPins.length > 0;
+  useEffect(() => {
+    if (!showStreetPins) return;
+    let raf = 0;
+    let last = "";
+    const pts = streetPins.map((p) => p.pos);
+    const tick = () => {
+      raf = requestAnimationFrame(tick);
+      const engine = engineRef.current;
+      if (!engine) return;
+      const spots = engine.projectToStage(pts);
+      const key = spots.map((p) => (p ? `${Math.round(p.x)},${Math.round(p.y)}` : "-")).join("|");
+      if (key === last) return;
+      last = key;
+      spots.forEach((p, i) => {
+        const el = pinEls.current[i];
+        if (!el) return;
+        if (!p) {
+          el.style.visibility = "hidden";
+          return;
+        }
+        el.style.visibility = "visible";
+        el.style.transform = `translate3d(${Math.round(p.x)}px, ${Math.round(p.y)}px, 0) translate(-50%, -50%)`;
+      });
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [showStreetPins, streetPins]);
 
   const favsRef = useRef(favs);
   favsRef.current = favs;
@@ -1631,6 +1719,29 @@ function ComplexStage({ tour, introOpen, onEnter, initialVilla }: { tour: TourMe
         <canvas ref={bgRef} className="layer bg" />
         <canvas ref={bgNextRef} className="layer bg-next" />
         <canvas ref={threeRef} className="layer webgl" />
+
+        {showStreetPins && (
+          <div className="street360-pins">
+            {streetPins.map((p, i) => (
+              <button
+                key={p.sceneId}
+                ref={(el) => {
+                  pinEls.current[i] = el;
+                }}
+                type="button"
+                className="street360-pin"
+                style={{ visibility: "hidden" }}
+                title="جولة 360° في الشارع"
+                aria-label={`جولة 360° — ${p.sceneId}`}
+                onPointerDown={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={() => openScene360View(p.sceneId)}
+              >
+                <Icon360 size={34} />
+              </button>
+            ))}
+          </div>
+        )}
 
         {hover && hoverPos && !tourUnit && !scene360Open && (
           // the same card as in the side list, just smaller

@@ -18,12 +18,24 @@ const PIN_SVG: Record<PoiKind, string> = {
   bus: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#4a5568" stroke-width="2"><rect x="4" y="4" width="16" height="12" rx="2"/><path d="M6 16v2M18 16v2M4 11h16"/></svg>`,
   mall: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#4a5568" stroke-width="2"><path d="M6 8h12l-1 12H7L6 8z"/><path d="M9 8V7a3 3 0 0 1 6 0v1"/></svg>`,
   school: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#4a5568" stroke-width="2"><path d="m4 10 8-5 8 5"/><path d="M6 11v7h12v-7"/><path d="M12 11v7"/></svg>`,
+  airport: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#4a5568" stroke-width="2" stroke-linejoin="round"><path d="M10.5 4.5a1.5 1.5 0 0 1 3 0V9l7 4v2l-7-2v4l2 1.5V20L12 19l-3.5 1v-1.5l2-1.5v-4l-7 2v-2l7-4z"/></svg>`,
   bank: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#4a5568" stroke-width="2"><path d="m4 10 8-5 8 5"/><path d="M6 10v8M10 10v8M14 10v8M18 10v8M4 18h16"/></svg>`,
 };
 
 const ALL_ON = Object.fromEntries(POI_FILTERS.map((f) => [f.id, true])) as Record<PoiKind, boolean>;
 
 type Payload = { lat: number; lng: number; address: string; places: PoiPlace[] };
+type TravelMode = "car" | "foot";
+type RouteInfo = { distance: number; duration: number; path: [number, number][] };
+
+const fmtKm = (m: number) => (m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(m < 10000 ? 1 : 0)} km`);
+const fmtTime = (s: number) => {
+  const min = Math.max(1, Math.round(s / 60));
+  if (min < 60) return `${min} min`;
+  const h = Math.floor(min / 60);
+  const rest = min % 60;
+  return rest ? `${h} h ${rest} min` : `${h} h`;
+};
 
 export function AroundMap({
   query,
@@ -39,6 +51,7 @@ export function AroundMap({
   const mapEl = useRef<HTMLDivElement>(null);
   const mapRef = useRef<import("leaflet").Map | null>(null);
   const layerRef = useRef<import("leaflet").LayerGroup | null>(null);
+  const routeLayerRef = useRef<import("leaflet").LayerGroup | null>(null);
   const pointsRef = useRef<[number, number][]>([]);
   const framedSize = useRef({ x: 0, y: 0 });
   const [data, setData] = useState<Payload | null>(null);
@@ -49,11 +62,14 @@ export function AroundMap({
   const [picked, setPicked] = useState<PoiPlace | null>(null);
   const [ready, setReady] = useState(false);
   const [placesLoading, setPlacesLoading] = useState(false);
+  const [travel, setTravel] = useState<TravelMode>("car");
+  const [route, setRoute] = useState<RouteInfo | null>(null);
+  const [routeState, setRouteState] = useState<"idle" | "loading" | "error">("idle");
 
   useEffect(() => {
     let stop = false;
     const hasExact = Number.isFinite(lat) && Number.isFinite(lng);
-    const key = hasExact ? `poi-map-v16:${lat!.toFixed(5)},${lng!.toFixed(5)}` : `poi-map-v16:${query}`;
+    const key = hasExact ? `poi-map-v17:${lat!.toFixed(5)},${lng!.toFixed(5)}` : `poi-map-v17:${query}`;
     const aroundUrl = (extra: string) =>
       hasExact
         ? `/api/maps/around?lat=${lat}&lng=${lng}&address=${encodeURIComponent(query)}&${extra}`
@@ -187,6 +203,7 @@ export function AroundMap({
         iconAnchor: [22, 22],
       });
       L.marker([data.lat, data.lng], { icon: home, zIndexOffset: 800 }).addTo(map);
+      routeLayerRef.current = L.layerGroup().addTo(map);
       layerRef.current = L.layerGroup().addTo(map);
       mapRef.current = map;
       setReady(true);
@@ -239,7 +256,7 @@ export function AroundMap({
         const m = L.marker([p.lat, p.lng], { icon, zIndexOffset: 200 });
         m.on("click", () => setPicked(p));
         m.addTo(layer);
-        pts.push([p.lat, p.lng]);
+        if (p.kind !== "airport") pts.push([p.lat, p.lng]);
       });
       pointsRef.current = pts;
       framedSize.current = { x: 0, y: 0 };
@@ -257,6 +274,77 @@ export function AroundMap({
       alive = false;
     };
   }, [visible, data, ready]);
+
+  // Fetch the route from the project to the picked place.
+  useEffect(() => {
+    if (!data || !picked) {
+      setRoute(null);
+      setRouteState("idle");
+      return;
+    }
+    const ctrl = new AbortController();
+    setRoute(null);
+    setRouteState("loading");
+    const qs = new URLSearchParams({
+      fromLat: String(data.lat),
+      fromLng: String(data.lng),
+      toLat: String(picked.lat),
+      toLng: String(picked.lng),
+      mode: travel,
+    });
+    fetch(`/api/maps/route?${qs}`, { signal: ctrl.signal })
+      .then(async (res) => {
+        const json = (await res.json()) as RouteInfo & { error?: string };
+        if (!res.ok || !json.path?.length) throw new Error(json.error || "no route");
+        setRoute(json);
+        setRouteState("idle");
+      })
+      .catch(() => {
+        if (!ctrl.signal.aborted) setRouteState("error");
+      });
+    return () => ctrl.abort();
+  }, [picked, travel, data?.lat, data?.lng]);
+
+  // Draw the route line on the map and frame it.
+  useEffect(() => {
+    const map = mapRef.current;
+    const layer = routeLayerRef.current;
+    if (!map || !layer || !ready) return;
+    let alive = true;
+    (async () => {
+      const L = (await import("leaflet")).default;
+      if (!alive) return;
+      layer.clearLayers();
+      if (!route) return;
+      L.polyline(route.path, { color: "#ffffff", weight: 9, opacity: 0.9 }).addTo(layer);
+      const line = L.polyline(route.path, {
+        color: travel === "car" ? "#3b7dd8" : "#2dce89",
+        weight: 5,
+        opacity: 0.95,
+        dashArray: travel === "foot" ? "2 10" : undefined,
+        lineCap: "round",
+      }).addTo(layer);
+      line.bindTooltip(`${fmtTime(route.duration)} · ${fmtKm(route.distance)}`, {
+        permanent: true,
+        direction: "center",
+        className: "poi-route-tip",
+      });
+      map.fitBounds(line.getBounds(), { padding: [40, 40], maxZoom: 17 });
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [route, ready, travel]);
+
+  const clearRoute = () => {
+    setPicked(null);
+    routeLayerRef.current?.clearLayers();
+    const map = mapRef.current;
+    if (map) {
+      framedSize.current = { x: 0, y: 0 };
+      framePins(map);
+    }
+  };
 
   const allOn = POI_FILTERS.every((f) => on[f.id]);
   const toggleAll = () => {
@@ -284,6 +372,39 @@ export function AroundMap({
           <span>Destination</span>
           <input value={dest} onChange={(e) => setDest(e.target.value)} placeholder="or click on map" />
         </label>
+        {picked && (
+          <div className="poi-route">
+            <div className="poi-route-head">
+              <span className="poi-mini" dangerouslySetInnerHTML={{ __html: PIN_SVG[picked.kind] }} />
+              <strong>{picked.name}</strong>
+              <button type="button" className="poi-route-x" onClick={clearRoute} aria-label="Close route">
+                ×
+              </button>
+            </div>
+            <div className="poi-route-modes">
+              <button type="button" className={travel === "car" ? "on" : ""} onClick={() => setTravel("car")}>
+                Car
+              </button>
+              <button type="button" className={travel === "foot" ? "on" : ""} onClick={() => setTravel("foot")}>
+                Walk
+              </button>
+            </div>
+            {routeState === "loading" && <p className="poi-route-msg">Calculating route…</p>}
+            {routeState === "error" && <p className="poi-route-msg">Route unavailable</p>}
+            {route && routeState === "idle" && (
+              <div className="poi-route-stats">
+                <div>
+                  <b>{fmtTime(route.duration)}</b>
+                  <span>Time</span>
+                </div>
+                <div>
+                  <b>{fmtKm(route.distance)}</b>
+                  <span>Distance</span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
         {mode === "list" ? (
           <ul className="poi-list">
             {visible.slice(0, 80).map((p) => (

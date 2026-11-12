@@ -395,6 +395,7 @@ export class Visite360Engine {
           this.stillMat.uniforms.refPos.value.copy(this.cams[this.desiredCam].pos);
           this.ready.tex = true;
           this.prefetchNeighbors(this.desiredCam);
+          this.prefetchFloorStarts();
           this.maybeFirstFrame();
         })
         .catch((e) => this.fail(`Panorama failed to load (${String(e)})`));
@@ -474,25 +475,27 @@ export class Visite360Engine {
     const dir = dest.clone().sub(from);
     const dist = dir.length();
     const blocked = !!this.pick(from, dir.normalize(), dist);
-    let refA: THREE.Vector3;
-    if (blocked) {
-      // wall in between: cut to destination and cross-fade in place (~0.6 s)
-      this.interDist = this.unitStep;
-      this.rigPos.copy(dest);
-      refA = dest.clone();
-    } else {
-      this.interDist = Math.max(this.unitStep, dist);
-      refA = from;
-    }
     this.desiredCam = e;
     this.desiredQuat = this.clampPitch(this.lookQuat(dest, this.viewTarget(e), false));
-    this.prevPos.copy(this.rigPos);
-    this.prevQuat.copy(this.rigQuat);
     this.hideHover();
     const path = this.texPath(e);
     this.loadCube(path)
       .then((tex) => {
         if (this.disposed || this.texPath(e) !== path || this.desiredCam !== e) return;
+        // Move the camera only once the destination panorama is ready: jumping first (e.g. to the
+        // roof) would show the current panorama smeared from the wrong spot while the image loads.
+        let refA: THREE.Vector3;
+        if (blocked) {
+          // wall in between: cut to destination and cross-fade in place (~0.6 s)
+          this.interDist = this.unitStep;
+          this.rigPos.copy(dest);
+          refA = dest.clone();
+        } else {
+          this.interDist = Math.max(this.unitStep, dist);
+          refA = this.rigPos.clone();
+        }
+        this.prevPos.copy(this.rigPos);
+        this.prevQuat.copy(this.rigQuat);
         this.nextTex = tex;
         if (this.currentTex) this.useMoveMaterial(refA, dest, this.currentTex, tex);
         this.moveDone = 0;
@@ -777,6 +780,20 @@ export class Visite360Engine {
     });
     this.texLoading.set(path, p);
     return p;
+  }
+
+  /** Preload the first room of every floor, so the Ground / First / Roof buttons open instantly. */
+  private prefetchFloorStarts() {
+    const ids = (this.o.tour.floors ?? []).map((f) => f.rooms?.[0]).filter((id): id is string => !!id);
+    const run = () => {
+      for (const id of ids) {
+        const i = this.cams.findIndex((c) => c.id === id);
+        if (i < 0 || i === this.desiredCam) continue;
+        const p = this.texPath(i);
+        if (!this.texCache.has(p) && !this.texLoading.has(p)) this.loadCube(p).catch(() => {});
+      }
+    };
+    window.setTimeout(run, 400);
   }
 
   /** After arriving, quietly preload every camera reachable from here. */

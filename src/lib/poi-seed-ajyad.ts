@@ -312,6 +312,13 @@ export const AJYAD_POI_SEED: PoiPlace[] =
     "lng": 42.7474124
   },
   {
+    "id": "seed-airport-9712421",
+    "kind": "airport",
+    "name": "مطار أبها الدولي",
+    "lat": 18.2416611,
+    "lng": 42.6537664
+  },
+  {
     "id": "seed-square-1485051810",
     "kind": "square",
     "name": "موجان بارك",

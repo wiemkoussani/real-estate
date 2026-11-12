@@ -3,7 +3,7 @@ export const POI_FILTERS = [
   { id: "restaurant", ar: "مطاعم", en: "Gastronomy", query: 'nwr["amenity"="restaurant"]\nnwr["amenity"="fast_food"]', search: "restaurant" },
   { id: "cafe", ar: "مقهى", en: "Cafe", query: 'nwr["amenity"="cafe"]', search: "cafe" },
   { id: "hospital", ar: "مستشفى", en: "Hospital", query: 'nwr["amenity"="hospital"]\nnwr["amenity"="clinic"]', search: "hospital" },
-  { id: "church", ar: "جوامع", en: "Mosques", query: 'nwr["amenity"="place_of_worship"]["religion"="muslim"]', search: "mosque" },
+  { id: "church", ar: "جوامع", en: "Mosques", query: 'nwr["amenity"="place_of_worship"]', search: "mosque" },
   { id: "culture", ar: "ثقافة", en: "Culture", query: 'nwr["tourism"="museum"]\nnwr["amenity"="theatre"]\nnwr["amenity"="library"]', search: "museum" },
   { id: "parking", ar: "موقف سيارات", en: "Car Parking", query: 'nwr["amenity"="parking"]', search: "parking" },
   { id: "square", ar: "ساحة", en: "Square", query: 'nwr["leisure"="park"]\nnwr["place"="square"]', search: "park" },
@@ -12,6 +12,7 @@ export const POI_FILTERS = [
   { id: "mall", ar: "مركز تسوق", en: "Shopping Mall", query: 'nwr["shop"="mall"]\nnwr["shop"="supermarket"]\nnwr["shop"="convenience"]', search: "supermarket" },
   { id: "school", ar: "مدرسة", en: "School", query: 'nwr["amenity"="school"]', search: "school" },
   { id: "bank", ar: "بنك", en: "Bank", query: 'nwr["amenity"="bank"]', search: "bank" },
+  { id: "airport", ar: "مطار", en: "Airport", query: 'nwr["aeroway"="aerodrome"]["iata"][!"military"]', search: "airport" },
 ] as const;
 
 export type PoiKind = (typeof POI_FILTERS)[number]["id"];
@@ -23,6 +24,9 @@ export type PoiPlace = {
   lat: number;
   lng: number;
 };
+
+/** Airports are far from any home — search them in a much wider radius. */
+export const AIRPORT_RADIUS_KM = 80;
 
 export function kindOfTags(tags: Record<string, string> | undefined): PoiKind | null {
   if (!tags) return null;
@@ -43,5 +47,11 @@ export function kindOfTags(tags: Record<string, string> | undefined): PoiKind | 
   if (tags.shop === "mall" || tags.shop === "supermarket" || tags.shop === "convenience") return "mall";
   if (tags.amenity === "school") return "school";
   if (tags.amenity === "bank") return "bank";
+  if (tags.aeroway === "aerodrome") {
+    // Only civil airports: skip air bases (often tagged with an IATA code but no `military` tag).
+    const names = Object.entries(tags).filter(([k]) => k.includes("name")).map(([, v]) => v).join(" ");
+    const military = tags.military || tags.landuse === "military" || /air\s?base|قاعدة/i.test(names);
+    return tags.iata && !military ? "airport" : null;
+  }
   return null;
 }

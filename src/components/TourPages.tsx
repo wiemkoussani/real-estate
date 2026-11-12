@@ -135,7 +135,7 @@ function GalBoard({
 }) {
   return (
     <section className="gal-sheet">
-      {title ? <p className="gal-board-title">{title}</p> : null}
+      {title ? <p className="gal-board-title" dir="rtl">{title}</p> : null}
       <div className={`gal-board n${items.length}`}>
         {items.map((src, i) => (
           <button key={src} type="button" className={`gal-cell c${i}`} onClick={() => onPick(src)}>
@@ -147,6 +147,14 @@ function GalBoard({
   );
 }
 
+/** Title + short text shown at the top right of the gallery cover photo, per project. */
+const GALLERY_COPY: Record<string, { title: string; text: string }> = {
+  "villas-ajyad": {
+    title: "AJYAD SADIM",
+    text: "فلل سكنية عصرية في خميس مشيط، صُممت لتجمع بين الخصوصية والراحة والأناقة. مساحات داخلية واسعة يغمرها الضوء الطبيعي، وتشطيبات بجودة عالية، وواجهات بتصميم معاصر تناسب حياة العائلة.",
+  },
+};
+
 export function GalleryPage({ tour, onClose }: { tour: TourMedia; onClose: () => void }) {
   const [failed, setFailed] = useState<Record<string, true>>({});
   const [open, setOpen] = useState<string | null>(null);
@@ -156,6 +164,7 @@ export function GalleryPage({ tour, onClose }: { tour: TourMedia; onClose: () =>
   const exteriorBoards = chunk(live(tour.galleryExterior), 6);
   const interiorBoards = chunk(live(tour.galleryInterior), 6);
   const fail = (src: string) => setFailed((f) => ({ ...f, [src]: true }));
+  const copy = GALLERY_COPY[tour.slug];
 
   return (
     <div className={`site-overlay${closing ? " closing" : ""}`} onClick={close} aria-hidden={closing}>
@@ -168,13 +177,19 @@ export function GalleryPage({ tour, onClose }: { tour: TourMedia; onClose: () =>
             ) : (
               <div className="site-empty">ستظهر الصور هنا بعد رفعها للمشروع.</div>
             )}
+            {hero && copy && (
+              <div className="gal-hero-intro">
+                <h2 dir="ltr">{copy.title}</h2>
+                <p dir="rtl">{copy.text}</p>
+              </div>
+            )}
             {exteriorBoards.length + interiorBoards.length > 0 && <span className="gal-hint">اسحب للأسفل</span>}
           </section>
           {exteriorBoards.map((group, i) => (
-            <GalBoard key={`ex-${group[0]}-${i}`} title={i === 0 ? "Exterior" : undefined} items={group} onPick={setOpen} onFail={fail} />
+            <GalBoard key={`ex-${group[0]}-${i}`} title={i === 0 ? "التصميم الخارجي" : undefined} items={group} onPick={setOpen} onFail={fail} />
           ))}
           {interiorBoards.map((group, i) => (
-            <GalBoard key={`in-${group[0]}-${i}`} title={i === 0 ? "Interior" : undefined} items={group} onPick={setOpen} onFail={fail} />
+            <GalBoard key={`in-${group[0]}-${i}`} title={i === 0 ? "التصميم الداخلي" : undefined} items={group} onPick={setOpen} onFail={fail} />
           ))}
         </div>
         {open && (
@@ -194,9 +209,9 @@ export function LocationPage({ tour, onClose }: { tour: TourMedia; onClose: () =
   const query = tour.locationQuery || tour.name;
 
   return (
-    <SiteFrame kicker="الموقع" title="موضع مدروس للسكن" onClose={onClose} wide={tab === "map"} flush={tab === "map"}>
+    <SiteFrame kicker="الموقع" title="موقع مدروس للسكن" onClose={onClose} wide={tab === "map"} flush={tab === "map"}>
       <div className={`site-tabs${tab === "map" ? " map-in" : ""}`} dir="rtl">
-        <button type="button" className={tab === "place" ? "on" : ""} onClick={() => setTab("place")}>الموضع الاستراتيجي</button>
+        <button type="button" className={tab === "place" ? "on" : ""} onClick={() => setTab("place")}>الموقع الاستراتيجي</button>
         <button type="button" className={tab === "around" ? "on" : ""} onClick={() => setTab("around")}>ما حول الحي</button>
         <button type="button" className={tab === "map" ? "on" : ""} onClick={() => setTab("map")}>الخريطة</button>
       </div>
@@ -211,6 +226,22 @@ export function LocationPage({ tour, onClose }: { tour: TourMedia; onClose: () =
           <p>
             المجمع حيّ مكتفٍ بمدخل واحد واضح. من البوابة تتفرع الطرق الداخلية نحو مجموعات الفلل،
             فلا يقطع سير الخدمات أهدأ الحدائق. المسجد والخضرة والماء علامات اهتداء، لا زينة فقط.
+          </p>
+          <div className="site-chips">
+            <span>خميس مشيط</span>
+            <span>قرب الخدمات اليومية</span>
+            <span>مدخل واحد آمن</span>
+            <span>نحو 25 دقيقة إلى مطار أبها</span>
+          </div>
+          <p>
+            يقع المشروع في خميس مشيط بمنطقة عسير، إحدى أسرع مدن الجنوب نمواً، حيث يلتقي هدوء
+            الأحياء السكنية بحيوية المدينة. وتتوزع حوله المدارس والمساجد والصيدليات والمراكز
+            التجارية والمطاعم على مسافات قصيرة، فتُقضى احتياجات اليوم دون عناء.
+          </p>
+          <p>
+            ويرتبط الموقع بشبكة طرق تسهّل التنقل داخل المدينة ونحو أبها، ويبعد مطار أبها الدولي
+            نحو 25 دقيقة بالسيارة، ما يجعله خياراً مناسباً للعائلات وللمستثمرين على حد سواء.
+            أما مناخ المرتفعات المعتدل فيمنح الحدائق والأفنية حياة على مدار العام.
           </p>
         </div>
       )}

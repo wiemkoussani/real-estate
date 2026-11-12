@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { OpenLocationCode } from "open-location-code";
 import { COMPLEX } from "@/lib/complex";
-import { POI_FILTERS, kindOfTags, type PoiKind, type PoiPlace } from "@/lib/poi";
+import { AIRPORT_RADIUS_KM, POI_FILTERS, kindOfTags, type PoiKind, type PoiPlace } from "@/lib/poi";
 import { AJYAD_POI_SEED } from "@/lib/poi-seed-ajyad";
 
 export const dynamic = "force-dynamic";
@@ -143,7 +143,7 @@ async function overpassPlaces(
   const filters = POI_FILTERS.map((f) =>
     f.query
       .split("\n")
-      .map((line) => `${line}(around:${opts.radius},${lat},${lng});`)
+      .map((line) => `${line}(around:${f.id === "airport" ? AIRPORT_RADIUS_KM * 1000 : opts.radius},${lat},${lng});`)
       .join("\n"),
   ).join("\n");
   const overpass = `[out:json][timeout:${opts.timeout}];(\n${filters}\n);out center;`;
@@ -177,18 +177,31 @@ async function overpassPlaces(
           return {
             id: `${el.type}-${el.id}`,
             kind,
-            name: el.tags?.["name:ar"] || el.tags?.name || POI_FILTERS.find((f) => f.id === kind)?.ar || kind,
+            name: el.tags?.["name:ar"] || el.tags?.name || (kind === "church" ? "مسجد" : POI_FILTERS.find((f) => f.id === kind)?.ar || kind),
             lat: plat,
             lng: plng,
           } as PoiPlace;
         })
         .filter((p): p is PoiPlace => Boolean(p));
-      if (places.length) return places.slice(0, 120);
+      if (places.length) return nearestPerKind(places, lat, lng, 15);
     } catch {
       /* try next Overpass mirror */
     }
   }
   return [];
+}
+
+/** Overpass returns elements in id order — keep the nearest N of each kind so
+ * abundant kinds (bus stops, parking) don't crowd out mosques etc. */
+function nearestPerKind(places: PoiPlace[], lat: number, lng: number, n: number) {
+  const d = (p: PoiPlace) => {
+    const dy = p.lat - lat;
+    const dx = (p.lng - lng) * Math.cos((lat * Math.PI) / 180);
+    return dx * dx + dy * dy;
+  };
+  const byKind = new Map<string, PoiPlace[]>();
+  for (const p of places) byKind.set(p.kind, [...(byKind.get(p.kind) || []), p]);
+  return [...byKind.values()].flatMap((list) => list.sort((a, b) => d(a) - d(b)).slice(0, n));
 }
 
 function mergePlaces(a: PoiPlace[], b: PoiPlace[], perKind = 6, maxTotal = 78) {
@@ -197,7 +210,10 @@ function mergePlaces(a: PoiPlace[], b: PoiPlace[], perKind = 6, maxTotal = 78) {
   const out: PoiPlace[] = [];
   for (const p of [...a, ...b]) {
     const key = `${p.kind}-${p.lat.toFixed(5)}-${p.lng.toFixed(5)}`;
-    if (seen.has(key)) continue;
+    // Airports come from several sources with slightly different centers — dedupe by name.
+    const nameKey = p.kind === "airport" ? `airport-name-${p.name}` : "";
+    if (seen.has(key) || (nameKey && seen.has(nameKey))) continue;
+    if (nameKey) seen.add(nameKey);
     const n = counts.get(p.kind) || 0;
     if (n >= perKind) continue;
     seen.add(key);
@@ -222,6 +238,7 @@ function cityHint(address?: string) {
 function photonQueryFor(f: (typeof POI_FILTERS)[number], city: string) {
   // Arabic search finds mosques/pharmacies better in this region.
   if (f.id === "church") return `مسجد ${city}`;
+  if (f.id === "airport") return "مطار";
   if (f.id === "pharmacy") return `صيدلية ${city}`;
   if (f.id === "school") return `مدرسة ${city}`;
   if (f.id === "bank") return `بنك ${city}`;
@@ -244,13 +261,14 @@ async function photonPlacesLight(
   const queries = filters.map((f) => ({
     kind: f.id as PoiKind,
     q: photonQueryFor(f, city),
-    fallback: f.ar,
+    fallback: f.id === "church" ? "مسجد" : f.ar,
   }));
   const near = await Promise.all(
     queries.map(async ({ kind, q, fallback }) => {
       try {
         const r = await fetch(
-          `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&lat=${lat}&lon=${lng}&limit=${limit}`,
+          `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&lat=${lat}&lon=${lng}&limit=${limit}` +
+            (kind === "airport" ? "&osm_tag=aeroway:aerodrome" : ""),
           { headers: UA, signal: AbortSignal.timeout(timeoutMs) },
         );
         if (!r.ok) return [] as PoiPlace[];
@@ -263,7 +281,7 @@ async function photonPlacesLight(
             if (!coords || coords.length < 2) return null;
             const plng = coords[0];
             const plat = coords[1];
-            if (!withinKm(lat, lng, plat, plng, radiusKm)) return null;
+            if (!withinKm(lat, lng, plat, plng, kind === "airport" ? AIRPORT_RADIUS_KM : radiusKm)) return null;
             const name = feat.properties?.name || fallback;
             if (name === city || name === "خميس مشيط") return null;
             return {
@@ -290,7 +308,7 @@ function nearAjyad(lat: number, lng: number) {
 /** ~16 km cells so nearby pin sets can be reused when the home pin moves slightly. */
 function regionKey(lat: number, lng: number, light: boolean) {
   const cell = (v: number) => (Math.round(v / 0.15) * 0.15).toFixed(2);
-  return `v19r:${cell(lat)}:${cell(lng)}${light ? ":l" : ""}`;
+  return `v20r:${cell(lat)}:${cell(lng)}${light ? ":l" : ""}`;
 }
 
 async function loadPlaces(lat: number, lng: number, light: boolean, address?: string): Promise<PoiPlace[]> {
@@ -342,7 +360,7 @@ export async function GET(req: Request) {
   let address = sp.get("address") || "";
 
   if (q && q.length >= 2) {
-    const qkey = `v19:${q.toLowerCase()}${light ? ":l" : ""}`;
+    const qkey = `v20:${q.toLowerCase()}${light ? ":l" : ""}`;
     const hit = cached(qkey, 30 * 60_000);
     if (hit && !fast) return jsonOk(hit);
 
@@ -358,7 +376,7 @@ export async function GET(req: Request) {
     return jsonOk({ lat, lng, address: address || q || "", places: [] }, 300);
   }
 
-  const pkey = `v19p:${lat.toFixed(4)}:${lng.toFixed(4)}${light ? ":l" : ""}`;
+  const pkey = `v20p:${lat.toFixed(4)}:${lng.toFixed(4)}${light ? ":l" : ""}`;
   const rkey = regionKey(lat, lng, light);
   const phit = cached(pkey, 30 * 60_000) as { places?: PoiPlace[] } | null;
   if (phit?.places?.length) return jsonOk({ ...phit, lat, lng, address: address || (phit as { address?: string }).address || "" });
@@ -376,7 +394,7 @@ export async function GET(req: Request) {
   if (places.length) {
     putCache(pkey, body);
     putCache(rkey, body);
-    if (q && q.length >= 2) putCache(`v19:${q.toLowerCase()}${light ? ":l" : ""}`, body);
+    if (q && q.length >= 2) putCache(`v20:${q.toLowerCase()}${light ? ":l" : ""}`, body);
   }
   return jsonOk(body);
 }

@@ -19,6 +19,12 @@ export type EngineEvents = {
   onReady?: () => void;
 };
 
+/** Gray for villas that are not part of the sale (eye mode only). */
+const NOT_FOR_SALE_SHAPE = "Rectangle001";
+const OTHER_VILLA_COLOR = 0x6b7682;
+const OTHER_VILLA_OPACITY = 0.45;
+/** Longest the enter button waits for the 3D model after the photos are in. */
+const MODEL_WAIT_MAX_MS = 8000;
 const MIN_BG_WIDTH = 1600;
 const MAX_BG_WIDTH = 8192;
 
@@ -39,6 +45,8 @@ export class OrbitEngine {
   private glbCameras: THREE.Camera[] = [];
   private unitMeshes: Record<string, THREE.Mesh> = {};
   private clickable: THREE.Object3D[] = [];
+  /** Villas outside the sale (the Rectangle001 shape): shown gray with the eye, never clickable. */
+  private otherMeshes: THREE.Mesh[] = [];
   private units: Record<string, Unit> = {};
 
   private currentFrame = 0;
@@ -134,15 +142,21 @@ export class OrbitEngine {
   async start() {
     this.bind();
     this.resize();
+    // The 3D model (villa boxes) is small: download it from the very start, in parallel with the photos,
+    // and have it fully ready before the enter button — otherwise it lands during the first turn and freezes it.
+    const model = this.loadGlb()
+      .then(() => this.warmModel())
+      .catch((err) => console.error("OrbitEngine: model failed to load", err));
     const openingSharp = this.loadOpeningSharp();
     await this.loadOne(0, true);
-    void this.loadGlb();
     await this.loadUnits();
     this.syncCamera();
     this.draw("low");
     this.loop();
     await this.preloadLow();
     await openingSharp;
+    // safety net: a slow / failed model never keeps people on the loading screen
+    await Promise.race([model, new Promise((r) => window.setTimeout(r, MODEL_WAIT_MAX_MS))]);
     if (this.disposed) return;
     this.openingSharpReady = true;
     this.isNavigating = false;
@@ -552,6 +566,36 @@ export class OrbitEngine {
     });
   }
 
+  /** Compile the overlay shaders and upload the boxes to the GPU now, while the loading screen is up. */
+  private async warmModel() {
+    if (this.disposed) return;
+    this.syncCamera();
+    const r = this.renderer as THREE.WebGLRenderer & {
+      compileAsync?: (scene: THREE.Object3D, camera: THREE.Camera) => Promise<unknown>;
+    };
+    try {
+      if (r.compileAsync) await r.compileAsync(this.scene, this.activeCamera);
+      else r.compile(this.scene, this.activeCamera);
+    } catch {
+      /* rendering still works — it just compiles on first use */
+    }
+    if (this.disposed) return;
+    // one real draw with every box shown (fully transparent) so geometry buffers are uploaded too
+    const saved = [...Object.values(this.unitMeshes), ...this.otherMeshes].map((m) => {
+      const mat = m.material as THREE.MeshBasicMaterial;
+      const state = { m, mat, visible: m.visible, opacity: mat.opacity };
+      m.visible = true;
+      mat.opacity = 0;
+      return state;
+    });
+    this.renderer.render(this.scene, this.activeCamera);
+    saved.forEach(({ m, mat, visible, opacity }) => {
+      m.visible = visible;
+      mat.opacity = opacity;
+    });
+    this.requestRender();
+  }
+
   /** Opening photos only. The number climbs with each finished photo and never goes back. */
   private reportLoad(done: number, total: number) {
     let pct = !total ? 100 : Math.min(100, Math.round((done / total) * 100));
@@ -621,8 +665,33 @@ export class OrbitEngine {
     gltf.scene.traverse((obj) => {
       if (obj instanceof THREE.Camera) registerCam(obj);
       if (!(obj instanceof THREE.Mesh)) return;
-      if (COMPLEX.maskNames.includes(obj.name) || !obj.name.startsWith("jjjjjjjjj_ID")) {
+      if (COMPLEX.maskNames.includes(obj.name)) {
         obj.visible = false;
+        return;
+      }
+      if (!obj.name.startsWith("jjjjjjjjj_ID")) {
+        // "Rectangle001" outlines the blocks of villas that are not for sale.
+        // (Plain-numbered shapes are just copies of the sale villas — keep them hidden.)
+        if (obj.name !== NOT_FOR_SALE_SHAPE) {
+          obj.visible = false;
+          return;
+        }
+        obj.material = new THREE.MeshBasicMaterial({
+          color: OTHER_VILLA_COLOR,
+          transparent: true,
+          opacity: 0,
+          depthWrite: false,
+          depthTest: true,
+          side: THREE.DoubleSide,
+          polygonOffset: true,
+          polygonOffsetFactor: -2,
+          polygonOffsetUnits: -2,
+        });
+        obj.userData.targetOpacity = 0;
+        obj.renderOrder = 1;
+        obj.visible = false;
+        obj.raycast = () => {}; // not clickable / hoverable
+        this.otherMeshes.push(obj);
         return;
       }
       obj.material = new THREE.MeshBasicMaterial({
@@ -913,6 +982,10 @@ export class OrbitEngine {
 
   private syncMeshVisibility() {
     this.requestRender();
+    for (const mesh of this.otherMeshes) {
+      if (this.overlayVisible) mesh.visible = true;
+      mesh.userData.targetOpacity = this.overlayVisible ? OTHER_VILLA_OPACITY : 0;
+    }
     Object.entries(this.unitMeshes).forEach(([name, mesh]) => {
       const unit = this.units[name];
       const mat = mesh.material as THREE.MeshBasicMaterial;
@@ -1506,7 +1579,7 @@ export class OrbitEngine {
       this.syncCamera();
     }
     let fading = false;
-    for (const m of Object.values(this.unitMeshes)) {
+    for (const m of [...Object.values(this.unitMeshes), ...this.otherMeshes]) {
       const mat = m.material as THREE.MeshBasicMaterial;
       const target = m.userData.targetOpacity;
       if (typeof target !== "number") continue;
@@ -1563,6 +1636,28 @@ export class OrbitEngine {
       ? rect.top + (dy + (-top.y * 0.5 + 0.5) * dh) * sy
       : rect.top + (-top.y * 0.5 + 0.5) * rect.height;
     this.events.onHover?.(unit, { x, y });
+  }
+
+  /**
+   * Project world points to pixel positions inside the stage element (for HTML pins over the map).
+   * null = behind the camera or outside the picture.
+   */
+  projectToStage(points: [number, number, number][]): ({ x: number; y: number } | null)[] {
+    const rect = this.threeCanvas.getBoundingClientRect();
+    const stage = this.container.getBoundingClientRect();
+    if (rect.width < 2 || rect.height < 2) return points.map(() => null);
+    const { cw, ch, dx, dy, dw, dh, contain } = this.getDrawRect();
+    const sx = rect.width / Math.max(1, cw);
+    const sy = rect.height / Math.max(1, ch);
+    const v = new THREE.Vector3();
+    return points.map(([x, y, z]) => {
+      v.set(x, y, z).project(this.activeCamera);
+      if (v.z > 1 || v.z < -1) return null;
+      const px = contain ? rect.left + (dx + (v.x * 0.5 + 0.5) * dw) * sx : rect.left + (v.x * 0.5 + 0.5) * rect.width;
+      const py = contain ? rect.top + (dy + (-v.y * 0.5 + 0.5) * dh) * sy : rect.top + (-v.y * 0.5 + 0.5) * rect.height;
+      if (px < stage.left - 40 || px > stage.right + 40 || py < stage.top - 40 || py > stage.bottom + 40) return null;
+      return { x: px - stage.left, y: py - stage.top };
+    });
   }
 
   private onClick = (e: MouseEvent) => {
