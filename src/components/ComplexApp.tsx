@@ -312,6 +312,13 @@ function ChargeSplash() {
   );
 }
 
+/** Keep the compass angle continuous (…350 → 360 → 370…) so the needle
+ *  never spins back the long way when the heading wraps 359° → 0°. */
+function unwrapDeg(prev: number, next: number) {
+  const d = ((((next - prev) % 360) + 540) % 360) - 180;
+  return prev + d;
+}
+
 export default function ComplexApp({ slug, initialTour, initialVilla }: { slug: string; initialTour?: TourMedia | null; initialVilla?: string }) {
   const [tour, setTour] = useState<TourMedia | null>(initialTour ?? null);
   const [splash, setSplash] = useState(true);
@@ -766,7 +773,7 @@ function ComplexStage({ tour, introOpen, onEnter, initialVilla }: { tour: TourMe
         onFrame: (i) => {
           setFrame(i);
           setHeadingDir(engine!.getHeadingDir());
-          setHeadingDeg(engine!.getHeading());
+          setHeadingDeg((prev) => unwrapDeg(prev, engine!.getHeading()));
         },
         onHover: (u, pos) => {
           setHover(u);
@@ -791,7 +798,7 @@ function ComplexStage({ tour, introOpen, onEnter, initialVilla }: { tour: TourMe
           }
           setReady(true);
           setHeadingDir(engine!.getHeadingDir());
-          setHeadingDeg(engine!.getHeading());
+          setHeadingDeg((prev) => unwrapDeg(prev, engine!.getHeading()));
         },
       }, tour);
       engineRef.current = engine;
@@ -2808,7 +2815,7 @@ function VillaTour({
           ) : null}
           <div className="side-head" dir="rtl">
             <div>
-              <div className="side-project">فيلات أجياد</div>
+              <div className="side-project">{tour.name}</div>
               <h2>
                 فيلا استثمارية <bdi dir="ltr">{unit.displayId}</bdi>
               </h2>

@@ -186,7 +186,7 @@ export default function Visite360Viewer({ className, startId }: Props) {
 
       <div className={`visite360-loading${loaded || error ? " is-done" : ""}`} aria-hidden={loaded}>
         <span className="visite360-spinner" />
-        <span>جارٍ تحميل الجولة 360°…</span>
+        <span dir="rtl">جارٍ تحميل الجولة 360°…</span>
       </div>
       {error ? <div className="visite360-error">{error}</div> : null}
 
