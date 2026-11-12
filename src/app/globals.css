@@ -5482,9 +5482,12 @@ html.phone-layout .dock {
   box-shadow: none;
   transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.35s ease;
   max-height: none;
-  pointer-events: none;
+  /* the whole strip takes the swipe — also between cards */
+  pointer-events: auto;
 }
 html.phone-layout .dock > * { pointer-events: auto; }
+html.phone-layout .dock.is-dragging { cursor: grabbing; }
+html.phone-layout .dock.is-dragging .unit { pointer-events: none; }
 html.phone-layout .dock.tuck {
   transform: translateY(110%);
   opacity: 0;

@@ -894,6 +894,99 @@ function ComplexStage({ tour, introOpen, onEnter, initialVilla }: { tour: TourMe
     };
   }, [ready, filtered, scene360Strip, scene360Open, tourUnit]);
 
+  // Phone-width card strip: mouse drag + mouse wheel scroll it sideways (touch already scrolls natively).
+  useEffect(() => {
+    const dock = dockRef.current;
+    if (!dock) return;
+    let startX = 0;
+    let startScroll = 0;
+    let pointerId: number | null = null;
+    let dragging = false;
+    let lastX = 0;
+    let lastT = 0;
+    let vel = 0;
+    let coast = 0;
+    const stopCoast = () => {
+      if (coast) cancelAnimationFrame(coast);
+      coast = 0;
+    };
+    const restoreSnap = () => {
+      dock.style.scrollSnapType = "";
+    };
+    const onDown = (e: PointerEvent) => {
+      if (e.pointerType !== "mouse" || e.button !== 0 || !isPhoneLayout()) return;
+      stopCoast();
+      pointerId = e.pointerId;
+      startX = lastX = e.clientX;
+      lastT = performance.now();
+      startScroll = dock.scrollLeft;
+      vel = 0;
+      dragging = false;
+    };
+    const onMove = (e: PointerEvent) => {
+      if (pointerId === null || e.pointerId !== pointerId) return;
+      const dx = e.clientX - startX;
+      if (!dragging) {
+        if (Math.abs(dx) < 5) return;
+        dragging = true;
+        dock.style.scrollSnapType = "none"; // snap would fight the 1:1 drag
+        dock.classList.add("is-dragging");
+      }
+      const now = performance.now();
+      const dt = Math.max(1, now - lastT);
+      vel = 0.8 * ((e.clientX - lastX) / dt) + 0.2 * vel;
+      lastX = e.clientX;
+      lastT = now;
+      dock.scrollLeft = startScroll - dx;
+    };
+    const onUp = (e: PointerEvent) => {
+      if (pointerId === null || e.pointerId !== pointerId) return;
+      pointerId = null;
+      if (!dragging) return;
+      dock.classList.remove("is-dragging");
+      // swallow the click that follows a drag so it doesn't open the villa
+      const block = (ev: Event) => {
+        ev.stopPropagation();
+        ev.preventDefault();
+      };
+      dock.addEventListener("click", block, { capture: true, once: true });
+      window.setTimeout(() => dock.removeEventListener("click", block, { capture: true }), 0);
+      dragging = false;
+      // short glide, then let scroll-snap settle on a card
+      let v = performance.now() - lastT > 80 ? 0 : vel * 16;
+      const step = () => {
+        v *= 0.92;
+        if (Math.abs(v) < 0.5) {
+          coast = 0;
+          restoreSnap();
+          return;
+        }
+        dock.scrollLeft -= v;
+        coast = requestAnimationFrame(step);
+      };
+      coast = requestAnimationFrame(step);
+    };
+    const onWheel = (e: WheelEvent) => {
+      if (!isPhoneLayout()) return;
+      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return; // trackpad sideways swipe: native
+      e.preventDefault();
+      dock.scrollBy({ left: e.deltaY, behavior: "smooth" });
+    };
+    dock.addEventListener("pointerdown", onDown);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+    dock.addEventListener("wheel", onWheel, { passive: false });
+    return () => {
+      stopCoast();
+      dock.removeEventListener("pointerdown", onDown);
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+      dock.removeEventListener("wheel", onWheel);
+    };
+  }, [ready]);
+
   // Phone: tapping a villa on the map glides the card strip to that villa's card.
   useEffect(() => {
     const dock = dockRef.current;
