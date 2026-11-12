@@ -6444,7 +6444,7 @@ html.phone-layout .dock.units.cards .unit.dock-arrive {
 }
 .gal-hero-intro p {
   margin: 0;
-  max-width: 440px;
+  max-width: 460px;
   font-family: var(--font-noto-arabic), system-ui, sans-serif;
   font-size: clamp(14px, 1.25vw, 17px);
   font-weight: 400;

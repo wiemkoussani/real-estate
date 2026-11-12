@@ -152,7 +152,7 @@ const GALLERY_COPY: Record<string, { kicker: string; title: string; text: string
   "villas-ajyad": {
     kicker: "Villas · Khamis Mushait",
     title: "AJYAD SADIM",
-    text: "فلل عصرية تجمع الخصوصية والأناقة في قلب خميس مشيط",
+    text: "فيلات عصرية تجمع الخصوصية والأناقة في قلب خميس مشيط. مساحات رحبة يغمرها الضوء الطبيعي، وتشطيبات راقية بعناية في كل تفصيل، وواجهات معاصرة تمنح كل عائلة بيتاً يليق بها وحياة هادئة في حيّ متكامل الخدمات.",
   },
 };
 
