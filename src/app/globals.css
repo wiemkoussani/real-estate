@@ -6395,39 +6395,82 @@ html.phone-layout .dock.units.cards .unit.dock-arrive {
   html.phone-layout .dock.units.cards .unit.dock-arrive { animation: none; }
 }
 
-/* Gallery cover: project name + short description, top right */
+/* Gallery cover: project name + short line, top right */
 .gal-hero-intro {
   position: absolute;
   top: 0;
   right: 0;
-  width: min(440px, 46%);
-  padding: 32px 32px 56px 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  width: min(720px, 70%);
+  padding: 44px 48px 90px 90px;
   box-sizing: border-box;
   color: #fff;
   text-align: right;
-  background: radial-gradient(120% 100% at 100% 0%, rgba(10, 18, 26, 0.55) 0%, rgba(10, 18, 26, 0.25) 55%, transparent 80%);
+  background: radial-gradient(110% 120% at 100% 0%, rgba(12, 16, 22, 0.5) 0%, rgba(12, 16, 22, 0.18) 50%, transparent 75%);
   pointer-events: none;
-  animation: gal-intro-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both;
+}
+.gal-hero-kicker {
+  font-family: var(--font-saira), "Segoe UI", sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  color: #e8c98f;
+  margin-bottom: 14px;
+  margin-right: -0.42em; /* letter spacing adds a gap after the last letter */
+  animation: gal-intro-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
 }
 .gal-hero-intro h2 {
-  margin: 0 0 12px;
-  font-size: clamp(24px, 3.4vw, 42px);
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  line-height: 1.1;
-  text-shadow: 0 4px 22px rgba(0, 0, 0, 0.45);
+  margin: 0;
+  font-family: var(--font-bona-nova), "Bona Nova", Georgia, serif;
+  font-size: clamp(34px, 4.6vw, 64px);
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  margin-right: -0.14em;
+  line-height: 1;
+  white-space: nowrap;
+  text-shadow: 0 6px 30px rgba(0, 0, 0, 0.35);
+  animation: gal-intro-in 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.2s both;
+}
+.gal-hero-rule {
+  width: 64px;
+  height: 1px;
+  margin: 20px 0 16px;
+  background: linear-gradient(270deg, #e8c98f, rgba(232, 201, 143, 0));
+  transform-origin: right;
+  animation: gal-rule-in 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.45s both;
 }
 .gal-hero-intro p {
   margin: 0;
+  max-width: 440px;
   font-family: var(--font-noto-arabic), system-ui, sans-serif;
-  font-size: clamp(13px, 1.15vw, 16px);
-  font-weight: 500;
+  font-size: clamp(14px, 1.25vw, 17px);
+  font-weight: 400;
   line-height: 1.9;
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+  color: rgba(255, 255, 255, 0.92);
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.45);
+  animation: gal-intro-in 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.55s both;
 }
 @keyframes gal-intro-in {
-  from { opacity: 0; transform: translateY(-10px); }
+  from { opacity: 0; transform: translateY(-8px); }
   to { opacity: 1; transform: none; }
+}
+@keyframes gal-rule-in {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+@media (max-width: 720px) {
+  .gal-hero-intro {
+    width: 100%;
+    padding: 22px 20px 56px 70px; /* leave room for the close button on the left */
+    background: linear-gradient(180deg, rgba(12, 16, 22, 0.5) 0%, rgba(12, 16, 22, 0.15) 70%, transparent 100%);
+  }
+  .gal-hero-kicker { font-size: 9.5px; letter-spacing: 0.32em; margin-right: -0.32em; margin-bottom: 10px; }
+  .gal-hero-intro h2 { font-size: clamp(24px, 8vw, 30px); }
+  .gal-hero-rule { margin: 14px 0 10px; width: 48px; }
+  .gal-hero-intro p { font-size: 13px; }
 }
 /* Arabic section titles: letter spacing breaks Arabic letter joining */
 .gal-board-title[dir="rtl"] {
@@ -6444,10 +6487,10 @@ html.phone-layout .dock.units.cards .unit.dock-arrive {
   .gal-hero-intro p { font-size: 12.5px; line-height: 1.8; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .gal-hero-intro { animation: none; }
+  .gal-hero-intro, .gal-hero-intro *, .gal-hero-rule { animation: none !important; }
 }
 
-/* Street 360° hotspots on the aerial map */
+/* Street 360° hotspots on the aerial map: small glass label on a stem, the dot sits on the street */
 .street360-pins {
   position: absolute;
   inset: 0;
@@ -6459,46 +6502,89 @@ html.phone-layout .dock.units.cards .unit.dock-arrive {
   position: absolute;
   left: 0;
   top: 0;
-  width: 46px;
-  height: 46px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   padding: 0;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.95);
-  background: rgba(255, 255, 255, 0.82);
-  color: #1f2a36;
-  box-shadow: 0 4px 14px rgba(10, 20, 30, 0.35);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  border: 0;
+  background: none;
   cursor: pointer;
   pointer-events: auto;
   will-change: transform;
-  transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+  -webkit-tap-highlight-color: transparent;
 }
-.street360-pin::after {
+.street360-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 10px 0 8px;
+  border-radius: 999px;
+  background: rgba(16, 24, 34, 0.62);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(8px) saturate(1.3);
+  -webkit-backdrop-filter: blur(8px) saturate(1.3);
+  transition: background 0.2s ease, transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.street360-tag b {
+  font-family: var(--font-saira), "Segoe UI", sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+.street360-stem {
+  width: 1.5px;
+  height: 14px;
+  background: linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.4));
+}
+.street360-dot {
+  position: relative;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(59, 125, 216, 0.55), 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+.street360-dot::after {
   content: "";
   position: absolute;
-  inset: -2px;
+  inset: -3px;
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.85);
-  animation: street360-ring 2.4s ease-out infinite;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  animation: street360-ring 2.6s ease-out infinite;
+}
+.street360-preview {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  width: 150px;
+  height: 84px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 2px solid #fff;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.35);
+  opacity: 0;
+  transform: translate(-50%, 6px) scale(0.96);
+  transition: opacity 0.2s ease, transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
   pointer-events: none;
 }
-.street360-pin svg { display: block; transition: transform 0.18s ease; }
-.street360-pin:hover {
-  background: var(--teal, #2bb3a3);
-  color: #fff;
-  box-shadow: 0 6px 20px rgba(10, 20, 30, 0.45);
+.street360-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
+@media (hover: hover) {
+  .street360-pin:hover .street360-tag { background: var(--teal); transform: translateY(-2px); }
+  .street360-pin:hover .street360-preview { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  .street360-pin:hover { z-index: 2; }
 }
-.street360-pin:hover svg { transform: scale(1.08); }
-.street360-pin:focus-visible { outline: 3px solid var(--teal, #2bb3a3); outline-offset: 3px; }
+.street360-pin:focus-visible .street360-tag { outline: 2px solid #fff; outline-offset: 2px; }
 @keyframes street360-ring {
   0% { transform: scale(1); opacity: 0.9; }
-  100% { transform: scale(1.55); opacity: 0; }
+  100% { transform: scale(2.2); opacity: 0; }
 }
-html.phone-layout .street360-pin { width: 38px; height: 38px; }
-html.phone-layout .street360-pin svg { width: 28px; height: 28px; }
+html.phone-layout .street360-tag { height: 24px; padding: 0 8px 0 7px; }
+html.phone-layout .street360-tag b { font-size: 11px; }
 @media (prefers-reduced-motion: reduce) {
-  .street360-pin::after { animation: none; opacity: 0; }
+  .street360-dot::after { animation: none; opacity: 0; }
 }
+

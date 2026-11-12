@@ -967,7 +967,8 @@ function ComplexStage({ tour, introOpen, onEnter, initialVilla }: { tour: TourMe
           return;
         }
         el.style.visibility = "visible";
-        el.style.transform = `translate3d(${Math.round(p.x)}px, ${Math.round(p.y)}px, 0) translate(-50%, -50%)`;
+        // the dot at the bottom of the pin sits exactly on the street point
+        el.style.transform = `translate3d(${Math.round(p.x)}px, ${Math.round(p.y)}px, 0) translate(-50%, calc(-100% + 5px))`;
       });
     };
     raf = requestAnimationFrame(tick);
@@ -1302,6 +1303,24 @@ function ComplexStage({ tour, introOpen, onEnter, initialVilla }: { tour: TourMe
       strip.scrollBy({ left: delta, behavior: "smooth" });
     });
   }, []);
+
+  // 360 view: the strip below glides to the open photo (from a map pin, a thumb, or the arrows).
+  useEffect(() => {
+    if (!scene360Open || !activeSceneId) return;
+    const center = (smooth: boolean) => {
+      const strip = document.querySelector<HTMLElement>(".scene360-overlay .scene360-strip") ?? stripElRef.current;
+      const thumb = strip?.querySelector<HTMLElement>(`[data-scene-id="${CSS.escape(activeSceneId)}"]`);
+      if (!strip || !thumb) return;
+      const s = strip.getBoundingClientRect();
+      const t = thumb.getBoundingClientRect();
+      const delta = t.left + t.width / 2 - (s.left + s.width / 2);
+      if (Math.abs(delta) < 2) return;
+      strip.scrollBy({ left: delta, behavior: smooth ? "smooth" : "auto" });
+    };
+    // wait for the 360 view to finish opening so the glide is visible
+    const t = window.setTimeout(() => center(true), 320);
+    return () => window.clearTimeout(t);
+  }, [scene360Open, activeSceneId]);
 
   // Keyboard ← → switches 360 thumbs (strip open on first click, and full view).
   useEffect(() => {
@@ -1731,13 +1750,28 @@ function ComplexStage({ tour, introOpen, onEnter, initialVilla }: { tour: TourMe
                 type="button"
                 className="street360-pin"
                 style={{ visibility: "hidden" }}
-                title="جولة 360° في الشارع"
-                aria-label={`جولة 360° — ${p.sceneId}`}
+                aria-label={`جولة 360° في الشارع — ${p.sceneId}`}
                 onPointerDown={(e) => e.stopPropagation()}
                 onMouseDown={(e) => e.stopPropagation()}
                 onClick={() => openScene360View(p.sceneId)}
               >
-                <Icon360 size={34} />
+                {(() => {
+                  const thumb = tour.scenes360.find((sc) => sc.id === p.sceneId)?.thumbUrl;
+                  return thumb ? (
+                    <span className="street360-preview" aria-hidden>
+                      <img src={thumb} alt="" loading="lazy" draggable={false} />
+                    </span>
+                  ) : null;
+                })()}
+                <span className="street360-tag">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <ellipse cx="12" cy="12" rx="9" ry="4" />
+                    <path d="M17.5 15.2 21 16l-1.2-3.4" />
+                  </svg>
+                  <b>360°</b>
+                </span>
+                <span className="street360-stem" aria-hidden />
+                <span className="street360-dot" aria-hidden />
               </button>
             ))}
           </div>

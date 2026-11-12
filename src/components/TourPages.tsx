@@ -148,10 +148,11 @@ function GalBoard({
 }
 
 /** Title + short text shown at the top right of the gallery cover photo, per project. */
-const GALLERY_COPY: Record<string, { title: string; text: string }> = {
+const GALLERY_COPY: Record<string, { kicker: string; title: string; text: string }> = {
   "villas-ajyad": {
+    kicker: "Villas · Khamis Mushait",
     title: "AJYAD SADIM",
-    text: "فلل سكنية عصرية في خميس مشيط، صُممت لتجمع بين الخصوصية والراحة والأناقة. مساحات داخلية واسعة يغمرها الضوء الطبيعي، وتشطيبات بجودة عالية، وواجهات بتصميم معاصر تناسب حياة العائلة.",
+    text: "فلل عصرية تجمع الخصوصية والأناقة في قلب خميس مشيط",
   },
 };
 
@@ -179,7 +180,9 @@ export function GalleryPage({ tour, onClose }: { tour: TourMedia; onClose: () =>
             )}
             {hero && copy && (
               <div className="gal-hero-intro">
+                <span className="gal-hero-kicker" dir="ltr">{copy.kicker}</span>
                 <h2 dir="ltr">{copy.title}</h2>
+                <span className="gal-hero-rule" aria-hidden />
                 <p dir="rtl">{copy.text}</p>
               </div>
             )}
