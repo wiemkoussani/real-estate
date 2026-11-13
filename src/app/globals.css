@@ -6603,3 +6603,23 @@ html.phone-layout .street360-tag b { font-size: 11px; }
 .detail-tabs button {
   font-family: var(--font-noto-arabic), var(--font-saira), system-ui, sans-serif;
 }
+
+/* Phone: big 360 image gets the same rounded frame as on PC (inset a little so the corners show) */
+html.phone-layout .scene360-view {
+  background: #0b1220;
+}
+html.phone-layout .scene360-pano {
+  top: max(8px, env(safe-area-inset-top));
+  right: 8px;
+  bottom: 8px;
+  left: 8px;
+  width: auto !important;
+  height: auto !important;
+  border-radius: 16px;
+  overflow: hidden;
+  clip-path: inset(0 round 16px);
+  -webkit-mask-image: -webkit-radial-gradient(white, black); /* Safari: clip the WebGL canvas too */
+}
+html.phone-layout .scene360-pano canvas {
+  border-radius: 16px;
+}
